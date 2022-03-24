@@ -2,6 +2,7 @@
 # ---  WHY3 Makefile
 # --------------------------------------------------------------------------
 
+#OPAM_PACKAGE?= name
 #WHY3_PACKAGE= name
 #WHY3_VERSION= x.y.z
 #WHY3_DEPENDS= pkg ...
@@ -10,6 +11,7 @@
 #WHY3_TITLE='...'
 #WHY3_STYLE= f.css
 
+OPAM_PACKAGE?=$(WHY3_PACKAGE)
 WHY3_VERSION?=0.1
 WHY3_MAKE=$(shell ocamlfind query why3-make)
 
@@ -117,7 +119,7 @@ WHY3_REP= why3 replay $(WHY3_OPTIONS) -f
 
 .PHONY: extract
 
-WHY3_PKGDRV=$(shell ocamlfind query -r -predicates driver -format +a $(WHY3_REQUIRES))
+WHY3_PKGDRV=$(shell ocamlfind query -r -predicates why3-driver -format +a $(WHY3_REQUIRES))
 WHY3_DRV=$(addprefix -D ,ocaml64 $(WHY3_PKGDRV) $(WHY3_DRIVERS))
 
 ifeq "$(WHY3_EXTRACT)" ""
@@ -135,30 +137,21 @@ build: extract
 	dune build
 
 # --------------------------------------------------------------------------
-# --- Installation
+# --- Installation Distribution Files
 # --------------------------------------------------------------------------
 
-.PHONY: install
+.PHONY: distrib
 
-META: Makefile
-	@echo "Generating META"
-	@rm -f META
-	@echo "version = \"$(WHY3_VERSION)\"" >> META
-	@echo "description = \"$(WHY3_TITLE)\"" >> META
-	@echo "requires = \"$(WHY3_REQUIRES)\"" >> META
-	@chmod a-w META
+WHY3_OPAM=$(OPAM_PACKAGE).opam.template
+WHY3_META=META.$(OPAM_PACKAGE).template
 
-WHY3_INSTALL= \
-	$(addsuffix .mlw, $(WHY3_MODULES))
-
-ifeq "$(WHY3_PACKAGE)" ""
-install:
-	@echo "Makefile:1: undefined variable WHY3_PACKAGE"
-	@exit 1
-else
-install: META
-	@ocamlfind remove $(WHY3_PACKAGE) 2> /dev/null
-	@ocamlfind install $(WHY3_PACKAGE) META $(WHY3_INSTALL)
-endif
+distrib:
+	rm -f $(WHY3_META)
+	rm -f $(WHY3_OPAM)
+	echo "# DUNE_GEN" > $(WHY3_META)
+	echo "archive(why3-driver) = \"$(WHY3_DRIVERS)\"" > $(WHY3_META)
+	cp -f $(WHY3_MAKE)/opam.template $(WHY3_OPAM)
+	chmod a-w $(WHY3_META)
+	chmod a-w $(WHY3_OPAM)
 
 # --------------------------------------------------------------------------

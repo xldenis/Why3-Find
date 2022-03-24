@@ -4,6 +4,7 @@ all:
 FILES= init.sh \
 	gitignore.template \
 	Makefile.template \
+	opam.template \
 	Makefile.why3 \
 	hammer.cfg \
 	admit.mlw
