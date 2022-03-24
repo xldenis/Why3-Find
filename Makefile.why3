@@ -22,7 +22,7 @@ all:: check
 rebuild:: clean replay doc
 
 clean::
-	rm -fr *~ *.bak html lib
+	rm -fr *~ *.bak html lib/ext
 
 # --------------------------------------------------------------------------
 # ---  Targets
@@ -122,11 +122,14 @@ extract:
 	@echo "No module to extract (WHY3_EXTRACT)"
 else
 extract:
-	@rm -fr lib
-	@mkdir -p lib
-	@why3 extract $(WHY3_OPTIONS) $(WHY3_DRV) -o lib --modular $(WHY3_EXTRACT)
-	@find lib -name "*.ml"
+	@rm -fr lib/ext
+	@mkdir -p lib/ext
+	@why3 extract $(WHY3_OPTIONS) $(WHY3_DRV) -o lib/ext --modular $(WHY3_EXTRACT)
+	@find lib/ext -name "*.ml"
 endif
+
+build: extract
+	dune build
 
 # --------------------------------------------------------------------------
 # --- Installation
