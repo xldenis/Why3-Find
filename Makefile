@@ -1,5 +1,5 @@
 all:
-	@echo "Nothing to compile, use make install"
+	@echo "Nothing to compile, use make install."
 
 FILES= init.sh \
 	gitignore.template \
@@ -9,9 +9,5 @@ FILES= init.sh \
 	admit.mlw
 
 install:
-	@echo ocamlfind install why3-make ...
 	@ocamlfind remove why3-make 2> /dev/null
 	@ocamlfind install why3-make META $(FILES)
-	@echo "---------------------------------------------------------------"
-	@ocamlfind query -l why3-make | grep .
-	@echo "---------------------------------------------------------------"

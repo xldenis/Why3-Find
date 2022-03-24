@@ -11,20 +11,24 @@
 #WHY3_STYLE= f.css
 
 WHY3_VERSION?=0.1
-WHY3_MAKE=$(ocamlfind query why3-make)
+WHY3_MAKE=$(shell ocamlfind query why3-make)
 
 # --------------------------------------------------------------------------
 
-.PHONY: doc compile replay fix clean rebuild
+.PHONY: all rebuild clean
+
+all:: check
+
+rebuild:: clean replay doc
 
 clean::
-	rm -fr *~ *.bak html
-
-rebuild:: clean doc replay
+	rm -fr *~ *.bak html lib
 
 # --------------------------------------------------------------------------
 # ---  Targets
 # --------------------------------------------------------------------------
+
+.PHONY: compile check replay fix
 
 compile: $(addsuffix .cc, $(WHY3_MODULES))
 
@@ -54,14 +58,15 @@ doc:
 	     --stdlib-url "http://why3.lri.fr/stdlib" \
 	     -L . $(addsuffix .mlw, $(WHY3_MODULES))
 	@if (test $(WHY3_STYLE)); then cp $(WHY3_STYLE) html/ ; fi
+	@echo "file://$(PWD)/html/index.html"
+	@echo "-----------------------------"
 
 # --------------------------------------------------------------------------
 # ---  Patterns
 # --------------------------------------------------------------------------
 
-WHY3_PKGS=$(addsuffix why3-,$(WHY3_REQUIRES))
-WHY3_DIRS=$(shell ocamlfind query -r $(WHY3_PKGS))
-WHY3_INCLUDES= -L . -L $(WHY3_MAKE) $(addsuffix -L ,$(WHY3_DIRS))
+WHY3_DIRS=$(shell ocamlfind query -r $(WHY3_REQUIRES))
+WHY3_OPTIONS= -L . -L $(WHY3_MAKE) $(addprefix -L ,$(WHY3_DIRS))
 
 WHY3_CCP= why3 prove  $(WHY3_OPTIONS) --type-only
 WHY3_IDE= why3 ide    $(WHY3_OPTIONS) --extra-config $(WHY3_MAKE)/hammer.cfg
@@ -71,7 +76,8 @@ WHY3_REP= why3 replay $(WHY3_OPTIONS) -f
 	@mkdir -p $*
 
 %.cc: %.mlw
-	$(WHY3_CCP) $<
+	@echo why3 prove [...] --type-only $<
+	@$(WHY3_CCP) $<
 
 %.chk: %.mlw
 	@($(WHY3_CCP) $<)
@@ -100,18 +106,53 @@ WHY3_REP= why3 replay $(WHY3_OPTIONS) -f
 	@echo "--- replay $*"
 	@echo "-----------------------------"
 	@$(WHY3_REP) $* | tee .log
-	@if grep -q "\(failed\|not proved\)" .log ; then exit 1; fi
+	@if grep -q "\(failed\|not proved\)" .log ; then exit 1; f
+
+# --------------------------------------------------------------------------
+# --- Extraction
+# --------------------------------------------------------------------------
+
+.PHONY: extract
+
+WHY3_PKGDRV=$(shell ocamlfind query -r -predicates driver -format +a $(WHY3_REQUIRES))
+WHY3_DRV=$(addprefix -D ,ocaml64 $(WHY3_PKGDRV) $(WHY3_DRIVERS))
+
+ifeq "$(WHY3_EXTRACT)" ""
+extract:
+	@echo "No module to extract (WHY3_EXTRACT)"
+else
+extract:
+	@rm -fr lib
+	@mkdir -p lib
+	@why3 extract $(WHY3_OPTIONS) $(WHY3_DRV) -o lib --modular $(WHY3_EXTRACT)
+	@find lib -name "*.ml"
+endif
 
 # --------------------------------------------------------------------------
 # --- Installation
 # --------------------------------------------------------------------------
 
-WHY3_REQUIRES=$(addsuffix why3-,$(WHY3_PACKAGES))
+.PHONY: install
 
 META: Makefile
-	rm -f META
-	echo "version = \"$(WHY_VERSION)\"" > META
-	echo "description = \"$(WHY_TITLE)\"" > META
-	echo "requires = \"$(WHY3_PACKAGES)\"" > META
+	@echo "Generating META"
+	@rm -f META
+	@echo "version = \"$(WHY3_VERSION)\"" >> META
+	@echo "description = \"$(WHY3_TITLE)\"" >> META
+	@echo "requires = \"$(WHY3_REQUIRES)\"" >> META
+	@chmod a-w META
+
+WHY3_INSTALL= \
+	$(addsuffix .mlw, $(WHY3_MODULES))
+
+ifeq "$(WHY3_PACKAGE)" ""
+install:
+	@echo "Makefile:1: undefined variable WHY3_PACKAGE"
+	@exit 1
+else
+install: META
+	@ocamlfind remove $(WHY3_PACKAGE) 2> /dev/null
+	@ocamlfind install $(WHY3_PACKAGE) META $(WHY3_INSTALL)
+endif
 
 # --------------------------------------------------------------------------

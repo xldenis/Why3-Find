@@ -1,11 +1,13 @@
 #!/bin/sh
 
+D=$(dirname $0)
+
 if [ ! -f Makefile ]
 then
-    cp $0/../Makefile.template Makefile
+    cp $D/Makefile.template Makefile
 fi
 
 if [ ! -f .gitignore ]
 then
-    cp $0/../gitignore.template .gitignore
+    cp $D/gitignore.template .gitignore
 fi
