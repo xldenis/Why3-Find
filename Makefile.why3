@@ -149,7 +149,7 @@ distrib:
 	rm -f $(WHY3_META)
 	rm -f $(WHY3_OPAM)
 	echo "# DUNE_GEN" > $(WHY3_META)
-	echo "archive(why3driver) = \"$(WHY3_DRIVERS)\"" > $(WHY3_META)
+	echo "archive(why3driver) = \"$(WHY3_DRIVERS)\"" >> $(WHY3_META)
 	cp -f $(WHY3_MAKE)/opam.template $(WHY3_OPAM)
 	chmod a-w $(WHY3_META)
 	chmod a-w $(WHY3_OPAM)
