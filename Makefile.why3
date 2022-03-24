@@ -1,0 +1,117 @@
+# --------------------------------------------------------------------------
+# ---  WHY3 Makefile
+# --------------------------------------------------------------------------
+
+#WHY3_PACKAGE= name
+#WHY3_VERSION= x.y.z
+#WHY3_DEPENDS= pkg ...
+#WHY3_MODULES= m.M ...
+#WHY3_EXTRACT= m.M ...
+#WHY3_TITLE='...'
+#WHY3_STYLE= f.css
+
+WHY3_VERSION?=0.1
+WHY3_MAKE=$(ocamlfind query why3-make)
+
+# --------------------------------------------------------------------------
+
+.PHONY: doc compile replay fix clean rebuild
+
+clean::
+	rm -fr *~ *.bak html
+
+rebuild:: clean doc replay
+
+# --------------------------------------------------------------------------
+# ---  Targets
+# --------------------------------------------------------------------------
+
+compile: $(addsuffix .cc, $(WHY3_MODULES))
+
+check: $(addsuffix .check, $(WHY3_MODULES))
+
+replay: $(addsuffix .replay, $(WHY3_MODULES))
+	@echo "-----------------------------"
+
+fix: $(addsuffix .fix, $(WHY3_MODULES))
+	@echo "-----------------------------"
+
+# --------------------------------------------------------------------------
+# ---  Documentation
+# --------------------------------------------------------------------------
+
+.PHONY: doc
+
+doc:
+	@echo "-----------------------------"
+	@echo "--- Documentation"
+	@echo "-----------------------------"
+	@rm -fr html
+	@mkdir html
+	@why3 doc -o html \
+	     --index \
+	     --title $(WHY3_TITLE) \
+	     --stdlib-url "http://why3.lri.fr/stdlib" \
+	     -L . $(addsuffix .mlw, $(WHY3_MODULES))
+	@if (test $(WHY3_STYLE)); then cp $(WHY3_STYLE) html/ ; fi
+
+# --------------------------------------------------------------------------
+# ---  Patterns
+# --------------------------------------------------------------------------
+
+WHY3_PKGS=$(addsuffix why3-,$(WHY3_REQUIRES))
+WHY3_DIRS=$(shell ocamlfind query -r $(WHY3_PKGS))
+WHY3_INCLUDES= -L . -L $(WHY3_MAKE) $(addsuffix -L ,$(WHY3_DIRS))
+
+WHY3_CCP= why3 prove  $(WHY3_OPTIONS) --type-only
+WHY3_IDE= why3 ide    $(WHY3_OPTIONS) --extra-config $(WHY3_MAKE)/hammer.cfg
+WHY3_REP= why3 replay $(WHY3_OPTIONS) -f
+
+%.dir: %.mlw
+	@mkdir -p $*
+
+%.cc: %.mlw
+	$(WHY3_CCP) $<
+
+%.chk: %.mlw
+	@($(WHY3_CCP) $<)
+
+%.ide: %.chk %.dir
+	@echo "> why3 ide $*, waiting…"
+	@($(WHY3_IDE) $*.mlw)
+
+%.fix: %.chk %.dir
+	@echo "-----------------------------"
+	@echo "--- fixup $*"
+	@echo "-----------------------------"
+	@$(WHY3_REP) $* | tee .log
+	@if grep -q "\(failed\|not proved\)" .log ;\
+	 then echo "[Fix Required] why3 ide $*, waiting…"; $(WHY3_IDE) $*.mlw; fi
+
+%.check: %.chk %.dir
+	@echo "--- check $*"
+	@$(WHY3_REP) --obsolete-only $* > .log 2> /dev/null
+	@if grep -q "\(failed\|not proved\)" .log ;\
+	 then cat .log ; exit 1;\
+	 fi
+
+%.replay: %.chk %.dir
+	@echo "-----------------------------"
+	@echo "--- replay $*"
+	@echo "-----------------------------"
+	@$(WHY3_REP) $* | tee .log
+	@if grep -q "\(failed\|not proved\)" .log ; then exit 1; fi
+
+# --------------------------------------------------------------------------
+# --- Installation
+# --------------------------------------------------------------------------
+
+WHY3_REQUIRES=$(addsuffix why3-,$(WHY3_PACKAGES))
+
+META: Makefile
+	rm -f META
+	echo "version = \"$(WHY_VERSION)\"" > META
+	echo "description = \"$(WHY_TITLE)\"" > META
+	echo "requires = \"$(WHY3_PACKAGES)\"" > META
+
+# --------------------------------------------------------------------------
