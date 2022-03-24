@@ -153,6 +153,5 @@ distrib:
 	cp -f $(WHY3_MAKE)/opam.template $(WHY3_OPAM)
 	chmod a-w $(WHY3_META)
 	chmod a-w $(WHY3_OPAM)
-	dune build @opam
 
 # --------------------------------------------------------------------------
