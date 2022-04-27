@@ -23,8 +23,6 @@
 (* --- Why-3 find main entry point                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-let current = ref 2
-
 let version () : unit =
   begin
     Format.printf "why3find v%s@." Version.version ;

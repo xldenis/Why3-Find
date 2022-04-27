@@ -4,24 +4,23 @@
 
 (generate_opam_files true)
 
-(source
- (github username/reponame))
+; (source (github username/reponame))
 
-(authors "Author Name")
+(authors "Loïc Correnson")
 
-(maintainers "Maintainer Name")
+(maintainers "CEA LIST")
 
-(license LICENSE)
+(license LGPL)
 
-(documentation https://url/to/documentation)
+(documentation "https://git.frama-c.com/dev/why3find")
 
 (package
  (name why3find)
  (version 0.1)
- (synopsis "A short synopsis")
- (description "A longer description")
+ (synopsis "A Why3 Package Manager")
+ (description
+    "The why3find utility is design to manage \
+     packages and librairies for why3 developpers.")
+ (homepage "https://git.frama-c.com/dev/why3find")
  (depends ocaml dune)
- (tags
-  (topics "to describe" your project)))
-
-; See the complete stanza docs at https://dune.readthedocs.io/en/stable/dune-files.html#dune-project
+ (tags (topics "why3")))
