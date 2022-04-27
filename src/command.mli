@@ -20,48 +20,10 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why-3 find main entry point                                        --- *)
+(* --- Why3 Find Builtin Commands                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-let version () : unit =
-  begin
-    Format.printf "why3find v%s@." Version.version ;
-    exit 0
-  end
-
-let help () : unit =
-  begin
-    Format.printf "why3find [-h|--help]@\n" ;
-    Format.printf "why3find [-v|--version]@\n" ;
-    Command.iter
-      (fun cmd ->
-         Format.printf "why3find %s [ARGS...]@\n" cmd
-      ) ;
-    Format.printf "why3find COMMAND [ARGS...]@\n" ;
-    exit 0
-  end
-
-let main () =
-  try
-    let n = Array.length Sys.argv in
-    if n < 2 then help () else
-      match Sys.argv.(1) with
-      | "-v" | "-version" | "--version" -> version ()
-      | "-h" | "-help" | "--help" | "help" -> help ()
-      | cmd -> Command.exec cmd (Array.sub Sys.argv 2 (n-2))
-  with
-  | Failure msg ->
-      Format.eprintf "why3find: %s@." msg ;
-      exit 1
-  | Unix.Unix_error(err,_,arg) ->
-      Format.eprintf "why3find: %s (%s)@."
-        (Unix.error_message err) arg ;
-      exit 1
-  | exn ->
-      Format.eprintf "why3find: fatal error (%s)@."
-        (Printexc.to_string exn) ;
-      exit 1
-
-let () = Printexc.catch main ()
+val iter : (string -> unit) -> unit
+val exec : string -> string array -> unit
 
 (* -------------------------------------------------------------------------- *)

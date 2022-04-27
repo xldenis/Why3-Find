@@ -1,6 +1,7 @@
 (executable
+  (name main)
   (public_name why3find)
-  (name main))
+  (libraries unix dune-site))
 
 (rule
   (target version.ml)

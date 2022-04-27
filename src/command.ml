@@ -20,48 +20,29 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why-3 find main entry point                                        --- *)
+(* --- Why3 Find Builtin Commands                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-let version () : unit =
-  begin
-    Format.printf "why3find v%s@." Version.version ;
-    exit 0
-  end
+let commands = ref []
+let iter f = List.iter (fun (cmd,_) -> f cmd) (List.rev !commands)
+let exec cmd args =
+  match List.assoc cmd !commands with
+  | process -> process args
+  | exception Not_found -> Unix.execv ("why3-" ^ cmd) args
 
-let help () : unit =
-  begin
-    Format.printf "why3find [-h|--help]@\n" ;
-    Format.printf "why3find [-v|--version]@\n" ;
-    Command.iter
-      (fun cmd ->
-         Format.printf "why3find %s [ARGS...]@\n" cmd
-      ) ;
-    Format.printf "why3find COMMAND [ARGS...]@\n" ;
-    exit 0
-  end
+let register ~name process =
+  assert (not @@ List.mem_assoc name !commands) ;
+  commands := (name,process) :: !commands
 
-let main () =
-  try
-    let n = Array.length Sys.argv in
-    if n < 2 then help () else
-      match Sys.argv.(1) with
-      | "-v" | "-version" | "--version" -> version ()
-      | "-h" | "-help" | "--help" | "help" -> help ()
-      | cmd -> Command.exec cmd (Array.sub Sys.argv 2 (n-2))
-  with
-  | Failure msg ->
-      Format.eprintf "why3find: %s@." msg ;
-      exit 1
-  | Unix.Unix_error(err,_,arg) ->
-      Format.eprintf "why3find: %s (%s)@."
-        (Unix.error_message err) arg ;
-      exit 1
-  | exn ->
-      Format.eprintf "why3find: fatal error (%s)@."
-        (Printexc.to_string exn) ;
-      exit 1
+(* -------------------------------------------------------------------------- *)
+(* --- why3find where                                                     --- *)
+(* -------------------------------------------------------------------------- *)
 
-let () = Printexc.catch main ()
+let () = register ~name:"where"
+    begin fun _args ->
+      List.iter
+        (fun pkg -> Format.printf "%s@\n" pkg)
+        Global.Sites.packages
+    end
 
 (* -------------------------------------------------------------------------- *)

@@ -7,9 +7,9 @@ description:
 maintainer: ["CEA LIST"]
 authors: ["Loïc Correnson"]
 license: "LGPL"
-tags: ["topics" "why3" "package"]
-homepage: "https://github.com/username/reponame"
-bug-reports: "https://github.com/username/reponame/issues"
+tags: ["topics" "why3"]
+homepage: "https://git.frama-c.com/dev/why3find"
+doc: "https://git.frama-c.com/dev/why3find"
 depends: [
   "ocaml"
   "dune" {>= "3.0"}
@@ -24,9 +24,10 @@ build: [
     name
     "-j"
     jobs
+    "--promote-install-files=false"
     "@install"
     "@runtest" {with-test}
     "@doc" {with-doc}
   ]
+  ["dune" "install" "-p" name "--create-install-files" name]
 ]
-dev-repo: "git+https://github.com/username/reponame.git"
