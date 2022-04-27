@@ -25,7 +25,7 @@
 
 let version () : unit =
   begin
-    Format.printf "why3find v%s@." Version.version ;
+    Format.printf "why3find v%s@." Config.version ;
     exit 0
   end
 
@@ -33,11 +33,8 @@ let help () : unit =
   begin
     Format.printf "why3find [-h|--help]@\n" ;
     Format.printf "why3find [-v|--version]@\n" ;
-    Command.iter
-      (fun cmd ->
-         Format.printf "why3find %s [ARGS...]@\n" cmd
-      ) ;
-    Format.printf "why3find COMMAND [ARGS...]@\n" ;
+    Command.iter (Format.printf "why3find %s %s@\n") ;
+    Format.printf "why3find CMD [ARGS...]@\n" ;
     exit 0
   end
 
@@ -48,8 +45,14 @@ let main () =
       match Sys.argv.(1) with
       | "-v" | "-version" | "--version" -> version ()
       | "-h" | "-help" | "--help" | "help" -> help ()
-      | cmd -> Command.exec cmd (Array.sub Sys.argv 2 (n-2))
+      | cmd -> Command.exec cmd (Array.sub Sys.argv 1 (n-1))
   with
+  | Stdlib.Arg.Help msg ->
+      Format.eprintf "%s" msg ;
+      exit 0
+  | Stdlib.Arg.Bad msg ->
+      Format.eprintf "why3find %s" msg ;
+      exit 1
   | Failure msg ->
       Format.eprintf "why3find: %s@." msg ;
       exit 1

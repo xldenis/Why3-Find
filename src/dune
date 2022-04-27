@@ -4,7 +4,7 @@
   (libraries unix dune-site))
 
 (rule
-  (target version.ml)
+  (target config.ml)
   (action
     (write-file %{target}
       "let version = \"%{version:why3find}\"")))

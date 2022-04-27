@@ -23,7 +23,7 @@
 (* --- Why3 Find Builtin Commands                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-val iter : (string -> unit) -> unit
+val iter : (string -> string -> unit) -> unit
 val exec : string -> string array -> unit
 
 (* -------------------------------------------------------------------------- *)
