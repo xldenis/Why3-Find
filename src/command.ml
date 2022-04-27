@@ -27,9 +27,33 @@ let commands = ref []
 
 let iter f = List.iter (fun (cmd,(args,_)) -> f cmd args) (List.rev !commands)
 
+let wrap argv : string array =
+  let open Bag in
+  let pkgs = ref empty in
+  let args = ref empty in
+  let p = ref 0 in
+  while !p < Array.length argv do
+    begin
+      match argv.(!p) with
+      | "-p" | "--package" ->
+          incr p ;
+          if !p < Array.length argv then
+            pkgs += argv.(!p)
+          else
+            failwith "missing PKG name"
+      | arg ->
+          args += arg
+    end ; incr p
+  done ;
+  let pkgs = Meta.find_all (Bag.to_list !pkgs) in
+  let load = List.fold_left
+      (fun acc (pkg : Meta.pkg) -> acc +> "-L" +> pkg.path)
+      empty pkgs in
+  to_array @@ "-L" @< "." @< load ++ !args
+
 let exec cmd args =
   match List.assoc cmd !commands with
-  | exception Not_found -> Unix.execv ("why3-" ^ cmd) args
+  | exception Not_found -> Unix.execv ("why3-" ^ cmd) (wrap args)
   | _,process -> process args
 
 let register ~name ?(args="") process =
@@ -51,38 +75,50 @@ let () = register ~name:"where"
 (* --- why3find query                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-let find pkg =
-  let rec lookup pkg = function
-    | [] -> raise Not_found
-    | d::ds ->
-        let d = Filename.concat d pkg in
-        if Sys.file_exists d then d else lookup pkg ds
-  in lookup pkg Global.Sites.packages
-
 let () = register ~name:"query" ~args:"[PKG...]"
     begin fun argv ->
-      let quiet = ref false in
+      let path = ref false in
+      let load = ref false in
+      let deps = ref false in
+      let query = ref [] in
       Arg.parse_argv argv
-        [ "-q", Arg.Set quiet, "quiet mode, print location or exit(1)" ]
-        begin fun pkg ->
-           if !quiet then
-             try
-               let d = find pkg in
-               Format.printf "%s@." d
-             with Not_found -> exit 1
-           else
-             let r = try find pkg with Not_found -> "not found" in
-             Format.printf "%s: %s@." pkg r
-        end
+        [ "-p", Arg.Set path, "print package paths only"
+        ; "-L", Arg.Set load, "prints -L <path> for all dependencies"
+        ; "-r", Arg.Set deps, "recursive mode, query also dependencies" ]
+        (fun pkg -> query := pkg :: !query)
         "USAGE:\n\
          \n  why3find query [PKG...]\n\n\
          DESCRIPTION:\n\
          \n  Query why3 package location.\n\n\
-         OPTIONS:\n"
+         OPTIONS:\n" ;
+      let pkgs = List.rev !query in
+      let pkgs =
+        if !deps || !load then
+          Meta.find_all pkgs
+        else List.map Meta.find pkgs in
+      if !path then
+        List.iter
+          (fun (p : Meta.pkg) -> Format.printf "%s@\n" p.path)
+          pkgs
+      else if !load then
+        List.iter
+          (fun (p : Meta.pkg) -> Format.printf "-L %s@\n" p.path)
+          pkgs
+      else
+        List.iter
+          (fun (p : Meta.pkg) ->
+             Format.printf
+               "Package %s:@\n\
+                 - path: %s@\n\
+                 - depends: %s@\n"
+               p.name p.path (String.concat ", " p.depends)
+          ) pkgs
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- why3find query                                                     --- *)
+(* --- why3 wrapper                                                       --- *)
 (* -------------------------------------------------------------------------- *)
+
+
 
 (* -------------------------------------------------------------------------- *)
