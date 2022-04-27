@@ -5,4 +5,9 @@
 (rule
   (target version.ml)
   (action
-    (write-file %{target} "let version = \"%{version:why3find}\"")))
+    (write-file %{target}
+      "let version = \"%{version:why3find}\"")))
+
+(generate_sites_module
+  (module global)
+  (sites why3find))
