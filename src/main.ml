@@ -36,14 +36,21 @@ let help () : unit =
   end
 
 let main () =
-  let p = ref 1 in
-  while !p < Array.length Sys.argv do
-    match Sys.argv.(!p) with
-    | "-v" | "-version" | "--version" -> version ()
-    | "-h" | "-help" | "--help" | "help" -> help ()
-    | a ->
-        Format.eprintf "[why3find] Error: unknown command %S" a ;
-        exit 1
+  let k = ref 1 in
+  let pkgs = ref [] in
+  while !k < Array.length Sys.argv do
+    begin
+      match Sys.argv.(!k) with
+      | "-v" | "-version" | "--version" -> version ()
+      | "-h" | "-help" | "--help" | "help" -> help ()
+      | "-p" | "--package" ->
+          incr k ;
+          pkgs := Sys.argv.(!k) :: !pkgs ;
+      | a ->
+          Format.eprintf "why3find: unknown command %S@." a ;
+          exit 1
+    end ;
+    incr k
   done
 
 let () = Printexc.catch main ()
