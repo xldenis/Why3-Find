@@ -1,14 +1,16 @@
-all:
-	@echo "Nothing to compile, use make install."
+# --------------------------------------------------------------------------
+# ---  Why3 Package Manager
+# --------------------------------------------------------------------------
 
-FILES= init.sh \
-	gitignore.template \
-	Makefile.template \
-	opam.template \
-	Makefile.why3 \
-	hammer.cfg \
-	admit.mlw
+.PHONY: all build clean
+
+all: build
+
+clean:
+	dune clean
+
+build:
+	dune build
 
 install:
-	@ocamlfind remove why3-make 2> /dev/null
-	@ocamlfind install why3-make META $(FILES)
+	dune install

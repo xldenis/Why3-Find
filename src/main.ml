@@ -23,6 +23,8 @@
 (* --- Why-3 find main entry point                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
+let current = ref 2
+
 let version () : unit =
   begin
     Format.printf "why3find v%s@." Version.version ;
@@ -31,27 +33,20 @@ let version () : unit =
 
 let help () : unit =
   begin
-    Format.printf "why3find COMMAND [OPTIONS...] [ARGS...]@\n" ;
+    Format.printf "why3find [-h|--help]@\n" ;
+    Format.printf "why3find [-v|--version]@\n" ;
+    Format.printf "why3find COMMAND [ARGS...]@\n" ;
     exit 0
   end
 
 let main () =
-  let k = ref 1 in
-  let pkgs = ref [] in
-  while !k < Array.length Sys.argv do
-    begin
-      match Sys.argv.(!k) with
-      | "-v" | "-version" | "--version" -> version ()
-      | "-h" | "-help" | "--help" | "help" -> help ()
-      | "-p" | "--package" ->
-          incr k ;
-          pkgs := Sys.argv.(!k) :: !pkgs ;
-      | a ->
-          Format.eprintf "why3find: unknown command %S@." a ;
-          exit 1
-    end ;
-    incr k
-  done
+  try
+    match Sys.argv.(1) with
+    | "-v" | "-version" | "--version" -> version ()
+    | "-h" | "-help" | "--help" | "help" -> help ()
+    | cmd -> failwith (Printf.sprintf "unknown command '%s'" cmd)
+  with Failure msg ->
+    Format.eprintf "why3find: %s@." msg ; exit 1
 
 let () = Printexc.catch main ()
 
