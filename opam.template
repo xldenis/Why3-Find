@@ -1,5 +1,0 @@
-build: [
-  ["dune" "subst"] {dev}
-  [make "distrib" "extract"]
-  ["dune" "build" "-p" name "-j" jobs "@install" "@doc" {with-doc}]
-]

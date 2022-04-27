@@ -1,9 +1,0 @@
-opam-version: "2.0"
-synopsis: "A Simple Why-3 Package Manager"
-maintainer: "Loïc Correnson"
-authors: "Loïc Correnson"
-license: "LGPL"
-depends: ["ocaml" "ocamlfind" "why3" "zarith"]
-build: []
-install: ["make" "install"]
-remove: ["ocamlfind" "remove" "why3-make"]
