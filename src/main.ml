@@ -48,22 +48,22 @@ let main () =
       | cmd -> Command.exec cmd (Array.sub Sys.argv 1 (n-1))
   with
   | Stdlib.Arg.Help msg ->
-      Format.eprintf "%s@." msg ;
-      exit 0
+    Format.eprintf "%s@." msg ;
+    exit 0
   | Stdlib.Arg.Bad msg ->
-      Format.eprintf "why3find %s@." msg ;
-      exit 1
+    Format.eprintf "why3find %s@." msg ;
+    exit 1
   | Failure msg | Sys_error msg ->
-      Format.eprintf "why3find: %s@." msg ;
-      exit 1
+    Format.eprintf "why3find: %s@." msg ;
+    exit 1
   | Unix.Unix_error(err,_,arg) ->
-      Format.eprintf "why3find: %s (%s)@."
-        (Unix.error_message err) arg ;
-      exit 1
+    Format.eprintf "why3find: %s (%s)@."
+      (Unix.error_message err) arg ;
+    exit 1
   | exn ->
-      Format.eprintf "why3find: fatal error (%s)@."
-        (Printexc.to_string exn) ;
-      exit 1
+    Format.eprintf "why3find: fatal error (%s)@."
+      (Printexc.to_string exn) ;
+    exit 1
 
 let () = Printexc.catch main ()
 

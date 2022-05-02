@@ -55,17 +55,17 @@ let find pkg =
   let rec lookup pkg = function
     | [] -> failwith (Printf.sprintf "Package '%s' not found" pkg)
     | d::ds ->
-        let path = Filename.concat d pkg in
-        if not @@ Sys.file_exists path then lookup pkg ds else
-          let meta = Filename.concat path "META.json" in
-          if Sys.file_exists meta then
-            let js = Yojson.Basic.from_file meta in
-            let depends = js |> field "depends" |> list string in
-            let configs = js |> field "configs" |> list string in
-            let drivers = js |> field "drivers" |> list string in
-            { name = pkg ; path ; depends ; configs ; drivers }
-          else
-            { name = pkg ; path ; depends = [] ; configs = [] ; drivers = [] }
+      let path = Filename.concat d pkg in
+      if not @@ Sys.file_exists path then lookup pkg ds else
+        let meta = Filename.concat path "META.json" in
+        if Sys.file_exists meta then
+          let js = Yojson.Basic.from_file meta in
+          let depends = js |> field "depends" |> list string in
+          let configs = js |> field "configs" |> list string in
+          let drivers = js |> field "drivers" |> list string in
+          { name = pkg ; path ; depends ; configs ; drivers }
+        else
+          { name = pkg ; path ; depends = [] ; configs = [] ; drivers = [] }
   in lookup pkg Global.Sites.packages
 
 let find_all pkgs =

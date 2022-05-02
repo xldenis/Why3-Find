@@ -48,15 +48,15 @@ let wrap ?(auto=false) ?(configs=true) ?(drivers=false) argv : string array =
     begin
       match argv.(!p) with
       | "-p" | "--package" ->
-          incr p ;
-          if !p < Array.length argv then
-            pkgs += argv.(!p)
-          else
-            failwith "missing PKG name"
+        incr p ;
+        if !p < Array.length argv then
+          pkgs += argv.(!p)
+        else
+          failwith "missing PKG name"
       | "--drivers" when auto -> drivers := true
       | "--configs" when auto -> configs := true
       | arg ->
-          args += arg
+        args += arg
     end ; incr p
   done ;
   let pkgs = Meta.find_all (Bag.to_list !pkgs) in
@@ -87,19 +87,19 @@ let wrap ?(auto=false) ?(configs=true) ?(drivers=false) argv : string array =
 let exec cmd argv =
   match List.assoc cmd !commands with
   | exception Not_found ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find CMD [ARGS...]\n\n\
-         DESCRIPTION:\n\
-         \n  Execute command \"CMD\" with wrapped arguments.\n\n\
-         OPTIONS:\n\
-         \n  --p|--package PKG : pass --library=<path> for the package\
-         \n  --configs : pass also --extra-config-file=<CFG> options\
-         \n  --drivers : pass also --driver=<DRV> options\
-         \n" ;
-      let n = Array.length argv in
-      let args = wrap ~auto:true (Array.sub argv 1 (n - 1)) in
-      Unix.execv cmd args ;
+    usage argv
+      "USAGE:\n\
+       \n  why3find CMD [ARGS...]\n\n\
+       DESCRIPTION:\n\
+       \n  Execute command \"CMD\" with wrapped arguments.\n\n\
+       OPTIONS:\n\
+       \n  --p|--package PKG : pass --library=<path> for the package\
+       \n  --configs : pass also --extra-config-file=<CFG> options\
+       \n  --drivers : pass also --driver=<DRV> options\
+       \n" ;
+    let n = Array.length argv in
+    let args = wrap ~auto:true (Array.sub argv 1 (n - 1)) in
+    Unix.execv cmd args ;
   | _,process -> process argv
 
 let register ~name ?(args="") process =
@@ -203,11 +203,11 @@ let rec cleanup path =
 let rec mkdirs = function
   | "/" | "." -> ()
   | path ->
-      if not (Sys.file_exists path) then
-        begin
-          mkdirs (Filename.dirname path) ;
-          Sys.mkdir path 0o755 ;
-        end
+    if not (Sys.file_exists path) then
+      begin
+        mkdirs (Filename.dirname path) ;
+        Sys.mkdir path 0o755 ;
+      end
 
 let copy buffer ~src ~tgt =
   let inc = open_in src in
@@ -266,19 +266,19 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
         match Filename.extension a with
         | "" -> Format.printf "depend %s@." a ; depends := a :: !depends
         | ".mlw" ->
-            if not (String.starts_with ~prefix a) then
-              failwith
-                (Printf.sprintf "can not install %S out of %S" a prefix) ;
-            Format.printf "install %s@." a ;
-            copy buffer ~src:a ~tgt:(Filename.concat path a) ;
+          if not (String.starts_with ~prefix a) then
+            failwith
+              (Printf.sprintf "can not install %S out of %S" a prefix) ;
+          Format.printf "install %s@." a ;
+          copy buffer ~src:a ~tgt:(Filename.concat path a) ;
         | ".cfg" ->
-            Format.printf "config %s@." a ;
-            copy buffer ~src:a ~tgt:(Filename.concat path a) ;
-            configs := a :: !configs ;
+          Format.printf "config %s@." a ;
+          copy buffer ~src:a ~tgt:(Filename.concat path a) ;
+          configs := a :: !configs ;
         | ".drv" ->
-            Format.printf "driver %s@." a ;
-            copy buffer ~src:a ~tgt:(Filename.concat path a) ;
-            drivers := a :: !drivers ;
+          Format.printf "driver %s@." a ;
+          copy buffer ~src:a ~tgt:(Filename.concat path a) ;
+          drivers := a :: !drivers ;
         | _ -> failwith (Printf.sprintf "don't know what to do with %S" a)
       done ;
       Meta.install {

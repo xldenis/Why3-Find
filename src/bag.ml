@@ -56,11 +56,11 @@ let to_array = function
   | Empty -> [| |]
   | Elt x -> [| x |]
   | Cat(n,x,a,b) ->
-      let m = Array.make n x in
-      let rec set m k = function
-        | Empty -> k
-        | Elt x -> m.(k) <- x ; succ k
-        | Cat(_,_,a,b) -> set m (set m k a) b
-      in let _ = set m (set m 0 a) b in m
+    let m = Array.make n x in
+    let rec set m k = function
+      | Empty -> k
+      | Elt x -> m.(k) <- x ; succ k
+      | Cat(_,_,a,b) -> set m (set m k a) b
+    in let _ = set m (set m 0 a) b in m
 
 (* -------------------------------------------------------------------------- *)
