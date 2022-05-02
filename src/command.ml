@@ -37,13 +37,19 @@ let iter f = List.iter (fun (cmd,(args,_)) -> f cmd args) (List.rev !commands)
 (* --- Why3 Wrapper Command                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
-let wrap ?(auto=false) ?(configs=true) ?(drivers=false) argv : string array =
+let wrap
+    ?(auto=false)
+    ?(configs=true)
+    ?(drivers=false)
+    ?(prefix=[])
+    ?(pkgs=[])
+    argv : string array =
   let open Bag in
-  let pkgs = ref empty in
   let args = ref empty in
+  let pkgs = ref (Bag.of_list pkgs) in
   let drivers = ref drivers in
   let configs = ref configs in
-  let p = ref 0 in
+  let p = ref 1 in
   while !p < Array.length argv do
     begin
       match argv.(!p) with
@@ -82,7 +88,7 @@ let wrap ?(auto=false) ?(configs=true) ?(drivers=false) argv : string array =
     Bag.map
       (fun (pkg : Meta.pkg) -> Printf.sprintf "--library=%s" pkg.path)
       pkgs in
-  to_array @@ cfg +> "-L" +> "." ++ load ++ drv ++ !args
+  to_array @@ Bag.of_list prefix ++ cfg +> "-L" +> "." ++ load ++ drv ++ !args
 
 let exec cmd argv =
   match List.assoc cmd !commands with
@@ -97,8 +103,7 @@ let exec cmd argv =
        \n  --configs : pass also --extra-config-file=<CFG> options\
        \n  --drivers : pass also --driver=<DRV> options\
        \n" ;
-    let n = Array.length argv in
-    let args = wrap ~auto:true (Array.sub argv 1 (n - 1)) in
+    let args = wrap ~auto:true argv in
     Unix.execv cmd args ;
   | _,process -> process argv
 
@@ -288,6 +293,63 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
         drivers = List.rev !drivers ;
         configs = List.rev !configs ;
       }
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- compile                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"compile" ~args:"[-p PKG] <*.mlw>"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find compile [OPTIONS] FILES\n\n\
+         DESCRIPTION:\n\
+         \n  Compile the given file(s) using why3 prove command.\n\n\
+         OPTIONS:\n\
+         \n  -p|--package PKG package dependency\
+         \n  --extra-config=<file> additional configuration file\
+         \n";
+      let args = wrap ~prefix:["prove";"--type-only"] ~configs:true argv in
+      Unix.execv "why3" args
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- IDE                                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"ide" ~args:"[-p PKG] <file.mlw>"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find ide [OPTIONS] FILE\n\n\
+         DESCRIPTION:\n\
+         \n  Run why3 ide on the given file.\n\n\
+         OPTIONS:\n\
+         \n  -p|--package PKG package dependency\
+         \n  --extra-config=<file> additional configuration file\
+         \n";
+      let args = wrap ~prefix:["ide"] ~configs:true argv in
+      Unix.execv "why3" args
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- PROVE                                                              --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"prove" ~args:"[-p PKG] <file.mlw>"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find ide [OPTIONS] FILE\n\n\
+         DESCRIPTION:\n\
+         \n  Run why3 ide on the given file.\n\n\
+         OPTIONS:\n\
+         \n  -p|--package PKG package dependency\
+         \n  --extra-config=<file> additional configuration file\
+         \n";
+      let args = wrap ~configs:true argv in
+      Unix.execv "hammer" args
     end
 
 (* -------------------------------------------------------------------------- *)

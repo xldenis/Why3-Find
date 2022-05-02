@@ -37,6 +37,7 @@ val map : ('a -> 'b) -> 'a list -> 'b bag
 val merge : ('a -> 'b bag) -> 'a list -> 'b bag
 
 val size : 'a bag -> int
+val of_list : 'a list -> 'a bag
 val to_list : 'a bag -> 'a list
 val to_array : 'a bag -> 'a array
 
