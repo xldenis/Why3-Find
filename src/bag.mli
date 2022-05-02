@@ -33,6 +33,9 @@ val (+>) : 'a bag -> 'a -> 'a bag
 val (@<) : 'a -> 'a bag -> 'a bag
 val (+=) : 'a bag ref -> 'a -> unit
 
+val map : ('a -> 'b) -> 'a list -> 'b bag
+val merge : ('a -> 'b bag) -> 'a list -> 'b bag
+
 val size : 'a bag -> int
 val to_list : 'a bag -> 'a list
 val to_array : 'a bag -> 'a array

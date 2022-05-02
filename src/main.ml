@@ -48,12 +48,12 @@ let main () =
       | cmd -> Command.exec cmd (Array.sub Sys.argv 1 (n-1))
   with
   | Stdlib.Arg.Help msg ->
-      Format.eprintf "%s" msg ;
+      Format.eprintf "%s@." msg ;
       exit 0
   | Stdlib.Arg.Bad msg ->
-      Format.eprintf "why3find %s" msg ;
+      Format.eprintf "why3find %s@." msg ;
       exit 1
-  | Failure msg ->
+  | Failure msg | Sys_error msg ->
       Format.eprintf "why3find: %s@." msg ;
       exit 1
   | Unix.Unix_error(err,_,arg) ->

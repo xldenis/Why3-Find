@@ -42,6 +42,9 @@ let (+>) a x = let e = Elt x in if a = Empty then e else Cat(1 + size a,x,a,e)
 let (@<) x a = let e = Elt x in if a = Empty then e else Cat(1 + size a,x,e,a)
 let (+=) acc x = acc := !acc +> x
 
+let map f xs = List.fold_left (fun acc x -> acc +> f x) empty xs
+let merge f xs = List.fold_left (fun acc x -> acc ++ f x) empty xs
+
 let to_list a =
   let rec walk acc = function
     | Empty -> acc

@@ -27,8 +27,11 @@ type pkg = {
   name: string ;
   path: string ;
   depends: string list ;
+  configs: string list ;
+  drivers: string list ;
 }
 
+val path : string -> string
 val find : string -> pkg
 val find_all : string list -> pkg list
 val install : pkg -> unit

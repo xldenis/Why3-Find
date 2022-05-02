@@ -27,6 +27,8 @@ type pkg = {
   name: string ;
   path: string ;
   depends: string list ;
+  configs: string list ;
+  drivers: string list ;
 }
 
 (* -------------------------------------------------------------------------- *)
@@ -44,6 +46,11 @@ let to_string a = `String a
 (* --- Package Lookup                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
+let path pkg =
+  match Global.Sites.packages with
+  | local::_ -> Filename.concat local pkg
+  | [] -> failwith "Installation site not found"
+
 let find pkg =
   let rec lookup pkg = function
     | [] -> failwith (Printf.sprintf "Package '%s' not found" pkg)
@@ -54,9 +61,11 @@ let find pkg =
           if Sys.file_exists meta then
             let js = Yojson.Basic.from_file meta in
             let depends = js |> field "depends" |> list string in
-            { name = pkg ; path ; depends }
+            let configs = js |> field "configs" |> list string in
+            let drivers = js |> field "drivers" |> list string in
+            { name = pkg ; path ; depends ; configs ; drivers }
           else
-            { name = pkg ; path ; depends = [] }
+            { name = pkg ; path ; depends = [] ; configs = [] ; drivers = [] }
   in lookup pkg Global.Sites.packages
 
 let find_all pkgs =
@@ -76,6 +85,8 @@ let install pkg =
   let meta = Filename.concat pkg.path "META.json" in
   Yojson.Basic.to_file meta @@ `Assoc [
     "depends", to_list to_string pkg.depends ;
+    "configs", to_list to_string pkg.configs ;
+    "drivers", to_list to_string pkg.drivers ;
   ]
 
 (* -------------------------------------------------------------------------- *)
