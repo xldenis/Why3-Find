@@ -90,3 +90,16 @@ let install pkg =
   ]
 
 (* -------------------------------------------------------------------------- *)
+(* ---                                                                    --- *)
+(* -------------------------------------------------------------------------- *)
+
+let shared file =
+  let rec lookup = function
+    | [] -> failwith (Printf.sprintf "Resource '%s' not found" file)
+    | d::ds ->
+      let path = Filename.concat d file in
+      if Sys.file_exists path then path else
+        lookup ds
+  in lookup Global.Sites.resources
+
+(* -------------------------------------------------------------------------- *)

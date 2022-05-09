@@ -2,106 +2,86 @@
 # ---  WHY3 Makefile
 # --------------------------------------------------------------------------
 
-#OPAM_PACKAGE?= name
 #WHY3_PACKAGE= name
-#WHY3_VERSION= x.y.z
 #WHY3_DEPENDS= pkg ...
-#WHY3_MODULES= m.M ...
 #WHY3_EXTRACT= m.M ...
-#WHY3_TITLE='...'
-#WHY3_STYLE= f.css
-
-OPAM_PACKAGE?=$(WHY3_PACKAGE)
-WHY3_VERSION?=0.1
-WHY3_MAKE=$(shell ocamlfind query why3-make)
+#WHY3_LIBRARIES= ocaml pkg ...
+#WHY3_OPTIONS= OPTIONS...
+#WHY3_HAMMER= OPTIONS...
 
 # --------------------------------------------------------------------------
 
-.PHONY: all rebuild clean
+.PHONY: all clean
 
-all:: check
-
-rebuild:: clean replay doc
+all:: prove
 
 clean::
-	@echo "Cleaning..."
-	@rm -fr *~ *.bak html META.*.template *.opam.template
-	@find lib -name "*__*" -delete
-	@dune clean
+	@rm -f lib/*__*.ml
 
 # --------------------------------------------------------------------------
 # ---  Targets
 # --------------------------------------------------------------------------
 
+WHY3_TARGETS=$(shell find $(WHY3_PACKAGE) -name "*.mlw")
+
 .PHONY: compile check replay fix
 
-compile: $(addsuffix .cc, $(WHY3_MODULES))
+compile: $(patsubst %.mlw,%.cc,$(WHY3_TARGETS))
 
-check: $(addsuffix .check, $(WHY3_MODULES))
-
-replay: $(addsuffix .replay, $(WHY3_MODULES))
+replay: $(patsubst %.mlw,%.replay,$(WHY3_TARGETS))
 	@echo "-----------------------------"
 
-fix: $(addsuffix .fix, $(WHY3_MODULES))
+check: $(patsubst %.mlw,%.check,$(WHY3_TARGETS))
+
+prove: $(patsubst %.mlw,%.prove,$(WHY3_TARGETS))
+
+fix: $(patsubst %.mlw,%.fix,$(WHY3_TARGETS))
 	@echo "-----------------------------"
 
-# --------------------------------------------------------------------------
-# ---  Documentation
-# --------------------------------------------------------------------------
-
-.PHONY: doc
-
-doc:
-	@echo "-----------------------------"
-	@echo "--- Documentation"
-	@echo "-----------------------------"
-	@rm -fr html
-	@mkdir html
-	@why3 doc -o html \
-	     --index \
-	     --title $(WHY3_TITLE) \
-	     --stdlib-url "http://why3.lri.fr/stdlib" \
-	     -L . $(addsuffix .mlw, $(WHY3_MODULES))
-	@if (test $(WHY3_STYLE)); then cp $(WHY3_STYLE) html/ ; fi
-	@echo "file://$(PWD)/html/index.html"
-	@echo "-----------------------------"
+clean:: $(pathsubst %.mlw,%.cleandir,$(WHY3_TARGETS))
 
 # --------------------------------------------------------------------------
 # ---  Patterns
 # --------------------------------------------------------------------------
 
-WHY3_DIRS=$(shell ocamlfind query -r $(WHY3_REQUIRES))
-WHY3_OPTIONS= -L . -L $(WHY3_MAKE) $(addprefix -L ,$(WHY3_DIRS))
-
-WHY3_CCP= why3 prove  $(WHY3_OPTIONS) --type-only
-WHY3_IDE= why3 ide    $(WHY3_OPTIONS) --extra-config $(WHY3_MAKE)/hammer.cfg
-WHY3_REP= why3 replay $(WHY3_OPTIONS) -f
+WHY3_PKGS=$(addprefix "-p ",$(WHY3_DEPENDS))
+WHY3_CC=why3find compile $(WHY3_OPTIONS) $(WHY3_PKGS)
+WHY3_IDE=why3find ide $(WHY3_OPTIONS) $(WHY3_PKGS)
+WHY3_REPLAY=why3find replay -f $(WHY3_OPTIONS) $(WHY3_PKGS)
+WHY3_PROVE=why3find hammer -u $(WHY3_HAMMER) $(WHY3_PKGS)
 
 %.dir: %.mlw
 	@mkdir -p $*
 
+%.cleandir: %.mlw
+	@rm -fr $*
+
 %.cc: %.mlw
-	@echo why3 prove [...] --type-only $<
+	@echo "> why3find compile [...] $<"
 	@$(WHY3_CCP) $<
 
 %.chk: %.mlw
 	@($(WHY3_CCP) $<)
 
 %.ide: %.chk %.dir
-	@echo "> why3 ide $*, waiting…"
+	@echo "> why3find ide $*.mlw, waiting…"
 	@($(WHY3_IDE) $*.mlw)
+
+%.prove: %.chk %.dir
+	@echo "> why3find hammer -u $*.mlw"
+	@($(WHY3_PROVE) $*.mlw)
 
 %.fix: %.chk %.dir
 	@echo "-----------------------------"
 	@echo "--- fixup $*"
 	@echo "-----------------------------"
-	@$(WHY3_REP) $* | tee .log
+	@$(WHY3_PROVE) $*.mlw | tee .log
 	@if grep -q "\(failed\|not proved\)" .log ;\
 	 then echo "[Fix Required] why3 ide $*, waiting…"; $(WHY3_IDE) $*.mlw; fi
 
 %.check: %.chk %.dir
 	@echo "--- check $*"
-	@$(WHY3_REP) --obsolete-only $* > .log 2> /dev/null
+	@$(WHY3_REPLAY) --obsolete-only $* > .log 2> /dev/null
 	@if grep -q "\(failed\|not proved\)" .log ;\
 	 then cat .log ; exit 1;\
 	 fi
@@ -110,48 +90,43 @@ WHY3_REP= why3 replay $(WHY3_OPTIONS) -f
 	@echo "-----------------------------"
 	@echo "--- replay $*"
 	@echo "-----------------------------"
-	@$(WHY3_REP) $* | tee .log
+	@$(WHY3_REPLAY) $* | tee .log
 	@if grep -q "\(failed\|not proved\)" .log ; then exit 1; f
 
 # --------------------------------------------------------------------------
-# --- Extraction
+# ---  Extraction
 # --------------------------------------------------------------------------
 
 .PHONY: extract
 
-WHY3_PKGDRV=$(shell ocamlfind query -r -predicates why3driver -format +a $(WHY3_REQUIRES))
-WHY3_DRV=$(addprefix -D ,ocaml64 $(WHY3_PKGDRV) $(WHY3_DRIVERS))
-
-ifeq "$(WHY3_EXTRACT)" ""
-extract:
-	@echo "No module to extract (WHY3_EXTRACT)"
-else
-extract:
-	@find lib -name "*__*" -delete
+lib/dune: Makefile
 	@mkdir -p lib
-	@why3 extract $(WHY3_OPTIONS) $(WHY3_DRV) -o lib --modular $(WHY3_EXTRACT)
-	@find lib -name "*__*.ml"
-endif
+	@echo "(library" > $@
+	@echo "  (name $(WHY3_PACKAGE))" >> $@
+	@echo "  (public_name why3lib-$(WHY3_PACKAGE))" >> $@
+	@echo "  (wrapped false)" >> $@
+	@echo "  (libraries $(WHY3_LIBRARIES) $(addprefix why3lib-,$(WHY3_DEPENDS))))" >> $@
+	@echo "> generated ./lib/dune"
 
-build: extract
-	dune build
+extract: lib/dune
+	@echo "> why3find extract -d ./lib [...]"
+	@rm -f lib/*__*.ml
+	@mkdir -p lib
+	@why3find extract --driver ocaml64 --modular -d ./lib \
+		$(WHY3_OPTIONS) $(WHY3_PKGS) $(WHY3_EXTRACT)
 
 # --------------------------------------------------------------------------
-# --- Installation Distribution Files
+# ---  INSTALL
 # --------------------------------------------------------------------------
 
-.PHONY: distrib
+.PHONY: install uninstall
 
-WHY3_OPAM=$(OPAM_PACKAGE).opam.template
-WHY3_META=META.$(OPAM_PACKAGE).template
+install::
+	why3find install $(WHY3_PACKAGE) \
+		$(WHY3_DEPENDS) \
+		$(WHY3_TARGETS)
 
-distrib:
-	rm -f $(WHY3_META)
-	rm -f $(WHY3_OPAM)
-	echo "# DUNE_GEN" > $(WHY3_META)
-	echo "archive(why3driver) = \"$(WHY3_DRIVERS)\"" >> $(WHY3_META)
-	cp -f $(WHY3_MAKE)/opam.template $(WHY3_OPAM)
-	chmod a-w $(WHY3_META)
-	chmod a-w $(WHY3_OPAM)
+uninstall::
+	whyfind uninstall $(WHY3_PACKAGE)
 
 # --------------------------------------------------------------------------

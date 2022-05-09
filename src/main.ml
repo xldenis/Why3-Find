@@ -60,10 +60,13 @@ let main () =
     Format.eprintf "why3find: %s (%s)@."
       (Unix.error_message err) arg ;
     exit 1
+  | Assert_failure(f,a,b) ->
+    Format.eprintf "why3find: assertion failure (%s:%d:%d)@." f a b ;
+    exit 2
   | exn ->
     Format.eprintf "why3find: fatal error (%s)@."
       (Printexc.to_string exn) ;
-    exit 1
+    exit 2
 
 let () = Printexc.catch main ()
 

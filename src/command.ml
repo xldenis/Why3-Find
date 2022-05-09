@@ -115,7 +115,8 @@ let exec cmd argv =
   | _,process -> process argv
 
 let register ~name ?(args="") process =
-  assert (not @@ List.mem_assoc name !commands) ;
+  if List.mem_assoc name !commands then
+    (failwith (Printf.sprintf "Duplicate command '%s'" name)) ;
   commands := (name,(args,process)) :: !commands
 
 (* -------------------------------------------------------------------------- *)
@@ -128,26 +129,10 @@ let () = register ~name:"where"
         "USAGE:\n\
          \n  why3find where [-a|--all]\n\n\
          DESCRIPTION:\n\
-         \n  Prints installation site(s)" ;
+         \n  Prints installation site(s)." ;
       List.iter
         (fun site -> Format.printf "%s@\n" site)
         (allargs argv Global.Sites.packages)
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- why3find where                                                     --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"shared"
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find shared [-a|--all]\n\n\
-         DESCRIPTION:\n\
-         \n  Prints shared resources site(s)" ;
-      List.iter
-        (fun site -> Format.printf "%s@\n" site)
-        (allargs argv Global.Sites.resources)
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -160,10 +145,46 @@ let () = register ~name:"shared"
         "USAGE:\n\
          \n  why3find shared [-a|--all]\n\n\
          DESCRIPTION:\n\
-         \n  Prints shared resources site(s)" ;
+         \n  Prints shared resources site(s)." ;
       List.iter
         (fun site -> Format.printf "%s@\n" site)
         (allargs argv Global.Sites.resources)
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- why3find makefile                                                  --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"makefile"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find makefile\n\n\
+         DESCRIPTION:\n\
+         \n  Prints shared makefile location.\n\n\
+         MAKEFILE USAGE:\n\
+         \n  WHY3_PACKAGE=PKG       package name\
+         \n  WHY3_DEPENDS=PKG...    package dependencies\
+         \n  WHY3_EXTRACT=MODULE... extracted modules\
+         \n  WHY3_OPTIONS=OPTION... general why3find or why3 options\
+         \n  WHY3_HAMMER=OPTION...  hammer options\
+         \n\
+         \n  include $(shell why3find makefile)
+         \n\
+         MAKEFILE TARGETS:\n\
+         \n  make all        prove (default, extensible)\
+         \n  make clean      remove generated files (extensible)\
+         \n  make install    install the why3 package (extensible)\
+         \n  make uninstall  remove the why3 package (extensible)\
+         \n\
+         \n  make compile | file.cc      compile file(s)\
+         \n  make prove   | file.prv     hammer file(s)\
+         \n  make ide     | file.ide     open ide\
+         \n  make fix     | file.fix     hemmae file(s) and open ide if needed\
+         \n  make check   | file.check   replay session (obsolete only)\
+         \n  make replay  | file.replay  replay session\
+         \n" ;
+      Format.printf "%s@\n" @@ Meta.shared "makefile"
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -296,9 +317,9 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
          \n  Install the package PKG at the topmost installation site.\
          \n  Contents of the installed package is specified by ARG extension:\
          \n    - PKG_NAME install PKG_NAME as a package dependency of PKG\
-         \n    - PKG/*.mlw a why3 source file in PKG's scope\
-         \n    - *.cfg an extract why3 configuration file\
-         \n    - *.drv an ocaml extraction driver for PKG clients" ;
+         \n    - PKG/**/*.mlw a why3 source file in PKG's scope\
+         \n    - *.cfg extra why3 configuration file\
+         \n    - *.drv ocaml extraction driver for PKG clients" ;
       let pkg = argv.(1) in
       let path = Meta.path pkg in
       if Sys.file_exists path then
@@ -370,12 +391,16 @@ let () = register ~name:"ide" ~args:"[-p PKG] FILE"
         "USAGE:\n\
          \n  why3find ide [OPTIONS] FILE\n\n\
          DESCRIPTION:\n\
-         \n  Run why3 ide on the given file.\n\n\
+         \n  Run why3 ide on the given file.\n\
+         \n  Also loads the « hammer » strategy.\n\
+         \n\
          OPTIONS:\n\
          \n  -p|--package PKG package dependency\
          \n  --extra-config FILE additional configuration file\
          \n";
-      let args = wrap ~prefix:["ide"] ~configs:true argv in
+      let hammer = Meta.shared "hammer.cfg" in
+      let args = wrap ~prefix:["ide";"--extra-config";hammer]
+          ~configs:true argv in
       Unix.execv "why3" args
     end
 
@@ -419,16 +444,16 @@ let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- PROVE                                                              --- *)
+(* --- HAMMER                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = register ~name:"prove" ~args:"[-p PKG] FILE"
+let () = register ~name:"hammer" ~args:"[-p PKG] FILE"
     begin fun argv ->
       usage argv
         "USAGE:\n\
-         \n  why3find ide [OPTIONS] FILE\n\n\
+         \n  why3find hammer [OPTIONS] FILE\n\n\
          DESCRIPTION:\n\
-         \n  Run why3 ide on the given file.\n\n\
+         \n  Run why3 hammer on the given file.\n\n\
          OPTIONS:\n\
          \n  -p|--package PKG package dependency\
          \n  --extra-config FILE additional configuration file\

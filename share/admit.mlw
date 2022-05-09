@@ -1,7 +1,0 @@
-module Admit
-
-  (* for debugging purpose only! *)
-  val admit () : unit
-    ensures { false }
-
-end

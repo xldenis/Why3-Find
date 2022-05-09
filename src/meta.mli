@@ -31,6 +31,7 @@ type pkg = {
   drivers: string list ;
 }
 
+val shared : string -> string
 val path : string -> string
 val find : string -> pkg
 val find_all : string list -> pkg list
