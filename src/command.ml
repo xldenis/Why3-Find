@@ -173,7 +173,6 @@ let () = register ~name:"makefile"
          \n\
          MAKEFILE TARGETS:\n\
          \n  make all        prove (default, extensible)\
-         \n  make clean      remove generated files (extensible)\
          \n  make install    install the why3 package (extensible)\
          \n  make uninstall  remove the why3 package (extensible)\
          \n\
@@ -213,12 +212,14 @@ let () = register ~name:"list"
 
 let () = register ~name:"query" ~args:"[PKG...]"
     begin fun argv ->
+      let libs = ref false in
       let path = ref false in
       let load = ref false in
       let deps = ref false in
       let query = ref [] in
       Arg.parse_argv argv
         [ "-p", Arg.Set path, "print package paths only"
+        ; "-l", Arg.Set load, "print extracted ocaml libraries"
         ; "-L", Arg.Set load, "prints -L <path> for all dependencies"
         ; "-r", Arg.Set deps, "recursive mode, query also dependencies" ]
         (fun pkg -> query := pkg :: !query)
@@ -239,6 +240,11 @@ let () = register ~name:"query" ~args:"[PKG...]"
       else if !load then
         List.iter
           (fun (p : Meta.pkg) -> Format.printf "-L %s@\n" p.path)
+          pkgs
+      else if !libs then
+        List.iter
+          (fun (p : Meta.pkg) ->
+             if p.library then Format.printf "why3lib-%s" p.name)
           pkgs
       else
         let pp_opt name ps =
@@ -316,10 +322,10 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
          DESCRIPTION:\n\
          \n  Install the package PKG at the topmost installation site.\
          \n  Contents of the installed package is specified by ARG extension:\
-         \n    - PKG_NAME install PKG_NAME as a package dependency of PKG\
-         \n    - PKG/**/*.mlw a why3 source file in PKG's scope\
-         \n    - *.cfg extra why3 configuration file\
-         \n    - *.drv ocaml extraction driver for PKG clients" ;
+         \n    PKG_NAME install PKG_NAME as a package dependency of PKG\
+         \n    PKG/**/*.mlw a why3 source file in PKG's scope\
+         \n    *.cfg extra why3 configuration file\
+         \n    *.drv ocaml extraction driver for PKG clients" ;
       let pkg = argv.(1) in
       let path = Meta.path pkg in
       if Sys.file_exists path then
@@ -356,6 +362,7 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
       Meta.install {
         name = pkg ;
         path ;
+        library = Sys.file_exists "lib" ;
         depends = List.rev !depends ;
         drivers = List.rev !drivers ;
         configs = List.rev !configs ;

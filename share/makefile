@@ -11,12 +11,9 @@
 
 # --------------------------------------------------------------------------
 
-.PHONY: all clean
+.PHONY: all
 
 all:: prove
-
-clean::
-	@rm -f lib/*__*.ml
 
 # --------------------------------------------------------------------------
 # ---  Targets
@@ -99,13 +96,15 @@ WHY3_PROVE=why3find hammer -u $(WHY3_HAMMER) $(WHY3_PKGS)
 
 .PHONY: extract
 
+WHY3_LIBS=$(shell why3find query -l $(WHY3_DEPENDS))
+
 lib/dune: Makefile
 	@mkdir -p lib
 	@echo "(library" > $@
 	@echo "  (name $(WHY3_PACKAGE))" >> $@
 	@echo "  (public_name why3lib-$(WHY3_PACKAGE))" >> $@
 	@echo "  (wrapped false)" >> $@
-	@echo "  (libraries $(WHY3_LIBRARIES) $(addprefix why3lib-,$(WHY3_DEPENDS))))" >> $@
+	@echo "  (libraries $(WHY3_LIBRARIES) $(WHY3_LIBS)))" >> $@
 	@echo "> generated ./lib/dune"
 
 extract: lib/dune

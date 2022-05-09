@@ -26,6 +26,7 @@
 type pkg = {
   name: string ;
   path: string ;
+  library: bool ;
   depends: string list ;
   configs: string list ;
   drivers: string list ;
@@ -35,9 +36,12 @@ type pkg = {
 (* --- JSON Utils                                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-let field fd = function `Assoc fds -> List.assoc fd fds | _ -> `Null
 let list f = function `List fds -> List.map f fds | `Null -> [] | a -> [f a]
+let flag = function `Bool b -> b | _ -> false
 let string = function `String a -> a | _ -> ""
+let field fd = function
+  | `Assoc fds -> (try List.assoc fd fds with Not_found -> `Null)
+  | _ -> `Null
 
 let to_list f xs = `List (List.map f xs)
 let to_string a = `String a
@@ -60,12 +64,14 @@ let find pkg =
         let meta = Filename.concat path "META.json" in
         if Sys.file_exists meta then
           let js = Yojson.Basic.from_file meta in
+          let library = js |> field "library" |> flag in
           let depends = js |> field "depends" |> list string in
           let configs = js |> field "configs" |> list string in
           let drivers = js |> field "drivers" |> list string in
-          { name = pkg ; path ; depends ; configs ; drivers }
+          { name = pkg ; path ; library ; depends ; configs ; drivers }
         else
-          { name = pkg ; path ; depends = [] ; configs = [] ; drivers = [] }
+          { name = pkg ; path ; library = false ;
+            depends = [] ; configs = [] ; drivers = [] }
   in lookup pkg Global.Sites.packages
 
 let find_all pkgs =
