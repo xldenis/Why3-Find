@@ -202,8 +202,14 @@ let () = register ~name:"query" ~args:"[PKG...]"
 let rec cleanup path =
   if Sys.file_exists path then
     if Sys.is_directory path then
-      Array.iter (fun d -> cleanup (Filename.concat path d)) (Sys.readdir path)
-    else Sys.remove path
+      begin
+        Array.iter
+          (fun d -> cleanup (Filename.concat path d))
+          (Sys.readdir path) ;
+        Sys.rmdir path
+      end
+    else
+      Sys.remove path
 
 let rec mkdirs = function
   | "/" | "." -> ()
@@ -215,6 +221,7 @@ let rec mkdirs = function
       end
 
 let copy buffer ~src ~tgt =
+  mkdirs (Filename.dirname tgt) ;
   let inc = open_in src in
   let out = open_out tgt in
   let rec walk () =
