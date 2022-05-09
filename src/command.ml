@@ -129,7 +129,8 @@ let () = register ~name:"where"
         "USAGE:\n\
          \n  why3find where [-a|--all]\n\n\
          DESCRIPTION:\n\
-         \n  Prints installation site(s)." ;
+         \n  Prints installation site(s).\
+         \n" ;
       List.iter
         (fun site -> Format.printf "%s@\n" site)
         (allargs argv Global.Sites.packages)
@@ -145,7 +146,8 @@ let () = register ~name:"shared"
         "USAGE:\n\
          \n  why3find shared [-a|--all]\n\n\
          DESCRIPTION:\n\
-         \n  Prints shared resources site(s)." ;
+         \n  Prints shared resources site(s).\
+         \n" ;
       List.iter
         (fun site -> Format.printf "%s@\n" site)
         (allargs argv Global.Sites.resources)
@@ -196,7 +198,8 @@ let () = register ~name:"list"
         "USAGE:\n\
          \n  why3find list\n\n\
          DESCRIPTION:\n\
-         \n  Prints all installed packages" ;
+         \n  Prints all installed packages.\
+         \n" ;
       List.iter
         (fun site ->
            if Sys.file_exists site && Sys.is_directory site then
@@ -230,8 +233,8 @@ let () = register ~name:"query" ~args:"[PKG...]"
          OPTIONS:\n" ;
       let pkgs = List.rev !query in
       let pkgs =
-        if !deps || !load then
-          Meta.find_all pkgs
+        if !deps || !load
+        then Meta.find_all pkgs
         else List.map Meta.find pkgs in
       if !path then
         List.iter
@@ -302,7 +305,8 @@ let () = register ~name:"uninstall" ~args:"[PKG...]"
         "USAGE:\n\
          \n  why3find uninstall [PKG...]\n\n\
          DESCRIPTION:\n\
-         \n  Remove all specified packages from topmost installation site." ;
+         \n  Remove all specified packages from topmost installation site.\
+         \n" ;
       for i = 1 to Array.length argv - 1 do
         let pkg = argv.(i) in
         let path = Meta.path pkg in
@@ -325,7 +329,8 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
          \n    PKG_NAME install PKG_NAME as a package dependency of PKG\
          \n    PKG/**/*.mlw a why3 source file in PKG's scope\
          \n    *.cfg extra why3 configuration file\
-         \n    *.drv ocaml extraction driver for PKG clients" ;
+         \n    *.drv ocaml extraction driver for PKG clients\
+         \n" ;
       let pkg = argv.(1) in
       let path = Meta.path pkg in
       if Sys.file_exists path then
