@@ -24,5 +24,7 @@
      packages and librairies for why3 developpers.")
   (homepage "https://git.frama-c.com/dev/why3find")
   (depends ocaml dune)
-  (sites (lib packages))
+  (sites
+    (lib packages)
+    (share resources))
   (tags (topics "why3")))

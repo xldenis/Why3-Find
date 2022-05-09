@@ -31,6 +31,13 @@ let usage argv msg =
       | _ -> ()
     ) argv
 
+let allargs argv xs =
+  let all =
+    Array.exists (function "-a" | "--all" -> true | _ -> false) argv in
+  match xs with
+  | x::_ when not all -> [x]
+  | _ -> xs
+
 let iter f = List.iter (fun (cmd,(args,_)) -> f cmd args) (List.rev !commands)
 
 (* -------------------------------------------------------------------------- *)
@@ -119,12 +126,44 @@ let () = register ~name:"where"
     begin fun argv ->
       usage argv
         "USAGE:\n\
-         \n  why3find where\n\n\
+         \n  why3find where [-a|--all]\n\n\
          DESCRIPTION:\n\
-         \n  Prints all installation sites" ;
+         \n  Prints installation site(s)" ;
       List.iter
         (fun site -> Format.printf "%s@\n" site)
-        Global.Sites.packages
+        (allargs argv Global.Sites.packages)
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- why3find where                                                     --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"shared"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find shared [-a|--all]\n\n\
+         DESCRIPTION:\n\
+         \n  Prints shared resources site(s)" ;
+      List.iter
+        (fun site -> Format.printf "%s@\n" site)
+        (allargs argv Global.Sites.resources)
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- why3find shared                                                    --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"shared"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find shared [-a|--all]\n\n\
+         DESCRIPTION:\n\
+         \n  Prints shared resources site(s)" ;
+      List.iter
+        (fun site -> Format.printf "%s@\n" site)
+        (allargs argv Global.Sites.resources)
     end
 
 (* -------------------------------------------------------------------------- *)

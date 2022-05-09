@@ -14,3 +14,6 @@ build:
 
 install:
 	dune install
+	codesign -s - `which why3find`
+
+# --------------------------------------------------------------------------
