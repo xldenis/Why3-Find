@@ -306,16 +306,16 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
 (* --- compile                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = register ~name:"compile" ~args:"[-p PKG] <*.mlw>"
+let () = register ~name:"compile" ~args:"[-p PKG] FILE"
     begin fun argv ->
       usage argv
         "USAGE:\n\
-         \n  why3find compile [OPTIONS] FILES\n\n\
+         \n  why3find compile [OPTIONS] FILE\n\n\
          DESCRIPTION:\n\
          \n  Compile the given file(s) using why3 prove command.\n\n\
          OPTIONS:\n\
          \n  -p|--package PKG package dependency\
-         \n  --extra-config=<file> additional configuration file\
+         \n  --extra-config FILE additional configuration file\
          \n";
       let args = wrap ~prefix:["prove";"--type-only"] ~configs:true argv in
       Unix.execv "why3" args
@@ -325,7 +325,7 @@ let () = register ~name:"compile" ~args:"[-p PKG] <*.mlw>"
 (* --- IDE                                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = register ~name:"ide" ~args:"[-p PKG] <file.mlw>"
+let () = register ~name:"ide" ~args:"[-p PKG] FILE"
     begin fun argv ->
       usage argv
         "USAGE:\n\
@@ -334,9 +334,48 @@ let () = register ~name:"ide" ~args:"[-p PKG] <file.mlw>"
          \n  Run why3 ide on the given file.\n\n\
          OPTIONS:\n\
          \n  -p|--package PKG package dependency\
-         \n  --extra-config=<file> additional configuration file\
+         \n  --extra-config FILE additional configuration file\
          \n";
       let args = wrap ~prefix:["ide"] ~configs:true argv in
+      Unix.execv "why3" args
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- REPLAY                                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"replay" ~args:"[-p PKG] FILE"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find extract [OPTIONS] MODULE...\n\n\
+         DESCRIPTION:\n\
+         \n  Executes why3 replay with the specified arguments.\n\n\
+         OPTIONS:\n\
+         \n  -p|--package PKG package dependency\
+         \n  --extra-config FILE additional configuration file\
+         \n";
+      let args = wrap ~prefix:["replay"] ~configs:true argv in
+      Unix.execv "why3" args
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- EXTRACT                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find extract [OPTIONS] MODULE...\n\n\
+         DESCRIPTION:\n\
+         \n  Executes why3 ide with the specified arguments.\n\n\
+         OPTIONS:\n\
+         \n  -p|--package PKG package dependency\
+         \n  -D|--driver NAME|FILE additional extraction driver\
+         \n  --extra-config FILE additional configuration file\
+         \n";
+      let args = wrap ~prefix:["extract"] ~configs:true ~drivers:true argv in
       Unix.execv "why3" args
     end
 
@@ -344,7 +383,7 @@ let () = register ~name:"ide" ~args:"[-p PKG] <file.mlw>"
 (* --- PROVE                                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = register ~name:"prove" ~args:"[-p PKG] <file.mlw>"
+let () = register ~name:"prove" ~args:"[-p PKG] FILE"
     begin fun argv ->
       usage argv
         "USAGE:\n\
@@ -353,7 +392,7 @@ let () = register ~name:"prove" ~args:"[-p PKG] <file.mlw>"
          \n  Run why3 ide on the given file.\n\n\
          OPTIONS:\n\
          \n  -p|--package PKG package dependency\
-         \n  --extra-config=<file> additional configuration file\
+         \n  --extra-config FILE additional configuration file\
          \n";
       let args = wrap ~configs:true argv in
       Unix.execv "hammer" args
