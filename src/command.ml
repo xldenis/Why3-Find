@@ -111,7 +111,7 @@ let exec cmd argv =
        \n  --drivers : pass also --driver=<DRV> options\
        \n" ;
     let args = wrap ~auto:true argv in
-    Unix.execv cmd args ;
+    Unix.execvp cmd args ;
   | _,process -> process argv
 
 let register ~name ?(args="") process =
@@ -390,7 +390,7 @@ let () = register ~name:"compile" ~args:"[-p PKG] FILE"
          \n  --extra-config FILE additional configuration file\
          \n";
       let args = wrap ~prefix:["prove";"--type-only"] ~configs:true argv in
-      Unix.execv "why3" args
+      Unix.execvp "why3" args
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -413,7 +413,7 @@ let () = register ~name:"ide" ~args:"[-p PKG] FILE"
       let hammer = Meta.shared "hammer.cfg" in
       let args = wrap ~prefix:["ide";"--extra-config";hammer]
           ~configs:true argv in
-      Unix.execv "why3" args
+      Unix.execvp "why3" args
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -432,7 +432,7 @@ let () = register ~name:"replay" ~args:"[-p PKG] FILE"
          \n  --extra-config FILE additional configuration file\
          \n";
       let args = wrap ~prefix:["replay"] ~configs:true argv in
-      Unix.execv "why3" args
+      Unix.execvp "why3" args
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -452,7 +452,7 @@ let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
          \n  --extra-config FILE additional configuration file\
          \n";
       let args = wrap ~prefix:["extract"] ~configs:true ~drivers:true argv in
-      Unix.execv "why3" args
+      Unix.execvp "why3" args
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -471,7 +471,7 @@ let () = register ~name:"hammer" ~args:"[-p PKG] FILE"
          \n  --extra-config FILE additional configuration file\
          \n";
       let args = wrap ~configs:true argv in
-      Unix.execv "hammer" args
+      Unix.execvp "hammer" args
     end
 
 (* -------------------------------------------------------------------------- *)
