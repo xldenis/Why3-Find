@@ -23,7 +23,7 @@
     "The why3find utility is design to manage \
      packages and librairies for why3 developpers.")
   (homepage "https://git.frama-c.com/dev/why3find")
-  (depends ocaml dune)
+  (depends dune (ocaml (>= 4.12.0)))
   (sites
     (lib packages)
     (share resources))

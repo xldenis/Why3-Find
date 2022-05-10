@@ -11,8 +11,8 @@ tags: ["topics" "why3"]
 homepage: "https://git.frama-c.com/dev/why3find"
 doc: "https://git.frama-c.com/dev/why3find"
 depends: [
-  "ocaml"
   "dune" {>= "3.0"}
+  "ocaml" {>= "4.12.0"}
   "odoc" {with-doc}
 ]
 build: [
