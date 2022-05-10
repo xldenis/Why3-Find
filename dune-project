@@ -5,10 +5,12 @@
 (name why3find)
 
 (authors "Loïc Correnson")
-(maintainers "CEA-LIST/LSL")
-(license LGPL)
+(maintainers loic.correnson@cea.fr)
+(license LGPL-3.0)
+(source (uri "git+https://git.frama-c.com:dev/why3find.git"))
 (homepage "https://git.frama-c.com/dev/why3find")
-(source (uri "https://git.frama-c.com/dev/why3find.git"))
+(documentation "https://git.frama-c.com/dev/why3find")
+(bug_reports "https://git.frama-c.com/dev/why3find/issues")
 
 (package
   (name why3find)
