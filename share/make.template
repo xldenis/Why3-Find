@@ -1,0 +1,8 @@
+WHY3_PACKAGE=%{pkg}
+WHY3_DEPENDS=
+WHY3_EXTRACT=
+WHY3_LIBRARIES=
+WHY3_OPTIONS=
+WHY3_HAMMER=
+
+include $(shell why3find makefile)

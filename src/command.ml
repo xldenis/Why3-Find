@@ -20,7 +20,7 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Find Builtin Commands                                         --- *)
+(* --- Command Line Parsing                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
 let commands = ref []
@@ -40,8 +40,82 @@ let allargs argv xs =
 
 let iter f = List.iter (fun (cmd,(args,_)) -> f cmd args) (List.rev !commands)
 
+let get argv k msg =
+  if k < Array.length argv then argv.(k) else failwith msg
+
+let get_opt argv k =
+  if k < Array.length argv then Some argv.(k) else None
+
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Wrapper Command                                               --- *)
+(* --- System Utils                                                       --- *)
+(* -------------------------------------------------------------------------- *)
+
+let rec cleanup path =
+  if Sys.file_exists path then
+    if Sys.is_directory path then
+      begin
+        Array.iter
+          (fun d -> cleanup (Filename.concat path d))
+          (Sys.readdir path) ;
+        Sys.rmdir path
+      end
+    else
+      Sys.remove path
+
+let rec mkdirs = function
+  | "/" | "." -> ()
+  | path ->
+    if not (Sys.file_exists path) then
+      begin
+        mkdirs (Filename.dirname path) ;
+        Sys.mkdir path 0o755 ;
+      end
+
+let copy ~src ~tgt =
+  mkdirs (Filename.dirname tgt) ;
+  let buffer = Bytes.create 2048 in
+  let inc = open_in src in
+  let out = open_out tgt in
+  let rec walk () =
+    let n = Stdlib.input inc buffer 0 (Bytes.length buffer) in
+    if n > 0 then
+      ( Stdlib.output out buffer 0 n ; walk () )
+  in walk () ; close_in inc ; close_out out
+
+let generate file gen =
+  let out = open_out file in
+  let fmt = Format.formatter_of_out_channel out in
+  begin
+    gen fmt ;
+    Format.pp_print_flush fmt () ;
+    close_out out ;
+  end
+
+let var = Str.regexp "%{\\([a-zA-Z]+\\)}"
+
+let template ~subst ~src ~tgt =
+  mkdirs (Filename.dirname tgt) ;
+  let inc = open_in src in
+  let out = open_out tgt in
+  let apply subst text =
+    try List.assoc (Str.matched_group 1 text) subst
+    with Not_found -> Str.matched_group 0 text
+  in
+  let rec walk () =
+    match Stdlib.input_line inc with
+    | exception End_of_file -> ()
+    | line ->
+      let line' = Str.global_substitute var (apply subst) line in
+      Stdlib.output_string out line' ;
+      Stdlib.output_string out "\n" ;
+      walk ()
+  in walk () ;
+  close_in inc ;
+  close_out out ;
+  Format.printf "Initialized %s@." tgt
+
+(* -------------------------------------------------------------------------- *)
+(* --- Wrapper Command                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
 let verbose = ref false
@@ -169,6 +243,41 @@ let () = register ~name:"shared"
     end
 
 (* -------------------------------------------------------------------------- *)
+(* --- why3find init                                                      --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"init"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find init PKG [DIR]\n\n\
+         DESCRIPTION:\n\
+         \n  Create templates for dune and make for package PKG.\
+         \n  Files are created in directory DIR (default ./PKG).\
+         \n\
+         \n  See 'why3find makefile -h' for instructions.\
+         \n" ;
+      let pkg = get argv 1 "missing PKG name" in
+      let dir =
+        match get_opt argv 2 with
+        | None -> pkg
+        | Some dir -> dir in
+      let subst = ["pkg",pkg] in
+      template
+        ~subst
+        ~src:(Meta.shared "git.template")
+        ~tgt:(Filename.concat dir ".gitignore") ;
+      template
+        ~subst
+        ~src:(Meta.shared "dune.template")
+        ~tgt:(Filename.concat dir "dune-project") ;
+      template
+        ~subst
+        ~src:(Meta.shared "make.template")
+        ~tgt:(Filename.concat dir "Makefile") ;
+    end
+
+(* -------------------------------------------------------------------------- *)
 (* --- why3find makefile                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -286,38 +395,6 @@ let () = register ~name:"query" ~args:"[PKG...]"
 (* --- Install/Remove commands                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
-let rec cleanup path =
-  if Sys.file_exists path then
-    if Sys.is_directory path then
-      begin
-        Array.iter
-          (fun d -> cleanup (Filename.concat path d))
-          (Sys.readdir path) ;
-        Sys.rmdir path
-      end
-    else
-      Sys.remove path
-
-let rec mkdirs = function
-  | "/" | "." -> ()
-  | path ->
-    if not (Sys.file_exists path) then
-      begin
-        mkdirs (Filename.dirname path) ;
-        Sys.mkdir path 0o755 ;
-      end
-
-let copy ~src ~tgt =
-  mkdirs (Filename.dirname tgt) ;
-  let buffer = Bytes.create 2048 in
-  let inc = open_in src in
-  let out = open_out tgt in
-  let rec walk () =
-    let n = Stdlib.input inc buffer 0 (Bytes.length buffer) in
-    if n > 0 then
-      ( Stdlib.output out buffer 0 n ; walk () )
-  in walk () ; close_in inc ; close_out out
-
 let () = register ~name:"uninstall" ~args:"[PKG...]"
     begin fun argv ->
       usage argv
@@ -357,7 +434,7 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
          \n\n\
          OPTIONS:\n" ;
       let argv = Bag.to_array !rs in
-      let pkg = argv.(0) in
+      let pkg = get argv 0 "Missing PKG name" in
       let dune = !dune in
       let path = if dune then "." else Meta.path pkg in
       if not dune && Sys.file_exists path then
@@ -408,20 +485,20 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
       } ;
       if dune then
         begin
-          let out = open_out "dune" in
-          let fout = Format.formatter_of_out_channel out in
-          Format.fprintf fout "; generated by why3find install@\n" ;
-          Format.fprintf fout "(install@\n" ;
-          Format.fprintf fout "  (package %s)@\n" pkg ;
-          Format.fprintf fout "  (section (site (why3find packages)))@\n" ;
-          Format.fprintf fout "  (files@\n" ;
-          List.iter
-            (fun src ->
-               Format.fprintf fout "    (%s as %s/%s)@\n"
-                 src pkg src
-            ) (List.rev !sources) ;
-          Format.fprintf fout "    ))@." ;
-          close_out out ;
+          generate "dune"
+            begin fun out ->
+              Format.fprintf out "; generated by why3find install@\n" ;
+              Format.fprintf out "(install@\n" ;
+              Format.fprintf out "  (package %s)@\n" pkg ;
+              Format.fprintf out "  (section (site (why3find packages)))@\n" ;
+              Format.fprintf out "  (files@\n" ;
+              List.iter
+                (fun src ->
+                   Format.fprintf out "    (%s as %s/%s)@\n"
+                     src pkg src
+                ) (List.rev !sources) ;
+              Format.fprintf out "    ))@." ;
+            end ;
           Format.printf "install (dune)   dune@." ;
         end
     end
