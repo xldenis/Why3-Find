@@ -48,9 +48,19 @@ A typical Why-3 package project will be structured as follows:
 + DIR/lib/*.ml       The extracted OCaml source files
 ```
 
+All those files shall be managed under version control, although generated files
+shall be up-to-data by running `make build`.
+
+## Proof Certificates
+
 The most useful command you want to use for conducting your proofs is `make
 fix`.  This command tries to prove all your Why-3 source files with the hammer
 and, in case of failure, it opens Why-3 IDE.
+
+The why3 session files are generated from the hammer and shall _not_ be managed
+under version control, since the session data highly depends on your local
+machine. However, those session files can be taken as proof certificates that
+can be checked or replayed by `make check` and `make replay`.
 
 ## Package Installation
 
