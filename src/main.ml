@@ -45,7 +45,7 @@ let main () =
       match Sys.argv.(1) with
       | "-v" | "-version" | "--version" -> version ()
       | "-h" | "-help" | "--help" | "help" -> help ()
-      | cmd -> Command.exec cmd (Array.sub Sys.argv 1 (n-1))
+      | cmd -> Command.process cmd (Array.sub Sys.argv 1 (n-1))
   with
   | Stdlib.Arg.Help msg ->
     Format.eprintf "%s@." msg ;

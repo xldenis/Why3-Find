@@ -44,13 +44,16 @@ let iter f = List.iter (fun (cmd,(args,_)) -> f cmd args) (List.rev !commands)
 (* --- Why3 Wrapper Command                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
-let wrap
+let verbose = ref false
+
+let exec
+    ?(cmd="why3")
     ?(auto=false)
     ?(configs=true)
     ?(drivers=false)
     ?(prefix=[])
     ?(pkgs=[])
-    argv : string array =
+    argv =
   let open Bag in
   let args = ref empty in
   let pkgs = ref (Bag.of_list pkgs) in
@@ -68,6 +71,7 @@ let wrap
           failwith "missing PKG name"
       | "--drivers" when auto -> drivers := true
       | "--configs" when auto -> configs := true
+      | "-v" | "--verbose" -> verbose := true
       | arg ->
         args += arg
     end ; incr p
@@ -95,9 +99,21 @@ let wrap
     Bag.map
       (fun (pkg : Meta.pkg) -> Printf.sprintf "--library=%s" pkg.path)
       pkgs in
-  to_array @@ Bag.of_list prefix ++ cfg +> "-L" +> "." ++ load ++ drv ++ !args
+  let argv =
+    to_array @@
+    Bag.of_list (cmd::prefix) ++ cfg +> "-L" +> "." ++ load ++ drv ++ !args
+  in
+  if !verbose then
+    begin
+      Format.printf "%s" cmd ;
+      for i = 1 to Array.length argv - 1 do
+        Format.printf " %s" argv.(i)
+      done ;
+      Format.printf "@." ;
+    end ;
+  Unix.execvp cmd argv
 
-let exec cmd argv =
+let process cmd argv : unit =
   match List.assoc cmd !commands with
   | exception Not_found ->
     usage argv
@@ -110,8 +126,7 @@ let exec cmd argv =
        \n  --configs : pass also --extra-config-file=<CFG> options\
        \n  --drivers : pass also --driver=<DRV> options\
        \n" ;
-    let args = wrap ~auto:true argv in
-    Unix.execvp cmd args ;
+    exec ~cmd  ~auto:true argv
   | _,process -> process argv
 
 let register ~name ?(args="") process =
@@ -386,11 +401,11 @@ let () = register ~name:"compile" ~args:"[-p PKG] FILE"
          DESCRIPTION:\n\
          \n  Compile the given file(s) using why3 prove command.\n\n\
          OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
          \n  -p|--package PKG package dependency\
          \n  --extra-config FILE additional configuration file\
          \n";
-      let args = wrap ~prefix:["prove";"--type-only"] ~configs:true argv in
-      Unix.execvp "why3" args
+      exec ~prefix:["prove";"--type-only"] ~configs:true argv
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -407,13 +422,12 @@ let () = register ~name:"ide" ~args:"[-p PKG] FILE"
          \n  Also loads the « hammer » strategy.\n\
          \n\
          OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
          \n  -p|--package PKG package dependency\
          \n  --extra-config FILE additional configuration file\
          \n";
       let hammer = Meta.shared "hammer.cfg" in
-      let args = wrap ~prefix:["ide";"--extra-config";hammer]
-          ~configs:true argv in
-      Unix.execvp "why3" args
+      exec ~prefix:["ide";"--extra-config";hammer] ~configs:true argv
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -428,11 +442,11 @@ let () = register ~name:"replay" ~args:"[-p PKG] FILE"
          DESCRIPTION:\n\
          \n  Executes why3 replay with the specified arguments.\n\n\
          OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
          \n  -p|--package PKG package dependency\
          \n  --extra-config FILE additional configuration file\
          \n";
-      let args = wrap ~prefix:["replay"] ~configs:true argv in
-      Unix.execvp "why3" args
+      exec ~prefix:["replay"] ~configs:true argv
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -447,12 +461,12 @@ let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
          DESCRIPTION:\n\
          \n  Executes why3 ide with the specified arguments.\n\n\
          OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
          \n  -p|--package PKG package dependency\
          \n  -D|--driver NAME|FILE additional extraction driver\
          \n  --extra-config FILE additional configuration file\
          \n";
-      let args = wrap ~prefix:["extract"] ~configs:true ~drivers:true argv in
-      Unix.execvp "why3" args
+      exec ~prefix:["extract"] ~configs:true ~drivers:true argv
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -467,11 +481,11 @@ let () = register ~name:"hammer" ~args:"[-p PKG] FILE"
          DESCRIPTION:\n\
          \n  Run why3 hammer on the given file.\n\n\
          OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
          \n  -p|--package PKG package dependency\
          \n  --extra-config FILE additional configuration file\
          \n";
-      let args = wrap ~configs:true argv in
-      Unix.execvp "hammer" args
+      exec ~cmd:"hammer" ~configs:true argv
     end
 
 (* -------------------------------------------------------------------------- *)

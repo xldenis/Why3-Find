@@ -24,6 +24,6 @@
 (* -------------------------------------------------------------------------- *)
 
 val iter : (string -> string -> unit) -> unit
-val exec : string -> string array -> unit
+val process : string -> string array -> unit
 
 (* -------------------------------------------------------------------------- *)
