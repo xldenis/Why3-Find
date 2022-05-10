@@ -189,7 +189,8 @@ let () = register ~name:"makefile"
          \n  include $(shell why3find makefile)
          \n\
          MAKEFILE TARGETS:\n\
-         \n  make all        prove (default, extensible)\
+         \n  make all        build (default, extensible)\
+         \n  make build      generate dune file(s) (extensible)\
          \n  make install    install the why3 package (extensible)\
          \n  make uninstall  remove the why3 package (extensible)\
          \n\
@@ -237,7 +238,7 @@ let () = register ~name:"query" ~args:"[PKG...]"
       let query = ref [] in
       Arg.parse_argv argv
         [ "-p", Arg.Set path, "print package paths only"
-        ; "-l", Arg.Set load, "print extracted ocaml libraries"
+        ; "-l", Arg.Set libs, "print extracted ocaml libraries"
         ; "-L", Arg.Set load, "prints -L <path> for all dependencies"
         ; "-r", Arg.Set deps, "recursive mode, query also dependencies" ]
         (fun pkg -> query := pkg :: !query)
@@ -262,17 +263,19 @@ let () = register ~name:"query" ~args:"[PKG...]"
       else if !libs then
         List.iter
           (fun (p : Meta.pkg) ->
-             if p.library then Format.printf "why3lib-%s" p.name)
+             if p.library then Format.printf "%s@\n" p.name)
           pkgs
       else
         let pp_opt name ps =
-          if ps <> [] then
-            Format.printf "  @[<hov 2>%s %s@]@\n" name
-              (String.concat ", " ps) in
+          Format.printf "  @[<hov 2>%s: %s@]@\n" name
+            (if ps = [] then "-" else String.concat ", " ps)
+        in
         List.iter
           (fun (p : Meta.pkg) ->
              Format.printf "Package %s:@\n" p.name ;
-             Format.printf "  path %s@\n" p.path ;
+             Format.printf "  path: %s@\n" p.path ;
+             Format.printf "  library: %s@\n"
+               (if p.library then "-" else p.name) ;
              pp_opt "depends" p.depends ;
              pp_opt "configs" p.configs ;
              pp_opt "drivers" p.drivers ;
@@ -304,8 +307,9 @@ let rec mkdirs = function
         Sys.mkdir path 0o755 ;
       end
 
-let copy buffer ~src ~tgt =
+let copy ~src ~tgt =
   mkdirs (Filename.dirname tgt) ;
+  let buffer = Bytes.create 2048 in
   let inc = open_in src in
   let out = open_out tgt in
   let rec walk () =
@@ -335,58 +339,91 @@ let () = register ~name:"uninstall" ~args:"[PKG...]"
 
 let () = register ~name:"install" ~args:"PKG [ARG...]"
     begin fun argv ->
-      usage argv
+      let rs = ref Bag.empty in
+      let dune = ref false in
+      Arg.parse_argv argv
+        [ "--local", Arg.Set dune , "DIR generate dune files in DIR instead" ]
+        (fun a -> rs := Bag.(!rs +> a))
         "USAGE:\n\
-         \n  why3find install PKG [ARG...]\n\n\
+         \n  why3find install [OPTIONS] PKG [ARG...]\n\n\
          DESCRIPTION:\n\
          \n  Install the package PKG at the topmost installation site.\
          \n  Contents of the installed package is specified by ARG extension:\
-         \n    PKG_NAME install PKG_NAME as a package dependency of PKG\
+         \n
+         \n    PKG' register package PKG' as a dependency of PKG\
          \n    PKG/**/*.mlw a why3 source file in PKG's scope\
          \n    *.cfg extra why3 configuration file\
          \n    *.drv ocaml extraction driver for PKG clients\
-         \n" ;
-      let pkg = argv.(1) in
-      let path = Meta.path pkg in
-      if Sys.file_exists path then
+         \n\n\
+         OPTIONS:\n" ;
+      let argv = Bag.to_array !rs in
+      let pkg = argv.(0) in
+      let dune = !dune in
+      let path = if dune then "." else Meta.path pkg in
+      if not dune && Sys.file_exists path then
         begin
           Format.printf "remove %s@." pkg ;
           cleanup path ;
         end ;
-      mkdirs path ;
+      if not dune then mkdirs path ;
+      let sources = ref ["META.json"] in
       let depends = ref [] in
       let drivers = ref [] in
       let configs = ref [] in
       let prefix = Filename.concat pkg "" in
-      let buffer = Bytes.create 2048 in
-      for i = 2 to Array.length argv - 1 do
-        let a = argv.(i) in
-        match Filename.extension a with
-        | "" -> Format.printf "depend %s@." a ; depends := a :: !depends
+      let install ~src =
+        if dune
+        then sources := src :: !sources
+        else copy ~src ~tgt:(Filename.concat path src)
+      in
+      for i = 1 to Array.length argv - 1 do
+        let src = argv.(i) in
+        match Filename.extension src with
+        | "" -> Format.printf "depend %s@." src ; depends := src :: !depends
         | ".mlw" ->
-          if not (String.starts_with ~prefix a) then
+          if not (String.starts_with ~prefix src) then
             failwith
-              (Printf.sprintf "can not install %S out of %S" a prefix) ;
-          Format.printf "install %s@." a ;
-          copy buffer ~src:a ~tgt:(Filename.concat path a) ;
+              (Printf.sprintf
+                 "can not install %S from outside of %S"
+                 src prefix) ;
+          Format.printf "install (source) %s@." src ;
+          install ~src ;
         | ".cfg" ->
-          Format.printf "config %s@." a ;
-          copy buffer ~src:a ~tgt:(Filename.concat path a) ;
-          configs := a :: !configs ;
+          Format.printf "install (config) %s@." src ;
+          install ~src ;
+          configs := src :: !configs ;
         | ".drv" ->
-          Format.printf "driver %s@." a ;
-          copy buffer ~src:a ~tgt:(Filename.concat path a) ;
-          drivers := a :: !drivers ;
-        | _ -> failwith (Printf.sprintf "don't know what to do with %S" a)
+          Format.printf "install (driver) %s@." src ;
+          install ~src ;
+          drivers := src :: !drivers ;
+        | _ -> failwith (Printf.sprintf "don't know what to do with %S" src)
       done ;
+      Format.printf "install (meta)   META.json@." ;
       Meta.install {
-        name = pkg ;
-        path ;
+        name = pkg ; path ;
         library = Sys.file_exists "lib" ;
         depends = List.rev !depends ;
         drivers = List.rev !drivers ;
         configs = List.rev !configs ;
-      }
+      } ;
+      if dune then
+        begin
+          let out = open_out "dune" in
+          let fout = Format.formatter_of_out_channel out in
+          Format.fprintf fout "; generated by why3find install@\n" ;
+          Format.fprintf fout "(install@\n" ;
+          Format.fprintf fout "  (package %s)@\n" pkg ;
+          Format.fprintf fout "  (section (site (why3find packages)))@\n" ;
+          Format.fprintf fout "  (files@\n" ;
+          List.iter
+            (fun src ->
+               Format.fprintf fout "    (%s as %s/%s)@\n"
+                 src pkg src
+            ) (List.rev !sources) ;
+          Format.fprintf fout "    ))@." ;
+          close_out out ;
+          Format.printf "install (dune)   dune@." ;
+        end
     end
 
 (* -------------------------------------------------------------------------- *)

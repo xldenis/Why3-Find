@@ -45,6 +45,11 @@ let (+=) acc x = acc := !acc +> x
 let map f xs = List.fold_left (fun acc x -> acc +> f x) empty xs
 let merge f xs = List.fold_left (fun acc x -> acc ++ f x) empty xs
 
+let rec iter f = function
+  | Empty -> ()
+  | Elt x -> f x
+  | Cat(_,_,a,b) -> iter f a ; iter f b
+
 let rec of_list = function
   | [] -> empty
   | x::xs -> x @< of_list xs
