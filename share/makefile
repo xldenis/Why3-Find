@@ -42,7 +42,7 @@ clean:: $(pathsubst %.mlw,%.cleandir,$(WHY3_TARGETS))
 # --------------------------------------------------------------------------
 
 WHY3_PKGS=$(addprefix "-p ",$(WHY3_DEPENDS))
-WHY3_CC=why3find compile $(WHY3_OPTIONS) $(WHY3_PKGS)
+WHY3_CCP=why3find compile $(WHY3_OPTIONS) $(WHY3_PKGS)
 WHY3_IDE=why3find ide $(WHY3_OPTIONS) $(WHY3_PKGS)
 WHY3_REPLAY=why3find replay -f $(WHY3_OPTIONS) $(WHY3_PKGS)
 WHY3_PROVE=why3find hammer -u $(WHY3_HAMMER) $(WHY3_PKGS)
@@ -55,7 +55,7 @@ WHY3_PROVE=why3find hammer -u $(WHY3_HAMMER) $(WHY3_PKGS)
 
 %.cc: %.mlw
 	@echo "> why3find compile [...] $<"
-	@$(WHY3_CCP) $<
+	@($(WHY3_CCP) $<)
 
 %.chk: %.mlw
 	@($(WHY3_CCP) $<)
@@ -64,11 +64,11 @@ WHY3_PROVE=why3find hammer -u $(WHY3_HAMMER) $(WHY3_PKGS)
 	@echo "> why3find ide $*.mlw, waiting…"
 	@($(WHY3_IDE) $*.mlw)
 
-%.prove: %.chk %.dir
+%.prove: %.dir
 	@echo "> why3find hammer -u $*.mlw"
 	@($(WHY3_PROVE) $*.mlw)
 
-%.fix: %.chk %.dir
+%.fix: %.dir
 	@echo "-----------------------------"
 	@echo "--- fixup $*"
 	@echo "-----------------------------"
@@ -76,19 +76,19 @@ WHY3_PROVE=why3find hammer -u $(WHY3_HAMMER) $(WHY3_PKGS)
 	@if grep -q "\(failed\|not proved\)" .log ;\
 	 then echo "[Fix Required] why3 ide $*, waiting…"; $(WHY3_IDE) $*.mlw; fi
 
-%.check: %.chk %.dir
+%.check: %.dir
 	@echo "--- check $*"
 	@$(WHY3_REPLAY) --obsolete-only $* > .log 2> /dev/null
 	@if grep -q "\(failed\|not proved\)" .log ;\
 	 then cat .log ; exit 1;\
 	 fi
 
-%.replay: %.chk %.dir
+%.replay: %.dir
 	@echo "-----------------------------"
 	@echo "--- replay $*"
 	@echo "-----------------------------"
 	@$(WHY3_REPLAY) $* | tee .log
-	@if grep -q "\(failed\|not proved\)" .log ; then exit 1; f
+	@if grep -q "\(failed\|not proved\)" .log ; then exit 1; fi
 
 # --------------------------------------------------------------------------
 # ---  Extraction
