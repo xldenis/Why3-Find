@@ -28,7 +28,7 @@ available from `why3find` to generate template files for `dune` and `make`.
 
 The recommended setup for a new Why-3 package `PKG` is as follows:
 
-1. First, run `why3find init PKG [DIR]` ; this will creates templates for
+1. First, run `why3find init PKG [DIR]` ; this will create templates for
    `Makefile`, `.gitignore` and `dune-project` that you can starts with.
 
 2. Place your Why-3 source files in `DIR/PKG/**/*.mlw` directory ; this is
