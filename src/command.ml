@@ -291,9 +291,12 @@ let () = register ~name:"makefile"
          MAKEFILE USAGE:\n\
          \n  WHY3_PACKAGE=PKG       package name\
          \n  WHY3_DEPENDS=PKG...    package dependencies\
-         \n  WHY3_EXTRACT=MODULE... extracted modules\
          \n  WHY3_OPTIONS=OPTION... general why3find or why3 options\
-         \n  WHY3_HAMMER=OPTION...  hammer options\
+         \n  WHY3_HAMMERS=OPTION... hammer options\
+         \n  WHY3_CONFIGS=**/*.cfg  extra configuration files \
+         \n  WHY3_DRIVERS=**/*.drv  extraction drivers \
+         \n  WHY3_EXTRACT=MODULE... extracted modules\
+         \n  WHY3_LIBRARIES=PKG...  extra OCaml package dependencies\
          \n\
          \n  include $(shell why3find makefile)
          \n\

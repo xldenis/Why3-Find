@@ -4,10 +4,12 @@
 
 #WHY3_PACKAGE= name
 #WHY3_DEPENDS= pkg ...
+#WHY3_OPTIONS= OPTIONS...
+#WHY3_HAMMERS= OPTIONS...
+#WHY3_DRIVERS= *.drv ...
+#WHY3_CONFIGS= *.cfg ...
 #WHY3_EXTRACT= m.M ...
 #WHY3_LIBRARIES= ocaml pkg ...
-#WHY3_OPTIONS= OPTIONS...
-#WHY3_HAMMER= OPTIONS...
 
 # --------------------------------------------------------------------------
 
@@ -42,11 +44,14 @@ clean:: $(pathsubst %.mlw,%.cleandir,$(WHY3_TARGETS))
 # ---  Patterns
 # --------------------------------------------------------------------------
 
+WHY3_OPTS=$(WHY3_OPTIONS) $(addprefix "--extra-config ",$(WHY3_CONFIGS))
 WHY3_PKGS=$(addprefix "-p ",$(WHY3_DEPENDS))
+WHY3_DRVS=$(addprefix "-D ",$(WHY3_DRIVERS))
+WHY3_LIBS=$(shell why3find query -l $(WHY3_DEPENDS))
 WHY3_CCP=why3find compile $(WHY3_OPTIONS) $(WHY3_PKGS)
 WHY3_IDE=why3find ide $(WHY3_OPTIONS) $(WHY3_PKGS)
 WHY3_REPLAY=why3find replay -f $(WHY3_OPTIONS) $(WHY3_PKGS)
-WHY3_PROVE=why3find hammer -u $(WHY3_HAMMER) $(WHY3_PKGS)
+WHY3_PROVE=why3find hammer -u $(WHY3_HAMMERS) $(WHY3_PKGS)
 
 %.dir: %.mlw
 	@mkdir -p $*
@@ -97,14 +102,14 @@ WHY3_PROVE=why3find hammer -u $(WHY3_HAMMER) $(WHY3_PKGS)
 
 .PHONY: extract
 
-WHY3_LIBS=$(shell why3find query -l $(WHY3_DEPENDS))
-
 ifneq ($(WHY3_EXTRACT),)
 extract:
 	@echo "> why3find extract -o ./lib [...]"
 	@rm -f lib/*.ml
 	@mkdir -p lib
-	@why3find extract --driver ocaml64 --modular -o ./lib \
+	@why3find extract \
+		--driver ocaml64 $(WHY3_DRVS) \
+		--modular -o ./lib \
 		$(WHY3_OPTIONS) $(WHY3_PKGS) $(WHY3_EXTRACT)
 endif
 
@@ -133,7 +138,8 @@ build: dune META.json
 dune META.json: Makefile
 	@rm -f dune META.json
 	@why3find install --local \
-		$(WHY3_PACKAGE) $(WHY3_DEPENDS) $(WHY3_TARGETS)
+		$(WHY3_PACKAGE) $(WHY3_DEPENDS) \
+		$(WHY3_TARGETS) $(WHY3_CONFIGS) $(WHY3_DRIVERS)
 	@chmod a-w dune META.json
 
 
