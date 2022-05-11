@@ -3,13 +3,13 @@
 # --------------------------------------------------------------------------
 
 #WHY3_PACKAGE= name
-#WHY3_DEPENDS= pkg ...
-#WHY3_OPTIONS= OPTIONS...
-#WHY3_HAMMERS= OPTIONS...
-#WHY3_DRIVERS= *.drv ...
-#WHY3_CONFIGS= *.cfg ...
-#WHY3_EXTRACT= m.M ...
-#WHY3_LIBRARIES= ocaml pkg ...
+#WHY3_DEPENDS= pkg …
+#WHY3_OPTIONS= OPTIONS…
+#WHY3_HAMMERS= OPTIONS…
+#WHY3_DRIVERS= *.drv …
+#WHY3_CONFIGS= *.cfg …
+#WHY3_EXTRACT= m.M …
+#WHY3_LIBRARIES= ocaml pkg …
 
 # --------------------------------------------------------------------------
 
@@ -37,7 +37,7 @@ prove: $(patsubst %.mlw,%.prove,$(WHY3_TARGETS))
 fix: $(patsubst %.mlw,%.fix,$(WHY3_TARGETS))
 	@echo "-----------------------------"
 
-clean:: $(pathsubst %.mlw,%.cleandir,$(WHY3_TARGETS))
+clean:: $(patsubst %.mlw,%.clean,$(WHY3_TARGETS))
 	dune clean
 
 # --------------------------------------------------------------------------
@@ -51,36 +51,37 @@ WHY3_LIBS=$(shell why3find query -l $(WHY3_DEPENDS))
 WHY3_CCP=why3find compile $(WHY3_OPTIONS) $(WHY3_PKGS)
 WHY3_IDE=why3find ide $(WHY3_OPTIONS) $(WHY3_PKGS)
 WHY3_REPLAY=why3find replay -f $(WHY3_OPTIONS) $(WHY3_PKGS)
-WHY3_PROVE=why3find hammer -u $(WHY3_HAMMERS) $(WHY3_PKGS)
+WHY3_PROVE=why3find hammer $(WHY3_HAMMERS) $(WHY3_PKGS)
 
 %.dir: %.mlw
 	@mkdir -p $*
 
-%.cleandir: %.mlw
+%.clean: %.mlw
 	@rm -fr $*
 
 %.cc: %.mlw
-	@echo "> why3find compile [...] $<"
+	@echo "why3find compile […] $<"
 	@($(WHY3_CCP) $<)
 
 %.chk: %.mlw
 	@($(WHY3_CCP) $<)
 
 %.ide: %.chk %.dir
-	@echo "> why3find ide $*.mlw, waiting…"
+	@echo "why3find ide $*.mlw, waiting…"
 	@($(WHY3_IDE) $*.mlw)
 
 %.prove: %.dir
-	@echo "> why3find hammer -u $*.mlw"
-	@($(WHY3_PROVE) $*.mlw)
+	@echo "why3find hammer […] $*.mlw"
+	@($(WHY3_PROVE) -q $*.mlw)
 
 %.fix: %.dir
 	@echo "-----------------------------"
 	@echo "--- fixup $*"
 	@echo "-----------------------------"
-	@$(WHY3_PROVE) $*.mlw | tee .log
-	@if grep -q "\(failed\|not proved\)" .log ;\
-	 then echo "[Fix Required] why3 ide $*, waiting…"; $(WHY3_IDE) $*.mlw; fi
+	@if ! $(WHY3_PROVE) $*.mlw; \
+	 then echo "[Fix Required] why3 ide $*, waiting…"; \
+	      $(WHY3_IDE) $*.mlw; \
+	 fi
 
 %.check: %.dir
 	@echo "--- check $*"
@@ -104,7 +105,7 @@ WHY3_PROVE=why3find hammer -u $(WHY3_HAMMERS) $(WHY3_PKGS)
 
 ifneq ($(WHY3_EXTRACT),)
 extract:
-	@echo "> why3find extract -o ./lib [...]"
+	@echo "why3find extract -o ./lib […]"
 	@rm -f lib/*.ml
 	@mkdir -p lib
 	@why3find extract \
