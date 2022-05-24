@@ -114,6 +114,19 @@ let template ~subst ~src ~tgt =
   close_out out ;
   Format.printf "Initialized %s@." tgt
 
+let find_direcory ~msg fn =
+  let rec lookup dir =
+    match dir with
+    | "/" | "." -> failwith msg
+    | _ ->
+      if fn dir then dir else
+        lookup (Filename.dirname dir)
+  in lookup @@ Sys.getcwd ()
+
+let find_makefile () =
+  find_direcory ~msg:"Makefile not found"
+    (fun dir -> Sys.file_exists (Filename.concat dir "Makefile"))
+
 (* -------------------------------------------------------------------------- *)
 (* --- Wrapper Command                                                    --- *)
 (* -------------------------------------------------------------------------- *)
@@ -200,7 +213,7 @@ let process cmd argv : unit =
        \n  --configs : pass also --extra-config-file=<CFG> options\
        \n  --drivers : pass also --driver=<DRV> options\
        \n" ;
-    exec ~cmd  ~auto:true argv
+    exec ~cmd ~auto:true argv
   | _,process -> process argv
 
 let register ~name ?(args="") process =
@@ -314,6 +327,21 @@ let () = register ~name:"makefile"
          \n  make replay  | file.replay  replay session\
          \n" ;
       Format.printf "%s@\n" @@ Meta.shared "makefile"
+    end
+
+let () = register ~name:"make"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find make [ARGS...]\n\n\
+         DESCRIPTION:\n\
+         \n  run make -C DIR ARGS... from the closest\
+         \n  directory DIR that contains a Makefile.\
+         \n" ;
+      let dir = find_makefile () in
+      let args = Array.sub argv 1 (Array.length argv - 1) in
+      let argv = Array.append [| "make" ; "-C" ; dir |] args in
+      Unix.execvp "make" argv
     end
 
 (* -------------------------------------------------------------------------- *)
