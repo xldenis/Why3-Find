@@ -9,6 +9,8 @@
     (write-file %{target}
       "let version = \"%{version:why3find}\"")))
 
+(ocamllex lexer)
+
 (generate_sites_module
   (module global)
   (sites why3find))

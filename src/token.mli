@@ -20,57 +20,54 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why-3 find main entry point                                        --- *)
+(* --- Documentation Generator Tokens                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-module M = Token
-module L = Lexer
+type kind =
+  | Head
+  | Emph
+  | Bold
+  | Dash
+  | Ulist
+  | Olist
 
-let version () : unit =
-  begin
-    Format.printf "why3find v%s@." Config.version ;
-    exit 0
-  end
+type token =
+  | Eof
+  | Newline
+  | Char of char
+  | Text of string
+  | Comment of string
+  | Infix of string
+  | Ident of string
+  | OpenDoc
+  | CloseDoc
+  | Space
+  | Word of kind * string
+  | Ref of string
+  | Verb of string
 
-let help () : unit =
-  begin
-    Format.printf "why3find [-h|--help]@\n" ;
-    Format.printf "why3find [-v|--version]@\n" ;
-    Command.iter (Format.printf "why3find %s %s@\n") ;
-    Format.printf "why3find CMD [ARGS...]@\n" ;
-    exit 0
-  end
+val src_lexer : (Lexing.lexbuf -> token) ref
+val doc_lexer : (Lexing.lexbuf -> token) ref
 
-let main () =
-  try
-    let n = Array.length Sys.argv in
-    if n < 2 then help () else
-      match Sys.argv.(1) with
-      | "-v" | "-version" | "--version" -> version ()
-      | "-h" | "-help" | "--help" | "help" -> help ()
-      | cmd -> Command.process cmd (Array.sub Sys.argv 1 (n-1))
-  with
-  | Stdlib.Arg.Help msg ->
-    Format.eprintf "%s@." msg ;
-    exit 0
-  | Stdlib.Arg.Bad msg ->
-    Format.eprintf "why3find %s@." msg ;
-    exit 1
-  | Failure msg | Sys_error msg ->
-    Format.eprintf "why3find: %s@." msg ;
-    exit 1
-  | Unix.Unix_error(err,_,arg) ->
-    Format.eprintf "why3find: %s (%s)@."
-      (Unix.error_message err) arg ;
-    exit 1
-  | Assert_failure(f,a,b) ->
-    Format.eprintf "why3find: assertion failure (%s:%d:%d)@." f a b ;
-    exit 2
-  | exn ->
-    Format.eprintf "why3find: fatal error (%s)@."
-      (Printexc.to_string exn) ;
-    exit 2
+type input
 
-let () = Printexc.catch main ()
+(** Opens the given file. *)
+val input : ?doc:bool -> string -> input
+
+(** Closes the opened chanel. *)
+val close : input -> unit
+
+(** Fetch the next token from input. *)
+val token : input -> token (** next buffer *)
+
+(** The last returned token is preceeded by a space or a newline. *)
+val spaced : input -> bool
+
+(** The last returned token is at the beginning of the line. *)
+val startline : input -> bool
+
+(** The last returned token is at then beginning of the line
+    {i and} after an empty line. *)
+val emptyline : input -> bool
 
 (* -------------------------------------------------------------------------- *)
