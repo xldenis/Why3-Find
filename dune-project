@@ -22,6 +22,7 @@
      OCaml extracted code.")
   (depends
      (dune (>= 3.0))
+     (why3 (>= 1.5.0))
      (ocaml (>= 4.12.0)))
   (sites
     (lib packages)

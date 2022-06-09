@@ -20,58 +20,32 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why-3 find main entry point                                        --- *)
+(* --- HTML Doc Printer                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-module M = Token
-module L = Lexer
-module P = Pdoc
+type 'a fmt = Format.formatter -> 'a -> unit
 
-let version () : unit =
-  begin
-    Format.printf "why3find v%s@." Config.version ;
-    exit 0
-  end
+(** Span the printer with a class. *)
+val pp_span : string -> 'a fmt -> 'a fmt
 
-let help () : unit =
-  begin
-    Format.printf "why3find [-h|--help]@\n" ;
-    Format.printf "why3find [-v|--version]@\n" ;
-    Command.iter (Format.printf "why3find %s %s@\n") ;
-    Format.printf "why3find CMD [ARGS...]@\n" ;
-    exit 0
-  end
+(** Sanitize to HTML. *)
+val pp_html : string fmt
 
-let main () =
-  try
-    let n = Array.length Sys.argv in
-    if n < 2 then help () else
-      match Sys.argv.(1) with
-      | "-v" | "-version" | "--version" -> version ()
-      | "-h" | "-help" | "--help" | "help" -> help ()
-      | cmd -> Command.process cmd (Array.sub Sys.argv 1 (n-1))
-  with
-  | Stdlib.Arg.Help msg ->
-    Format.eprintf "%s@." msg ;
-    exit 0
-  | Stdlib.Arg.Bad msg ->
-    Format.eprintf "why3find %s@." msg ;
-    exit 1
-  | Failure msg | Sys_error msg ->
-    Format.eprintf "why3find: %s@." msg ;
-    exit 1
-  | Unix.Unix_error(err,_,arg) ->
-    Format.eprintf "why3find: %s (%s)@."
-      (Unix.error_message err) arg ;
-    exit 1
-  | Assert_failure(f,a,b) ->
-    Format.eprintf "why3find: assertion failure (%s:%d:%d)@." f a b ;
-    exit 2
-  | exn ->
-    Format.eprintf "why3find: fatal error (%s)@."
-      (Printexc.to_string exn) ;
-    exit 2
+(** Sanitize to HTML. *)
+val to_html : string -> string
 
-let () = Printexc.catch main ()
+type output
+
+(** Open with (sanitized) title. *)
+val output : file:string -> title:string -> output
+
+(** Prints (sanitized) contents. *)
+val printf : output -> ('a, Format.formatter, unit) format -> 'a
+
+(** Prints (sanitized) header and collect it inside TOC. *)
+val header : output -> level:int -> title:string -> unit
+
+(** Flush the output on disk. *)
+val close : output -> unit
 
 (* -------------------------------------------------------------------------- *)
