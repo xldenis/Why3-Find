@@ -642,9 +642,14 @@ let () = register ~name:"doc" ~args:"[-p PKG] FILE..."
     begin fun argv ->
       let pkgs = ref [] in
       let files = ref [] in
+      let out = ref "html" in
       let add r p = r := p :: !r in
       Arg.parse_argv argv
-        [ "-p", Arg.String (add pkgs), "package dependency" ]
+        [
+          "-o", Arg.Set_string out,
+          "destination directory (default \"html\")" ;
+          "-p", Arg.String (add pkgs), "package dependency"
+        ]
         (add files)
         "USAGE:\n\
          \n  why3find query [PKG...]\n\n\
@@ -653,7 +658,8 @@ let () = register ~name:"doc" ~args:"[-p PKG] FILE..."
          OPTIONS:\n" ;
       let pkgs = List.rev !pkgs in
       let files = List.rev !files in
-      Docgen.main ~pkgs ~files
+      let out = !out in
+      Docgen.main ~pkgs ~files ~out
     end
 
 (* -------------------------------------------------------------------------- *)

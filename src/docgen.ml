@@ -31,21 +31,27 @@ module P = Pdoc
 (* --- File Processing                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process ~env file =
+let process ~env ~out file =
   begin
     let src = Docref.parse ~env file in
-    Format.printf "PKG: %s@." src.pkg ;
-    Format.printf "URL: %s@." src.url ;
+    let libname = String.concat "." src.lib in
+    let title = Printf.sprintf "Library <tt>%s</tt>" libname in
+    let out =
+      let file = Filename.concat out src.url in
+      Pdoc.output ~file ~title
+    in
+    Pdoc.printf out "<h1>%s</h1>@\n" title ;
+    Pdoc.close out ;
   end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Main Doc Command                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-let main ~pkgs ~files =
+let main ~pkgs ~out ~files =
   begin
     let env = Docref.init ~pkgs in
-    List.iter (process ~env) files
+    List.iter (process ~env ~out) files
   end
 
 (* -------------------------------------------------------------------------- *)

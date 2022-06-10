@@ -23,4 +23,4 @@
 (* --- HTML Documentation Generator                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-val main : pkgs:string list -> files:string list -> unit
+val main : pkgs:string list -> out:string -> files:string list -> unit

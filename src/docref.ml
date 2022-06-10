@@ -52,17 +52,17 @@ let anchor ~kind id =
 
 let restore_path id =
   try
-    Why3.Pmodule.restore_path id
+    true, Why3.Pmodule.restore_path id
   with Not_found ->
-    Why3.Theory.restore_path id
+    false, Why3.Theory.restore_path id
 
 let baseurl ~pkg id =
-  let lp,md,_ = restore_path id in
+  let _,(lp,md,_) = restore_path id in
   if lp = [] then "" else
     let lpkg = List.hd lp in
     let path = String.concat "." lp in
     if pkg = lpkg then
-      Printf.sprintf "./%s.%s.html" path md
+      Printf.sprintf "%s.%s.html" path md
     else
       try
         let meta = Meta.find pkg in
@@ -72,9 +72,10 @@ let baseurl ~pkg id =
 
 type href =
   | NoRef
-  | Thy of string
   | Def of string
   | Ref of string * string
+  | Theory of string * string
+  | Module of string * string
 
 let resolve ~pkg pos =
   try
@@ -82,7 +83,11 @@ let resolve ~pkg pos =
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, kind) ->
       let name = anchor ~kind id in
-      if kind = "theory" then Thy name else Def name
+      if kind = "theory" then
+        let ismodule,(lp,m,_) = restore_path id in
+        let path = Printf.sprintf "%s.%s.html" (String.concat "." lp) m in
+        if ismodule then Module(path,name) else Theory(path,name)
+      else Def(name)
     | (id, Why3.Glob.Use, kind) ->
       let loc = id_loc id in
       let id =
@@ -117,7 +122,7 @@ let init ~pkgs =
 (* --- Parsing                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
-let path file =
+let library_path file =
   let rec scan r p =
     let d = Filename.dirname p in
     if d = "." || d = "" || d = p
@@ -127,16 +132,13 @@ let path file =
 
 type source = {
   pkg: string;
+  lib: string list;
   url: string;
 }
 
 let parse ~env file =
-  let path = path file in
-  let pkg =
-    match path with
-    | [] | [_] -> ""
-    | pkg::_ -> pkg
-  in
+  let lib = library_path file in
+  let pkg = match lib with [] | [_] -> "" | pkg::_ -> pkg in
   let theories =
     try fst @@ Why3.Env.read_file Why3.Env.base_language env file
     with exn ->
@@ -147,6 +149,7 @@ let parse ~env file =
     (fun name _thy ->
        Format.printf "theory %s@." name
     ) theories ;
-  { pkg ; url = String.concat "." path }
+  let url = Printf.sprintf "%s.html" (String.concat "." lib) in
+  { pkg ; lib ; url }
 
 (* -------------------------------------------------------------------------- *)
