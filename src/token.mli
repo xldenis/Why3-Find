@@ -23,7 +23,7 @@
 (* --- Documentation Generator Tokens                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-type kind =
+type style =
   | Head
   | Emph
   | Bold
@@ -42,7 +42,7 @@ type token =
   | OpenDoc
   | CloseDoc
   | Space
-  | Word of kind * string
+  | Style of style * string
   | Ref of string
   | Verb of string
 
@@ -59,6 +59,12 @@ val close : input -> unit
 
 (** End of file has been reached. *)
 val eof : input -> bool
+
+(** In source code *)
+val src : input -> bool
+
+(** In documentation *)
+val doc : input -> bool
 
 (** Fetch the next token from input. *)
 val token : input -> token (** next buffer *)

@@ -23,7 +23,7 @@
 (* --- Documentation Generator Tokens                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-type kind =
+type style =
   | Head
   | Emph
   | Bold
@@ -42,7 +42,7 @@ type token =
   | OpenDoc
   | CloseDoc
   | Space
-  | Word of kind * string
+  | Style of style * string
   | Ref of string
   | Verb of string
 
@@ -80,6 +80,8 @@ let close input =
   input.context <- End
 
 let eof input = input.context = End
+let src input = input.context = Src
+let doc input = input.context = Doc
 let spaced input = input.wascut
 let startline input = input.waslines > 0
 let emptyline input = input.waslines > 1

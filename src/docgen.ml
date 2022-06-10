@@ -65,12 +65,18 @@ let process_file ~env ~out file =
     while not (Token.eof input) do
       match Token.token input with
       | Eof -> ()
+      | Space -> Pdoc.pp out Format.pp_print_char ' '
       | Char c -> Pdoc.pp_html_c out c
       | Text s -> Pdoc.pp_html_s out s
       | Ident s -> process_ident out resolve s
       | Infix s -> process_ident out (resolve ~infix:true) s
       | Comment s -> Pdoc.pp_html_s out ~className:"comment" s
       | Newline -> Pdoc.printf out "@\n"
+      | OpenDoc ->
+        if not @@ Token.startline input then Pdoc.printf out "@\n" ;
+        Pdoc.printf out "</pre>@\n<div class=\"doc\">" ;
+      | CloseDoc ->
+        Pdoc.printf out "</div>@\n<pre class=\"src\">@\n" ;
       | _ -> ()
     done ;
     Pdoc.printf out "</pre>@\n" ;

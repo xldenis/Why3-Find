@@ -35,7 +35,7 @@
   let add = Buffer.add_string
   let addc = Buffer.add_char
   let newline = Lexing.new_line
-  let word kind lexbuf = Word(kind,Lexing.lexeme lexbuf)
+  let style sty lexbuf = Style(sty,Lexing.lexeme lexbuf)
 
 }
 
@@ -56,6 +56,8 @@ let operator =
   | "[<-]"
   | "[]<-"
 
+let space = [' ' '\t']
+
 (* -------------------------------------------------------------------------- *)
 (* --- Source Code Lexer                                                  --- *)
 (* -------------------------------------------------------------------------- *)
@@ -65,7 +67,7 @@ rule source = parse
   | '\n' { newline lexbuf ; Newline }
   | "(*)" { Infix "(*)" }
   | "(*" '*'* "*)" { Comment (Lexing.lexeme lexbuf) }
-  | "(*" '*'+  { OpenDoc }
+  | "(*" '*'+  space* { OpenDoc }
   | "(*" { Comment (buffered (comment 0) lexbuf) }
   | (ident | operator) as id { Ident id }
   | _ as c { Char c }
@@ -84,14 +86,14 @@ and comment level buffer = parse
 and document = parse
   | eof { Eof }
   | '\n' { newline lexbuf ; Newline }
-  | [' ' '\t']+ { Space }
-  | '*'+ ')' { CloseDoc }
-  | '#'+ { word Head lexbuf }
-  | '-' { word Ulist lexbuf }
-  | ['0'-'9']+ '.' { word Olist lexbuf }
-  | '-'+ { word Dash lexbuf }
-  | '_' | '*' { word Emph lexbuf }
-  | "__" | "**" { word Bold lexbuf }
+  | space+ { Space }
+  | space* '*'+ ')' { CloseDoc }
+  | '#'+ { style Head lexbuf }
+  | '-' { style Ulist lexbuf }
+  | ['0'-'9']+ '.' { style Olist lexbuf }
+  | '-'+ { style Dash lexbuf }
+  | '_' | '*' { style Emph lexbuf }
+  | "__" | "**" { style Bold lexbuf }
   | '{' ([^'}']* as rf) '}' { Ref rf }
   | '`' ([^'`']* as tt) '`' { Verb tt }
   | _ as c { Char c }

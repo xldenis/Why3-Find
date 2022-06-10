@@ -6,6 +6,19 @@ nav {
     display: none;
 }
 
+pre.src {
+    /* Source code block styling */
+    margin: 0px;
+}
+
+div.doc {
+    /* Documentation block styling */
+}
+
+/* -------------------------------------------------------------------------- */
+/* --- Source Code Styling                                                --- */
+/* -------------------------------------------------------------------------- */
+
 .src .keyword {
     color: purple;
 }

@@ -26,8 +26,10 @@
 type 'a fmt = Format.formatter -> 'a -> unit
 type 'a printf =  ('a, Format.formatter, unit) format -> 'a
 
-let pp_span cla pp fmt v =
-  Format.fprintf fmt "<span class=\"%s\">%a</span>" cla pp v
+let pp_span ?className pp fmt v =
+  match className with
+  | None -> pp fmt v
+  | Some cla -> Format.fprintf fmt "<span class=\"%s\">%a</span>" cla pp v
 
 let urichars = function
   | 'A'..'Z'
@@ -98,12 +100,8 @@ let printf output msg = Format.fprintf output.body.fmt msg
 let pp output pp v = pp output.body.fmt v
 
 let pp_html_c output c = Why3.Pp.html_char output.body.fmt c
-
 let pp_html_s output ?className s =
-  let fmt = output.body.fmt in
-  match className with
-  | None -> Why3.Pp.html_string fmt s
-  | Some cla -> pp_span cla Why3.Pp.html_string fmt s
+  pp_span ?className Why3.Pp.html_string output.body.fmt s
 
 let header output ~level ~title ?(toc=title) () =
   let name = Printf.sprintf "hd%d" (succ @@ List.length output.headers) in

@@ -27,7 +27,7 @@ type 'a fmt = Format.formatter -> 'a -> unit
 type 'a printf =  ('a, Format.formatter, unit) format -> 'a
 
 (** Span the printer with a class. *)
-val pp_span : string -> 'a fmt -> 'a fmt
+val pp_span : ?className:string -> 'a fmt -> 'a fmt
 
 (** Sanitize element NAME to HTML. *)
 val pp_name : string fmt
@@ -61,14 +61,14 @@ val output : file:string -> title:string -> output
 (** Prints (sanitized) contents. *)
 val printf : output -> 'a printf
 
+(** Print the data with the pretty printer. *)
+val pp : output -> 'a fmt -> 'a -> unit
+
 (** Sanitize then print the string with the optional class. *)
 val pp_html_s : output -> ?className:string -> string -> unit
 
 (** Sanitize then print the char. *)
 val pp_html_c : output -> char -> unit
-
-(** Print the data with the pretty printer. *)
-val pp : output -> 'a fmt -> 'a -> unit
 
 (** Prints (sanitized) header and collect it inside TOC.
     Optional [~toc] is an alternative (sanitized) [~title]
