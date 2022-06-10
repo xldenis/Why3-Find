@@ -79,6 +79,7 @@ let close input =
   close_in_noerr input.channel ;
   input.context <- End
 
+let eof input = input.context = End
 let spaced input = input.wascut
 let startline input = input.waslines > 0
 let emptyline input = input.waslines > 1

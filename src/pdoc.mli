@@ -61,6 +61,15 @@ val output : file:string -> title:string -> output
 (** Prints (sanitized) contents. *)
 val printf : output -> 'a printf
 
+(** Sanitize then print the string with the optional class. *)
+val pp_html_s : output -> ?className:string -> string -> unit
+
+(** Sanitize then print the char. *)
+val pp_html_c : output -> char -> unit
+
+(** Print the data with the pretty printer. *)
+val pp : output -> 'a fmt -> 'a -> unit
+
 (** Prints (sanitized) header and collect it inside TOC.
     Optional [~toc] is an alternative (sanitized) [~title]
     for the TOC entry. *)

@@ -20,60 +20,39 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Documentation Generator Tokens                                     --- *)
+(* --- System Utils                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-type kind =
-  | Head
-  | Emph
-  | Bold
-  | Dash
-  | Ulist
-  | Olist
+let rec cleanup path =
+  if Sys.file_exists path then
+    if Sys.is_directory path then
+      begin
+        Array.iter
+          (fun d -> cleanup (Filename.concat path d))
+          (Sys.readdir path) ;
+        Sys.rmdir path
+      end
+    else
+      Sys.remove path
 
-type token =
-  | Eof
-  | Newline
-  | Char of char
-  | Text of string
-  | Comment of string
-  | Infix of string
-  | Ident of string
-  | OpenDoc
-  | CloseDoc
-  | Space
-  | Word of kind * string
-  | Ref of string
-  | Verb of string
+let rec mkdirs = function
+  | "/" | "." -> ()
+  | path ->
+    if not (Sys.file_exists path) then
+      begin
+        mkdirs (Filename.dirname path) ;
+        Sys.mkdir path 0o755 ;
+      end
 
-val src_lexer : (Lexing.lexbuf -> token) ref
-val doc_lexer : (Lexing.lexbuf -> token) ref
-
-type input
-
-(** Opens the given file. *)
-val input : ?doc:bool -> string -> input
-
-(** Closes the opened chanel. *)
-val close : input -> unit
-
-(** End of file has been reached. *)
-val eof : input -> bool
-
-(** Fetch the next token from input. *)
-val token : input -> token (** next buffer *)
-
-(** Potision of the last token. *)
-val position : input -> Lexing.position * Lexing.position
-
-(** The last returned token is preceeded by a space or a newline. *)
-val spaced : input -> bool
-
-(** The last returned token is at the beginning of the line. *)
-val startline : input -> bool
-
-(** The last returned token is at then beginning of the line
-    {i and} after an empty line. *)
-val emptyline : input -> bool
+let copy ~src ~tgt =
+  mkdirs (Filename.dirname tgt) ;
+  let buffer = Bytes.create 2048 in
+  let inc = open_in src in
+  let out = open_out tgt in
+  let rec walk () =
+    let n = Stdlib.input inc buffer 0 (Bytes.length buffer) in
+    if n > 0 then
+      ( Stdlib.output out buffer 0 n ; walk () )
+  in walk () ; close_in inc ; close_out out
 
 (* -------------------------------------------------------------------------- *)

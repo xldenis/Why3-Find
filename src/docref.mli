@@ -23,17 +23,6 @@
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-val is_keyword : string -> bool
-
-type href =
-  | NoRef
-  | Def of string
-  | Ref of string * string
-  | Theory of string * string
-  | Module of string * string
-
-val resolve : pkg:string -> (Lexing.position * Lexing.position) -> href
-
 val init : pkgs:string list -> Why3.Env.env
 
 type source = {
@@ -43,5 +32,18 @@ type source = {
 }
 
 val parse : env:Why3.Env.env -> string -> source
+
+val is_keyword : string -> bool
+
+type href =
+  | NoRef
+  | Def of string
+  | Ref of string * string
+  | Theory of string * string
+  | Module of string * string
+
+type position = Lexing.position * Lexing.position
+
+val resolve : pkg:string -> infix:bool -> position -> href
 
 (* -------------------------------------------------------------------------- *)

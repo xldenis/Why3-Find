@@ -30,7 +30,9 @@ let is_keyword = Hashtbl.mem keywords
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-let extract ?(infix=false) position =
+type position = Lexing.position * Lexing.position
+
+let extract ~infix position =
   let loc = Why3.Loc.extract position in
   if infix then
     let (f,l,s,e) = Why3.Loc.get loc in
@@ -77,9 +79,9 @@ type href =
   | Theory of string * string
   | Module of string * string
 
-let resolve ~pkg pos =
+let resolve ~pkg ~infix pos =
   try
-    let loc = extract pos in
+    let loc = extract ~infix pos in
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, kind) ->
       let name = anchor ~kind id in

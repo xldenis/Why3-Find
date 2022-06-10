@@ -46,42 +46,6 @@ let get argv k msg =
 let get_opt argv k =
   if k < Array.length argv then Some argv.(k) else None
 
-(* -------------------------------------------------------------------------- *)
-(* --- System Utils                                                       --- *)
-(* -------------------------------------------------------------------------- *)
-
-let rec cleanup path =
-  if Sys.file_exists path then
-    if Sys.is_directory path then
-      begin
-        Array.iter
-          (fun d -> cleanup (Filename.concat path d))
-          (Sys.readdir path) ;
-        Sys.rmdir path
-      end
-    else
-      Sys.remove path
-
-let rec mkdirs = function
-  | "/" | "." -> ()
-  | path ->
-    if not (Sys.file_exists path) then
-      begin
-        mkdirs (Filename.dirname path) ;
-        Sys.mkdir path 0o755 ;
-      end
-
-let copy ~src ~tgt =
-  mkdirs (Filename.dirname tgt) ;
-  let buffer = Bytes.create 2048 in
-  let inc = open_in src in
-  let out = open_out tgt in
-  let rec walk () =
-    let n = Stdlib.input inc buffer 0 (Bytes.length buffer) in
-    if n > 0 then
-      ( Stdlib.output out buffer 0 n ; walk () )
-  in walk () ; close_in inc ; close_out out
-
 let generate file gen =
   let out = open_out file in
   let fmt = Format.formatter_of_out_channel out in
@@ -94,7 +58,7 @@ let generate file gen =
 let var = Str.regexp "%{\\([a-zA-Z]+\\)}"
 
 let template ~subst ~src ~tgt =
-  mkdirs (Filename.dirname tgt) ;
+  Utils.mkdirs (Filename.dirname tgt) ;
   let inc = open_in src in
   let out = open_out tgt in
   let apply subst text =
@@ -441,7 +405,7 @@ let () = register ~name:"uninstall" ~args:"[PKG...]"
         if Sys.file_exists path then
           begin
             Format.printf "remove %s@." pkg ;
-            cleanup path ;
+            Utils.cleanup path ;
           end
       done
     end
@@ -472,9 +436,9 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
       if not dune && Sys.file_exists path then
         begin
           Format.printf "remove %s@." pkg ;
-          cleanup path ;
+          Utils.cleanup path ;
         end ;
-      if not dune then mkdirs path ;
+      if not dune then Utils.mkdirs path ;
       let sources = ref ["META.json"] in
       let depends = ref [] in
       let drivers = ref [] in
@@ -483,7 +447,7 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
       let install ~src =
         if dune
         then sources := src :: !sources
-        else copy ~src ~tgt:(Filename.concat path src)
+        else Utils.copy ~src ~tgt:(Filename.concat path src)
       in
       for i = 1 to Array.length argv - 1 do
         let src = argv.(i) in

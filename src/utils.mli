@@ -20,60 +20,11 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Documentation Generator Tokens                                     --- *)
+(* --- Why3 Find Builtin Commands                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-type kind =
-  | Head
-  | Emph
-  | Bold
-  | Dash
-  | Ulist
-  | Olist
-
-type token =
-  | Eof
-  | Newline
-  | Char of char
-  | Text of string
-  | Comment of string
-  | Infix of string
-  | Ident of string
-  | OpenDoc
-  | CloseDoc
-  | Space
-  | Word of kind * string
-  | Ref of string
-  | Verb of string
-
-val src_lexer : (Lexing.lexbuf -> token) ref
-val doc_lexer : (Lexing.lexbuf -> token) ref
-
-type input
-
-(** Opens the given file. *)
-val input : ?doc:bool -> string -> input
-
-(** Closes the opened chanel. *)
-val close : input -> unit
-
-(** End of file has been reached. *)
-val eof : input -> bool
-
-(** Fetch the next token from input. *)
-val token : input -> token (** next buffer *)
-
-(** Potision of the last token. *)
-val position : input -> Lexing.position * Lexing.position
-
-(** The last returned token is preceeded by a space or a newline. *)
-val spaced : input -> bool
-
-(** The last returned token is at the beginning of the line. *)
-val startline : input -> bool
-
-(** The last returned token is at then beginning of the line
-    {i and} after an empty line. *)
-val emptyline : input -> bool
+val mkdirs : string -> unit
+val cleanup : string -> unit
+val copy : src:string -> tgt:string -> unit
 
 (* -------------------------------------------------------------------------- *)

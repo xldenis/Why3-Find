@@ -95,6 +95,15 @@ let output ~file ~title =
   { htitle = title ; file ; headers = [] ; body }
 
 let printf output msg = Format.fprintf output.body.fmt msg
+let pp output pp v = pp output.body.fmt v
+
+let pp_html_c output c = Why3.Pp.html_char output.body.fmt c
+
+let pp_html_s output ?className s =
+  let fmt = output.body.fmt in
+  match className with
+  | None -> Why3.Pp.html_string fmt s
+  | Some cla -> pp_span cla Why3.Pp.html_string fmt s
 
 let header output ~level ~title ?(toc=title) () =
   let name = Printf.sprintf "hd%d" (succ @@ List.length output.headers) in

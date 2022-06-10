@@ -63,7 +63,7 @@ let operator =
 rule source = parse
   | eof { Eof }
   | '\n' { newline lexbuf ; Newline }
-  | "(*)" { Infix "*" }
+  | "(*)" { Infix "(*)" }
   | "(*" '*'* "*)" { Comment (Lexing.lexeme lexbuf) }
   | "(*" '*'+  { OpenDoc }
   | "(*" { Comment (buffered (comment 0) lexbuf) }

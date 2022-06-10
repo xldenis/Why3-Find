@@ -32,10 +32,21 @@ type pkg = {
   drivers: string list ;
 }
 
+
+(** [shared f] returns the path of file [f] installed in shared directory. *)
 val shared : string -> string
+
+(** [path pkg] returns the topmost installation path of package [pkg]. *)
 val path : string -> string
+
+(** [find pkg] returns the installed package META data, if installed. *)
 val find : string -> pkg
+
+(** [find_all pkgs] returns all listed packages and their dependencies,
+    in dependency order. *)
 val find_all : string list -> pkg list
+
+(** [install pkg] install the package META data. *)
 val install : pkg -> unit
 
 (* -------------------------------------------------------------------------- *)

@@ -1,0 +1,29 @@
+/* -------------------------------------------------------------------------- */
+/* --- CSS Style Sheet for why3find doc generator                         --- */
+/* -------------------------------------------------------------------------- */
+
+nav {
+    display: none;
+}
+
+.src .keyword {
+    color: purple;
+}
+
+.src .comment {
+    color: grey;
+}
+
+.src a {
+    text-decoration: none
+}
+
+.src a:hover {
+    background: lightgreen;
+}
+
+.src a:target {
+    background: orange;
+}
+
+/* -------------------------------------------------------------------------- */
