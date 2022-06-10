@@ -23,11 +23,6 @@
 (* --- Why-3 find main entry point                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-module M = Token
-module L = Lexer
-module P = Pdoc
-module R = Docref
-
 let version () : unit =
   begin
     Format.printf "why3find v%s@." Config.version ;

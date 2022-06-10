@@ -635,3 +635,25 @@ let () = register ~name:"hammer" ~args:"[-p PKG] FILE"
     end
 
 (* -------------------------------------------------------------------------- *)
+(* --- DOC                                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"doc" ~args:"[-p PKG] FILE..."
+    begin fun argv ->
+      let pkgs = ref [] in
+      let files = ref [] in
+      let add r p = r := p :: !r in
+      Arg.parse_argv argv
+        [ "-p", Arg.String (add pkgs), "package dependency" ]
+        (add files)
+        "USAGE:\n\
+         \n  why3find query [PKG...]\n\n\
+         DESCRIPTION:\n\
+         \n  Query why3 package location.\n\n\
+         OPTIONS:\n" ;
+      let pkgs = List.rev !pkgs in
+      let files = List.rev !files in
+      Docgen.main ~pkgs ~files
+    end
+
+(* -------------------------------------------------------------------------- *)

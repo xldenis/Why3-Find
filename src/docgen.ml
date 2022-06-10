@@ -20,18 +20,21 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Global References                                                  --- *)
+(* --- HTML Documentation Generator                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-val is_keyword : string -> bool
+module T = Token
+module L = Lexer
+module P = Pdoc
+module R = Docref
 
-type href =
-  | NoRef
-  | Def of string
-  | Ref of string * string
-
-val resolve : pkg:string -> (Lexing.position * Lexing.position) -> href
-
-val init : pkgs:string list -> Why3.Env.env
+let main ~pkgs ~files =
+  begin
+    Format.printf "Generator:@." ;
+    List.iter (Format.printf " pkg:  %S@.") pkgs ;
+    List.iter (Format.printf " file: %S@.") files ;
+    let _env = Docref.init ~pkgs in
+    ()
+  end
 
 (* -------------------------------------------------------------------------- *)

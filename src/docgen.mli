@@ -20,18 +20,7 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Global References                                                  --- *)
+(* --- HTML Documentation Generator                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-val is_keyword : string -> bool
-
-type href =
-  | NoRef
-  | Def of string
-  | Ref of string * string
-
-val resolve : pkg:string -> (Lexing.position * Lexing.position) -> href
-
-val init : pkgs:string list -> Why3.Env.env
-
-(* -------------------------------------------------------------------------- *)
+val main : pkgs:string list -> files:string list -> unit

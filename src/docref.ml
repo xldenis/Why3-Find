@@ -20,17 +20,15 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Global References                                                  --- *)
+(* --- Keywords                                                           --- *)
 (* -------------------------------------------------------------------------- *)
 
 let keywords = Hashtbl.create 97
 let is_keyword = Hashtbl.mem keywords
 
-let init () =
-  begin
-    Why3.Debug.set_flag Why3.Glob.flag ;
-    List.iter (fun k -> Hashtbl.add keywords k ()) Why3.Keywords.keywords ;
-  end
+(* -------------------------------------------------------------------------- *)
+(* --- Global References                                                  --- *)
+(* -------------------------------------------------------------------------- *)
 
 let extract ?(infix=false) position =
   let loc = Why3.Loc.extract position in
@@ -92,5 +90,25 @@ let resolve ~pkg pos =
         | _ -> id in
       Ref(baseurl ~pkg id, anchor ~kind id)
   with Not_found -> NoRef
+
+(* -------------------------------------------------------------------------- *)
+(* --- Environment                                                        --- *)
+(* -------------------------------------------------------------------------- *)
+
+let init ~pkgs =
+  let open Why3 in
+  begin
+    (* Parser config *)
+    Debug.set_flag Why3.Glob.flag ;
+    List.iter (fun k -> Hashtbl.add keywords k ()) Keywords.keywords ;
+    (* Package config *)
+    let pkgs = Meta.find_all pkgs in
+    let pkg_path = List.map (fun m -> m.Meta.path) pkgs in
+    (* Environment config *)
+    let config = Whyconf.init_config None in
+    let main = Whyconf.get_main config in
+    let cfg_path = Whyconf.loadpath main in
+    Why3.Env.create_env ("." :: pkg_path @ cfg_path)
+  end
 
 (* -------------------------------------------------------------------------- *)
