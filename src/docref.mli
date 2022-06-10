@@ -28,7 +28,6 @@ val is_keyword : string -> bool
 
 type href =
   | NoRef
-  | Thy of string
   | Def of string
   | Ref of string * string
 

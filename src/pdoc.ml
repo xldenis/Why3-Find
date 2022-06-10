@@ -24,24 +24,25 @@
 (* -------------------------------------------------------------------------- *)
 
 type 'a fmt = Format.formatter -> 'a -> unit
+type 'a printf =  ('a, Format.formatter, unit) format -> 'a
 
 let pp_span cla pp fmt v =
   Format.fprintf fmt "<span class=\"%s\">%a</span>" cla pp v
 
-let tag_allowed_char =
-  let tbl = Array.make 256 false in
-  let s = "-._~!$'()*+,;=:@/?" in (* while & is allowed in uri, it has to be escaped in html *)
-  String.iter (fun c -> tbl.(Char.code c) <- true) s;
-  let span m n = for i = Char.code m to Char.code n do tbl.(i) <- true done in
-  span 'A' 'Z';
-  span 'a' 'z';
-  span '0' '9';
-  fun c -> tbl.(Char.code c)
+let urichars = function
+  | 'A'..'Z'
+  | 'a'..'z'
+  | '0'..'9'
+  | '-' | '.' | '_' | '~' | '!' | '$'
+  | '\'' | '(' | ')' | '*' | '+'
+  | ',' | ';' | '=' | ':' | '@' | '/' | '?'
+    -> true
+  | _ -> false
 
 let pp_name fmt a =
   String.iter
     begin fun c ->
-      if tag_allowed_char c then
+      if urichars c then
         Format.pp_print_char fmt c
       else
         Format.fprintf fmt "%%%02X" (Char.code c)
@@ -49,6 +50,32 @@ let pp_name fmt a =
 
 let pp_html = Why3.Pp.html_string
 let to_html = Format.asprintf "%a" pp_html
+
+(* -------------------------------------------------------------------------- *)
+(* --- Html Buffers                                                       --- *)
+(* -------------------------------------------------------------------------- *)
+
+type buffer = {
+  buffer : Buffer.t ;
+  fmt : Format.formatter ;
+}
+
+let buffer () =
+  let buffer = Buffer.create 80 in
+  let fmt = Format.formatter_of_buffer buffer in
+  { buffer ; fmt }
+
+let bprintf (b : buffer) msg = Format.fprintf b.fmt msg
+let contents (b : buffer) =
+  Format.pp_print_flush b.fmt () ;
+  Buffer.contents b.buffer
+
+let pp_buffer fmt b =
+  Format.pp_print_string fmt (contents b)
+
+(* -------------------------------------------------------------------------- *)
+(* --- Html Output                                                        --- *)
+(* -------------------------------------------------------------------------- *)
 
 type header = {
   level: int;
@@ -59,22 +86,20 @@ type header = {
 type output = {
   file: string;
   htitle: string;
-  fmt: Format.formatter;
-  buffer: Buffer.t;
   mutable headers: header list; (* in reverse order *)
+  body: buffer;
 }
 
 let output ~file ~title =
-  let buffer = Buffer.create 80 in
-  let fmt = Format.formatter_of_buffer buffer in
-  { htitle = title ; file ; buffer ; fmt ; headers = [] }
+  let body = buffer () in
+  { htitle = title ; file ; headers = [] ; body }
 
-let printf output msg = Format.fprintf output.fmt msg
+let printf output msg = Format.fprintf output.body.fmt msg
 
-let header output ~level ~title =
+let header output ~level ~title ?(toc=title) () =
   let name = Printf.sprintf "hd%d" (succ @@ List.length output.headers) in
-  output.headers <- { level ; name ; title } :: output.headers ;
-  printf output "<h%d><a name=\"%s\">%s</a></h%d>@\n"
+  output.headers <- { level ; name ; title = toc } :: output.headers ;
+  Format.fprintf output.body.fmt "<h%d><a name=\"%s\">%s</a></h%d>@\n"
     level name title level
 
 let head =
@@ -107,13 +132,13 @@ let table_of_contents cout heads =
   end
 
 let close output =
-  Format.pp_print_flush output.fmt () ;
+  Format.pp_print_flush output.body.fmt () ;
   let cout = open_out output.file in
   output_string cout head ;
   output_string cout output.htitle ;
   output_string cout body ;
   table_of_contents cout (List.rev output.headers) ;
-  Buffer.output_buffer cout output.buffer ;
+  Buffer.output_buffer cout output.body.buffer ;
   output_string cout foot ;
   close_out cout
 

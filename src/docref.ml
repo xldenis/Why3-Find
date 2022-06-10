@@ -70,11 +70,10 @@ let baseurl ~pkg id =
         let meta = Meta.find pkg in
         Printf.sprintf "file://%s/html/%s.%s.html" meta.Meta.path path md
       with _ ->
-      Printf.sprintf "https://why3.lri.fr/stdlib/%s.html" path
+        Printf.sprintf "https://why3.lri.fr/stdlib/%s.html" path
 
 type href =
   | NoRef
-  | Thy of string
   | Def of string
   | Ref of string * string
 
@@ -83,8 +82,7 @@ let resolve ~pkg pos =
     let loc = extract pos in
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, kind) ->
-      let name = anchor ~kind id in
-      if kind = "theory" then Thy name else Def name
+      Def (anchor ~kind id)
     | (id, Why3.Glob.Use, kind) ->
       let loc = id_loc id in
       let id =
