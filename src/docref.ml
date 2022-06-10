@@ -72,6 +72,7 @@ let baseurl ~pkg id =
 
 type href =
   | NoRef
+  | Thy of string
   | Def of string
   | Ref of string * string
 
@@ -80,7 +81,8 @@ let resolve ~pkg pos =
     let loc = extract pos in
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, kind) ->
-      Def (anchor ~kind id)
+      let name = anchor ~kind id in
+      if kind = "theory" then Thy name else Def name
     | (id, Why3.Glob.Use, kind) ->
       let loc = id_loc id in
       let id =
@@ -110,5 +112,41 @@ let init ~pkgs =
     let cfg_path = Whyconf.loadpath main in
     Why3.Env.create_env ("." :: pkg_path @ cfg_path)
   end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Parsing                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let path file =
+  let rec scan r p =
+    let d = Filename.dirname p in
+    if d = "." || d = "" || d = p
+    then p::r
+    else scan (Filename.basename p :: r) d
+  in scan [] (Filename.chop_extension file)
+
+type source = {
+  pkg: string;
+  url: string;
+}
+
+let parse ~env file =
+  let path = path file in
+  let pkg =
+    match path with
+    | [] | [_] -> ""
+    | pkg::_ -> pkg
+  in
+  let theories =
+    try fst @@ Why3.Env.read_file Why3.Env.base_language env file
+    with exn ->
+      Format.eprintf "%s@." (Printexc.to_string exn) ;
+      exit 1
+  in
+  Why3.Wstdlib.Mstr.iter
+    (fun name _thy ->
+       Format.printf "theory %s@." name
+    ) theories ;
+  { pkg ; url = String.concat "." path }
 
 (* -------------------------------------------------------------------------- *)

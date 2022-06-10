@@ -27,11 +27,19 @@ val is_keyword : string -> bool
 
 type href =
   | NoRef
+  | Thy of string
   | Def of string
   | Ref of string * string
 
 val resolve : pkg:string -> (Lexing.position * Lexing.position) -> href
 
 val init : pkgs:string list -> Why3.Env.env
+
+type source = {
+  pkg: string; (* package name *)
+  url: string; (* URL basename *)
+}
+
+val parse : env:Why3.Env.env -> string -> source
 
 (* -------------------------------------------------------------------------- *)

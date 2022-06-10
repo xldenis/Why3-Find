@@ -26,15 +26,26 @@
 module T = Token
 module L = Lexer
 module P = Pdoc
-module R = Docref
+
+(* -------------------------------------------------------------------------- *)
+(* --- File Processing                                                     --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process ~env file =
+  begin
+    let src = Docref.parse ~env file in
+    Format.printf "PKG: %s@." src.pkg ;
+    Format.printf "URL: %s@." src.url ;
+  end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Main Doc Command                                                   --- *)
+(* -------------------------------------------------------------------------- *)
 
 let main ~pkgs ~files =
   begin
-    Format.printf "Generator:@." ;
-    List.iter (Format.printf " pkg:  %S@.") pkgs ;
-    List.iter (Format.printf " file: %S@.") files ;
-    let _env = Docref.init ~pkgs in
-    ()
+    let env = Docref.init ~pkgs in
+    List.iter (process ~env) files
   end
 
 (* -------------------------------------------------------------------------- *)
