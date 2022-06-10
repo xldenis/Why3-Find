@@ -20,35 +20,18 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- HTML Doc Printer                                                   --- *)
+(* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-type 'a fmt = Format.formatter -> 'a -> unit
+val init : unit -> unit
+val is_keyword : string -> bool
 
-(** Span the printer with a class. *)
-val pp_span : string -> 'a fmt -> 'a fmt
+type href =
+  | NoRef
+  | Thy of string
+  | Def of string
+  | Ref of string * string
 
-(** Sanitize element NAME to HTML. *)
-val pp_name : string fmt
-
-(** Sanitize to HTML. *)
-val pp_html : string fmt
-
-(** Sanitize to HTML. *)
-val to_html : string -> string
-
-type output
-
-(** Open with (sanitized) title. *)
-val output : file:string -> title:string -> output
-
-(** Prints (sanitized) contents. *)
-val printf : output -> ('a, Format.formatter, unit) format -> 'a
-
-(** Prints (sanitized) header and collect it inside TOC. *)
-val header : output -> level:int -> title:string -> unit
-
-(** Flush the output on disk. *)
-val close : output -> unit
+val resolve : pkg:string -> (Lexing.position * Lexing.position) -> href
 
 (* -------------------------------------------------------------------------- *)

@@ -60,6 +60,9 @@ val close : input -> unit
 (** Fetch the next token from input. *)
 val token : input -> token (** next buffer *)
 
+(** Potision of the last token. *)
+val position : input -> Lexing.position * Lexing.position
+
 (** The last returned token is preceeded by a space or a newline. *)
 val spaced : input -> bool
 

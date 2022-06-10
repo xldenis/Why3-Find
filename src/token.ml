@@ -82,6 +82,9 @@ let close input =
 let spaced input = input.wascut
 let startline input = input.waslines > 0
 let emptyline input = input.waslines > 1
+let position input =
+  Lexing.lexeme_start_p input.lexbuf ,
+  Lexing.lexeme_end_p input.lexbuf
 
 let fetch input =
   match input.context with

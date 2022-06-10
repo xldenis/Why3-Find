@@ -26,6 +26,7 @@
 module M = Token
 module L = Lexer
 module P = Pdoc
+module R = Docref
 
 let version () : unit =
   begin

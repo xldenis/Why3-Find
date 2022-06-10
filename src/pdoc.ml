@@ -28,6 +28,25 @@ type 'a fmt = Format.formatter -> 'a -> unit
 let pp_span cla pp fmt v =
   Format.fprintf fmt "<span class=\"%s\">%a</span>" cla pp v
 
+let tag_allowed_char =
+  let tbl = Array.make 256 false in
+  let s = "-._~!$'()*+,;=:@/?" in (* while & is allowed in uri, it has to be escaped in html *)
+  String.iter (fun c -> tbl.(Char.code c) <- true) s;
+  let span m n = for i = Char.code m to Char.code n do tbl.(i) <- true done in
+  span 'A' 'Z';
+  span 'a' 'z';
+  span '0' '9';
+  fun c -> tbl.(Char.code c)
+
+let pp_name fmt a =
+  String.iter
+    begin fun c ->
+      if tag_allowed_char c then
+        Format.pp_print_char fmt c
+      else
+        Format.fprintf fmt "%%%02X" (Char.code c)
+    end a
+
 let pp_html = Why3.Pp.html_string
 let to_html = Format.asprintf "%a" pp_html
 

@@ -1,6 +1,7 @@
 (executable
   (name main)
   (public_name why3find)
+  (flags (:standard "-w" "-9"))
   (libraries str unix dune-site yojson why3))
 
 (rule
