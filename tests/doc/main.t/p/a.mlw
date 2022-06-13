@@ -1,0 +1,26 @@
+(** This is normal text. *)
+
+(** Introducing A. *)
+module A
+  use int.Int
+  use list.List
+
+  type t
+  val constant neutral : t (* neutral *)
+  val function op t t : t (* associative *)
+
+  let rec assoc (xs : list t) : t =
+    variant { xs }
+    match xs with
+    | Nil -> neutral
+    | Cons a ys -> op a (assoc ys)
+    end
+
+end
+
+module Assoc
+  use int.Int
+  let constant one = 1
+  let function mul (a b : int) : int = a * b
+  clone A with type t = int, val neutral = one, val op = mul
+end
