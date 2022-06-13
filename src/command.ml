@@ -322,7 +322,7 @@ let () = register ~name:"makefile"
          \n  make compile | file.cc      compile file(s)\
          \n  make prove   | file.prv     hammer file(s)\
          \n  make ide     | file.ide     open ide\
-         \n  make fix     | file.fix     hemmae file(s) and open ide if needed\
+         \n  make fix     | file.fix     hammer file(s) and open ide if needed\
          \n  make check   | file.check   replay session (obsolete only)\
          \n  make replay  | file.replay  replay session\
          \n" ;
