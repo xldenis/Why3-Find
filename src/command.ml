@@ -341,6 +341,7 @@ let () = register ~name:"make"
       let dir = find_makefile () in
       let args = Array.sub argv 1 (Array.length argv - 1) in
       let argv = Array.append [| "make" ; "-C" ; dir |] args in
+      Format.printf "Entering directory '%s'@." dir ;
       Unix.execvp "make" argv
     end
 
