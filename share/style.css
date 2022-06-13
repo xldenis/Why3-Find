@@ -2,6 +2,10 @@
 /* --- CSS Style Sheet for why3find doc generator                         --- */
 /* -------------------------------------------------------------------------- */
 
+header {
+    /* File title block styling */
+}
+
 nav {
     display: none;
 }

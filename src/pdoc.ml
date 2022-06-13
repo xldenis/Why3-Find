@@ -68,9 +68,11 @@ let buffer () =
   { buffer ; fmt }
 
 let bprintf (b : buffer) msg = Format.fprintf b.fmt msg
+
 let contents (b : buffer) =
   Format.pp_print_flush b.fmt () ;
-  Buffer.contents b.buffer
+  let s = Buffer.contents b.buffer in
+  Buffer.clear b.buffer ; s
 
 let pp_buffer fmt b =
   Format.pp_print_string fmt (contents b)
@@ -85,28 +87,56 @@ type header = {
   title: string;
 }
 
-type output = {
+type target = {
   file: string;
   htitle: string;
+  mutable hbase: int; (* base level *)
   mutable headers: header list; (* in reverse order *)
-  body: buffer;
+  contents: Buffer.t;
+  forked: target option;
+}
+
+type output = {
+  mutable target: target;
+  mutable current: buffer;
 }
 
 let output ~file ~title =
-  let body = buffer () in
-  { htitle = title ; file ; headers = [] ; body }
+  {
+    target = {
+      file ; htitle = title ; hbase = 0 ; headers = [] ;
+      contents = Buffer.create 80 ;
+      forked = None ;
+    } ;
+    current = buffer () ;
+  }
 
-let printf output msg = Format.fprintf output.body.fmt msg
-let pp output pp v = pp output.body.fmt v
+let buffered output = contents output.current
 
-let pp_html_c output c = Why3.Pp.html_char output.body.fmt c
+let flush output =
+  Buffer.add_string output.target.contents (buffered output)
+
+let fork output ~file ~title =
+  output.target <- {
+    file ; htitle = title ; hbase = 0 ; headers = [] ;
+    contents = Buffer.create 80 ;
+    forked = Some output.target ;
+  }
+
+let printf output msg = Format.fprintf output.current.fmt msg
+let pp output pp v = pp output.current.fmt v
+
+let pp_html_c output c = Why3.Pp.html_char output.current.fmt c
 let pp_html_s output ?className s =
-  pp_span ?className Why3.Pp.html_string output.body.fmt s
+  pp_span ?className Why3.Pp.html_string output.current.fmt s
 
 let header output ~level ~title ?(toc=title) () =
-  let name = Printf.sprintf "hd%d" (succ @@ List.length output.headers) in
-  output.headers <- { level ; name ; title = toc } :: output.headers ;
-  Format.fprintf output.body.fmt "<h%d><a name=\"%s\">%s</a></h%d>@\n"
+  let target = output.target in
+  let name = Printf.sprintf "hd%d" (succ @@ List.length target.headers) in
+  if target.hbase <= 0 then target.hbase <- level ;
+  let level = 1 + level - target.hbase in
+  target.headers <- { level ; name ; title = toc } :: target.headers ;
+  Format.fprintf output.current.fmt "<h%d><a name=\"%s\">%s</a></h%d>@\n"
     level name title level
 
 let head =
@@ -139,14 +169,18 @@ let table_of_contents cout heads =
   end
 
 let close output =
-  Format.pp_print_flush output.body.fmt () ;
-  let cout = open_out output.file in
+  flush output ;
+  let target = output.target in
+  let cout = open_out target.file in
   output_string cout head ;
-  output_string cout output.htitle ;
+  output_string cout target.htitle ;
   output_string cout body ;
-  table_of_contents cout (List.rev output.headers) ;
-  Buffer.output_buffer cout output.body.buffer ;
+  table_of_contents cout (List.rev target.headers) ;
+  Buffer.output_buffer cout target.contents;
   output_string cout foot ;
-  close_out cout
+  close_out cout ;
+  Option.iter
+    (fun tgt -> output.target <- tgt)
+    output.target.forked
 
 (* -------------------------------------------------------------------------- *)
