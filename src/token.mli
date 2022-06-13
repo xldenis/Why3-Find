@@ -60,11 +60,14 @@ val close : input -> unit
 (** End of file has been reached. *)
 val eof : input -> bool
 
-(** In source code *)
+(** In source code. *)
 val src : input -> bool
 
-(** In documentation *)
+(** In documentation. *)
 val doc : input -> bool
+
+(** Error message, exits with error code 1. *)
+val error : input -> ('a,Format.formatter,unit,'b) format4 -> 'a
 
 (** Fetch the next token from input. *)
 val token : input -> token (** next buffer *)

@@ -79,6 +79,15 @@ let close input =
   close_in_noerr input.channel ;
   input.context <- End
 
+let error input msg =
+  Format.kasprintf
+    (fun msg ->
+       let p = Lexing.lexeme_start_p input.lexbuf in
+       Format.printf "File \"%s\", line %d: %s@."
+         p.pos_fname p.pos_lnum msg ;
+       exit 1
+    ) msg
+
 let eof input = input.context = End
 let src input = input.context = Src
 let doc input = input.context = Doc

@@ -141,16 +141,12 @@ type source = {
 let parse ~env file =
   let lib = library_path file in
   let pkg = match lib with [] | [_] -> "" | pkg::_ -> pkg in
-  let theories =
+  let _theories =
     try fst @@ Why3.Env.read_file Why3.Env.base_language env file
     with exn ->
       Format.eprintf "%s@." (Printexc.to_string exn) ;
       exit 1
   in
-  Why3.Wstdlib.Mstr.iter
-    (fun name _thy ->
-       Format.printf "theory %s@." name
-    ) theories ;
   let url = Printf.sprintf "%s.html" (String.concat "." lib) in
   { pkg ; lib ; url }
 

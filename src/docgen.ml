@@ -51,16 +51,13 @@ let process_file ~env ~out file =
   let src = Docref.parse ~env file in
   let libname = String.concat "." src.lib in
   let title = Printf.sprintf "Library <tt>%s</tt>" libname in
-  let out =
-    let file = Filename.concat out src.url in
-      Pdoc.output ~file ~title
-  in
+  let out = Pdoc.output ~file:(Filename.concat out src.url) ~title in
   let input = Token.input file in
   let resolve ?(infix=false) () =
     Docref.resolve ~pkg:src.pkg ~infix (Token.position input)
   in
   begin
-    Pdoc.printf out "<h1>%s</h1>@\n" title ;
+    Pdoc.printf out "<header>%s</header>@\n" title ;
     Pdoc.printf out "<pre class=\"src\">@\n" ;
     while not (Token.eof input) do
       match Token.token input with

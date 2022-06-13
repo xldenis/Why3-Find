@@ -2,8 +2,6 @@
 --- Generating Documentation
 --------------------------------------------------------------------------
   $ why3find doc p/a.mlw
-  theory A
-  theory Assoc
 --------------------------------------------------------------------------
 --- Output Directory
 --------------------------------------------------------------------------
@@ -24,7 +22,7 @@
   <body>
   <nav>
   </nav>
-  <h1>Library <tt>p.a</tt></h1>
+  <header>Library <tt>p.a</tt></header>
   <pre class="src">
   
   </pre>
