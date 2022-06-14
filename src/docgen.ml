@@ -61,6 +61,7 @@ type env = {
   input : Token.input ; (* input lexer *)
   out : Pdoc.output ; (* output buffer *)
   mutable mode : mode ; (* current output state *)
+  mutable file : mode ; (* default file mode *)
   mutable opened : int ; (* number of pending 'end' *)
 }
 
@@ -85,17 +86,6 @@ let process_ref env (href : Docref.href) s =
     Pdoc.printf env.out "<a href=\"%s#%s\">%a</a>" url name Pdoc.pp_html s
   | Docref.NoRef ->
     Pdoc.pp_html_s env.out s
-
-(* -------------------------------------------------------------------------- *)
-(* --- Newline Processing                                                 --- *)
-(* -------------------------------------------------------------------------- *)
-
-let process_newline env =
-  match env.mode with
-  | Body ->
-    if Token.emptyline env.input then Pdoc.flush env.out
-  | Pre | Div ->
-    Pdoc.printf env.out "@\n"
 
 (* -------------------------------------------------------------------------- *)
 (* --- Module & Theory Processing                                         --- *)
@@ -123,6 +113,7 @@ let process_module env key =
     Pdoc.printf env.out "%s" prelude ;
     open_mode env.out Pre ;
     env.mode <- Pre ;
+    env.file <- Pre ;
     Pdoc.printf env.out "%a " Pdoc.pp_keyword key ;
     process_ref env href id
   end
@@ -132,6 +123,7 @@ let process_close env key =
     Pdoc.printf env.out "%a@\n" Pdoc.pp_keyword key ;
     close_mode env.out Pre ;
     env.mode <- Body ;
+    env.file <- Body ;
     Pdoc.close env.out ;
   end
 
@@ -158,6 +150,18 @@ let process_ident env s =
     process_ref env href s
 
 (* -------------------------------------------------------------------------- *)
+(* --- Newline Processing                                                 --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process_newline env =
+  match env.mode with
+  | Body ->
+    if Token.emptyline env.input then Pdoc.flush env.out
+  | Pre | Div ->
+    Pdoc.printf env.out "@\n" ;
+    Pdoc.flush env.out
+
+(* -------------------------------------------------------------------------- *)
 (* --- File Processing                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -166,7 +170,11 @@ let process_file ~env ~out:dir file =
   let title = Printf.sprintf "Library %s" src.name in
   let out = Pdoc.output ~file:(Filename.concat dir src.url) ~title in
   let input = Token.input file in
-  let env = { dir ; src ; input ; out ; mode = Body ; opened = 0 } in
+  let env = {
+    dir ; src ; input ; out ;
+    file = Body ; mode = Body ;
+    opened = 0 ;
+  } in
   begin
     Pdoc.printf out "<header>Library <tt>%s</tt></header>@\n" src.name ;
     while not (Token.eof env.input) do
@@ -189,7 +197,8 @@ let process_file ~env ~out:dir file =
       | CloseDoc ->
         begin
           close_mode out Div ;
-          env.mode <- Body ;
+          env.mode <- env.file ;
+          open_mode out env.file ;
         end
       | Space ->
         begin match env.mode with

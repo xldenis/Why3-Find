@@ -1,29 +1,33 @@
-(** This is normal text. *)
+(** Before A *)
 
-(** Introducing A. *)
+(** Introducing A *)
 module A
-  use int.Int
-  use list.List
 
-  type t
-  val constant neutral : t (* neutral *)
-  val function op t t : t (* associative *)
+  type t = A | B
 
-  let rec assoc (xs : list t) : t =
-    variant { xs }
-    match xs with
-    | Nil -> neutral
-    | Cons a ys -> op a (assoc ys)
+  (** Testing match-with *)
+  let swap (e : t) : t =
+    match e with
+    | A -> B
+    | B -> A
     end
 
 end
 
-(** Normal text continued. *)
+(** Before B *)
 
-(** Introducing Assoc. *)
-module Assoc
-  use int.Int
-  let constant one = 1
-  let function mul (a b : int) : int = a * b
-  clone A with type t = int, val neutral = one, val op = mul
+(** Introducing B *)
+module B
+
+  exception Error
+
+  val wrong () : unit
+    raises { Error }
+
+  (** Testing try-with *)
+  let test () : unit =
+    try wrong () with Error -> () end
+
 end
+
+(** After B *)
