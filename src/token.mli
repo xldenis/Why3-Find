@@ -75,12 +75,6 @@ val token : input -> token (** next buffer *)
 (** Potision of the last token. *)
 val position : input -> Lexing.position * Lexing.position
 
-(** The last returned token is preceeded by a space or a newline. *)
-val spaced : input -> bool
-
-(** The last returned token is at the beginning of the line. *)
-val startline : input -> bool
-
 (** The last returned token is at then beginning of the line
     {i and} after an empty line. *)
 val emptyline : input -> bool

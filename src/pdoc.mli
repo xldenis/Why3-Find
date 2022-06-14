@@ -38,6 +38,9 @@ val pp_html : string fmt
 (** Sanitize to HTML. *)
 val to_html : string -> string
 
+(** Keyword (sanitized) class. *)
+val pp_keyword : string fmt
+
 (* -------------------------------------------------------------------------- *)
 (* --- HTML Buffers                                                       --- *)
 (* -------------------------------------------------------------------------- *)
@@ -58,11 +61,17 @@ type output
 (** Open with (sanitized) title. *)
 val output : file:string -> title:string -> output
 
+(** Extract and clear the current output buffer. *)
+val buffered : output -> string
+
 (** Flushes the current output buffer. *)
 val flush : output -> unit
 
 (** Fork the current output buffer into another file. *)
 val fork : output -> file:string -> title:string -> unit
+
+(** Flushes the output on disk. Restore output of previous fork, if any. *)
+val close : output -> unit
 
 (** Prints (sanitized) contents. *)
 val printf : output -> 'a printf
@@ -81,7 +90,7 @@ val pp_html_c : output -> char -> unit
     for the TOC entry. *)
 val header : output -> level:int -> title:string -> ?toc:string -> unit -> unit
 
-(** Flushes the output on disk. Restore output of previous fork, if any. *)
-val close : output -> unit
+(** Flushes all pending outputs on disk. *)
+val close_all : output -> unit
 
 (* -------------------------------------------------------------------------- *)

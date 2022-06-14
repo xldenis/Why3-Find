@@ -18,6 +18,9 @@ module A
 
 end
 
+(** Normal text continued. *)
+
+(** Introducing Assoc. *)
 module Assoc
   use int.Int
   let constant one = 1

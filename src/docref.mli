@@ -27,11 +27,12 @@ val init : pkgs:string list -> Why3.Env.env
 
 type source = {
   pkg: string; (* package name *)
-  lib: string list; (* library path *)
+  name: string; (* library path *)
   url: string; (* URL name *)
 }
 
 val parse : env:Why3.Env.env -> string -> source
+val derived : source -> string -> string (* URL name *)
 
 val is_keyword : string -> bool
 
@@ -39,8 +40,6 @@ type href =
   | NoRef
   | Def of string
   | Ref of string * string
-  | Theory of string * string
-  | Module of string * string
 
 type position = Lexing.position * Lexing.position
 

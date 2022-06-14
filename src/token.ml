@@ -51,10 +51,7 @@ type context = Src | Doc | End
 type input = {
   lexbuf: Lexing.lexbuf;
   channel: in_channel;
-  mutable iscut: bool; (* last token is a space or a newline *)
-  mutable wascut: bool; (* there was a space or a newline before *)
-  mutable newlines: int; (* number of \n before (space excluded) *)
-  mutable waslines: int; (* previous nnumber of \n before *)
+  mutable newlines: int; (* number of consecutive \n (space excluded) *)
   mutable context: context;
 }
 
@@ -70,9 +67,6 @@ let input ?(doc=false) file =
     channel = inc ;
     context = if doc then Doc else Src;
     newlines = 0;
-    waslines = 0;
-    iscut = true;
-    wascut = true;
   }
 
 let close input =
@@ -91,9 +85,7 @@ let error input msg =
 let eof input = input.context = End
 let src input = input.context = Src
 let doc input = input.context = Doc
-let spaced input = input.wascut
-let startline input = input.waslines > 0
-let emptyline input = input.waslines > 1
+let emptyline input = input.newlines > 1
 let position input =
   Lexing.lexeme_start_p input.lexbuf ,
   Lexing.lexeme_end_p input.lexbuf
@@ -106,17 +98,10 @@ let fetch input =
 
 let spaces input tk =
   begin
-    input.wascut <- input.iscut ;
-    input.waslines <- input.newlines ;
     match tk with
-    | Space ->
-      input.iscut <- true ;
-    | Newline ->
-      input.iscut <- true ;
-      input.newlines <- succ input.newlines ;
-    | _ ->
-      input.iscut <- false ;
-      input.newlines <- 0 ;
+    | Space -> ()
+    | Newline -> input.newlines <- succ input.newlines
+    | _ -> input.newlines <- 0 ;
   end
 
 let context input tk =

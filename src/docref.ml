@@ -54,12 +54,12 @@ let anchor ~kind id =
 
 let restore_path id =
   try
-    true, Why3.Pmodule.restore_path id
+    Why3.Pmodule.restore_path id
   with Not_found ->
-    false, Why3.Theory.restore_path id
+    Why3.Theory.restore_path id
 
 let baseurl ~pkg id =
-  let _,(lp,md,_) = restore_path id in
+  let lp,md,_ = restore_path id in
   if lp = [] then "" else
     let lpkg = List.hd lp in
     let path = String.concat "." lp in
@@ -76,20 +76,12 @@ type href =
   | NoRef
   | Def of string
   | Ref of string * string
-  | Theory of string * string
-  | Module of string * string
 
 let resolve ~pkg ~infix pos =
   try
     let loc = extract ~infix pos in
     match Why3.Glob.find loc with
-    | (id, Why3.Glob.Def, kind) ->
-      let name = anchor ~kind id in
-      if kind = "theory" then
-        let ismodule,(lp,m,_) = restore_path id in
-        let path = Printf.sprintf "%s.%s.html" (String.concat "." lp) m in
-        if ismodule then Module(path,name) else Theory(path,name)
-      else Def(name)
+    | (id, Why3.Glob.Def, kind) -> Def(anchor ~kind id)
     | (id, Why3.Glob.Use, kind) ->
       let loc = id_loc id in
       let id =
@@ -134,20 +126,24 @@ let library_path file =
 
 type source = {
   pkg: string;
-  lib: string list;
+  name: string;
   url: string;
 }
 
 let parse ~env file =
   let lib = library_path file in
   let pkg = match lib with [] | [_] -> "" | pkg::_ -> pkg in
+  let name = String.concat "." lib in
   let _theories =
     try fst @@ Why3.Env.read_file Why3.Env.base_language env file
     with exn ->
       Format.eprintf "%s@." (Printexc.to_string exn) ;
       exit 1
   in
-  let url = Printf.sprintf "%s.html" (String.concat "." lib) in
-  { pkg ; lib ; url }
+  let url = Printf.sprintf "%s.html" name in
+  { pkg ; name ; url }
+
+let derived src id =
+  Printf.sprintf "%s.%s.html" src.name id
 
 (* -------------------------------------------------------------------------- *)

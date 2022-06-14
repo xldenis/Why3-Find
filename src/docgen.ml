@@ -52,111 +52,157 @@ let is_closing = function
   | _ -> false
 
 (* -------------------------------------------------------------------------- *)
+(* --- Environment                                                        --- *)
+(* -------------------------------------------------------------------------- *)
+
+type env = {
+  dir : string ; (* destination directory *)
+  src : Docref.source ; (* source file infos *)
+  input : Token.input ; (* input lexer *)
+  out : Pdoc.output ; (* output buffer *)
+  mutable mode : mode ; (* current output state *)
+  mutable opened : int ; (* number of pending 'end' *)
+}
+
+(* -------------------------------------------------------------------------- *)
+(* --- References                                                         --- *)
+(* -------------------------------------------------------------------------- *)
+
+let rec fetch_id input =
+  match Token.token input with
+  | Space | Newline -> fetch_id input
+  | Ident s -> s
+  | _ -> Token.error input "missing module or theory name"
+
+let resolve env ?(infix=false) () =
+  Docref.resolve ~pkg:env.src.pkg ~infix (Token.position env.input)
+
+let process_ref env (href : Docref.href) s =
+  match href with
+  | Docref.Def name ->
+    Pdoc.printf env.out "<a name=\"%s\">%a</a>" name Pdoc.pp_html s
+  | Docref.Ref(url,name) ->
+    Pdoc.printf env.out "<a href=\"%s#%s\">%a</a>" url name Pdoc.pp_html s
+  | Docref.NoRef ->
+    Pdoc.pp_html_s env.out s
+
+(* -------------------------------------------------------------------------- *)
+(* --- Newline Processing                                                 --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process_newline env =
+  match env.mode with
+  | Body ->
+    if Token.emptyline env.input then Pdoc.flush env.out
+  | Pre | Div ->
+    Pdoc.printf env.out "@\n"
+
+(* -------------------------------------------------------------------------- *)
+(* --- Module & Theory Processing                                         --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process_module env key =
+  begin
+    if not (env.mode = Body && env.opened = 0) then
+      Token.error env.input "unexpected module or theory" ;
+    let prelude = Pdoc.buffered env.out in
+    let id = fetch_id env.input in
+    let href = resolve env () in
+    let kind = String.capitalize_ascii key in
+    let url = Docref.derived env.src id in
+    Pdoc.printf env.out
+      "<div class=\"src %s\">%s <tt><a href=\"%s\">%s</a></tt></div>@."
+      key key url id ;
+    let file = Filename.concat env.dir url in
+    let title = Printf.sprintf "%s %s.%s" kind env.src.name id in
+    Pdoc.fork env.out ~file ~title ;
+    Pdoc.printf env.out
+      "<header>%s <tt><a href=\"%s\">%s</a>.%s</tt></header>@\n"
+      kind env.src.url env.src.name id
+    ;
+    Pdoc.printf env.out "%s" prelude ;
+    open_mode env.out Pre ;
+    env.mode <- Pre ;
+    Pdoc.printf env.out "%a " Pdoc.pp_keyword key ;
+    process_ref env href id
+  end
+
+let process_close env key =
+  begin
+    Pdoc.printf env.out "%a@\n" Pdoc.pp_keyword key ;
+    close_mode env.out Pre ;
+    env.mode <- Body ;
+    Pdoc.close env.out ;
+  end
+
+(* -------------------------------------------------------------------------- *)
 (* --- Identifiers                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_ident out (resolve : unit -> Docref.href) s =
+let process_ident env s =
   if Docref.is_keyword s then
-    Pdoc.pp_html_s out ~className:"keyword" s
+    begin
+      if s = "module" || s = "theory" then
+        process_module env s
+      else if s = "end" && env.opened = 0 then
+        process_close env s
+      else
+        begin
+          if is_opening s then env.opened <- succ env.opened ;
+          if is_closing s then env.opened <- pred env.opened ;
+          Pdoc.pp env.out Pdoc.pp_keyword s ;
+        end
+    end
   else
-    match resolve () with
-    | Def name ->
-      Pdoc.printf out "<a name=\"%s\">%a</a>" name Pdoc.pp_html s
-    | Ref(url,name) ->
-      Pdoc.printf out "<a href=\"%s#%s\">%a</a>" url name Pdoc.pp_html s
-    | _ ->
-      Pdoc.pp_html_s out s
-
-let rec fetch_ident input =
-  match Token.token input with
-  | Space | Newline -> fetch_ident input
-  | Ident s -> s
-  | _ -> Token.error input "missing module or theory name"
+    let href = resolve env () in
+    process_ref env href s
 
 (* -------------------------------------------------------------------------- *)
 (* --- File Processing                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_file ~env ~out file =
+let process_file ~env ~out:dir file =
   let src = Docref.parse ~env file in
-  let libname = String.concat "." src.lib in
-  let title = Printf.sprintf "Library <tt>%s</tt>" libname in
-  let out = Pdoc.output ~file:(Filename.concat out src.url) ~title in
+  let title = Printf.sprintf "Library %s" src.name in
+  let out = Pdoc.output ~file:(Filename.concat dir src.url) ~title in
   let input = Token.input file in
-  let resolve ?(infix=false) () =
-    Docref.resolve ~pkg:src.pkg ~infix (Token.position input)
-  in
-  let mode = ref Body in
-  let opened = ref 0 in
+  let env = { dir ; src ; input ; out ; mode = Body ; opened = 0 } in
   begin
-    Pdoc.printf out "<header>%s</header>@\n" title ;
-    while not (Token.eof input) do
-      match Token.token input with
-      | Eof -> close_mode out !mode
+    Pdoc.printf out "<header>Library <tt>%s</tt></header>@\n" src.name ;
+    while not (Token.eof env.input) do
+      match Token.token env.input with
+      | Eof -> close_mode out env.mode
       | Char c -> Pdoc.pp_html_c out c
       | Text s -> Pdoc.pp_html_s out s
+      | Comment s ->
+        Pdoc.pp_html_s out ~className:"comment" s
+      | Verb s | Ref s ->
+        Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
+      | Style _ -> ()
       | OpenDoc ->
         begin
-          if not @@ Token.startline input then Pdoc.printf out "@\n" ;
-          close_mode out !mode ;
-          mode := Div ;
+          close_mode out env.mode ;
+          Pdoc.flush out ;
+          env.mode <- Div ;
           open_mode out Div ;
         end
       | CloseDoc ->
         begin
           close_mode out Div ;
-          mode := Body ;
+          env.mode <- Body ;
         end
       | Space ->
-        begin match !mode with
+        begin match env.mode with
           | Body -> ()
           | Pre | Div -> Pdoc.pp out Format.pp_print_char ' '
         end
-      | Newline ->
-        begin match !mode with
-          | Body -> if Token.emptyline input then Pdoc.flush out
-          | Pre | Div -> Pdoc.printf out "@\n"
-        end
-      | Ident (("module" | "theory") as key) ->
-        begin
-          if not (!opened = 0) then
-            Token.error input "unexpected module or theory" ;
-          let id = fetch_ident input in
-          close_mode out !mode ;
-          open_mode out Pre ;
-          mode := Pre ;
-          Pdoc.printf out "<span class=\"keyword\">%s</span> " key ;
-          process_ident out resolve id
-        end
-      | Ident ("end" as key) when !opened = 0 ->
-        begin
-          Pdoc.printf out "<span class=\"keyword\">%s</span>@\n" key ;
-          close_mode out Pre ;
-          mode := Body ;
-        end
-      | Ident s ->
-        begin
-          if is_opening s then
-            begin
-              incr opened ;
-              Pdoc.pp_html_s out ~className:"keyword" s ;
-            end
-          else
-          if is_closing s then
-            begin
-              decr opened ;
-              Pdoc.pp_html_s out ~className:"keyword" s ;
-            end
-          else
-            process_ident out resolve s
-        end
-      | Infix s -> process_ident out (resolve ~infix:true) s
-      | Comment s -> Pdoc.pp_html_s out ~className:"comment" s
-      | Verb s | Ref s ->
-        Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
-      | Style _ -> ()
+      | Newline -> process_newline env
+      | Ident s -> process_ident env s
+      | Infix s ->
+        let href = resolve env ~infix:true () in
+        process_ref env href s
     done ;
-    Pdoc.close out ;
+    Pdoc.close_all out ;
   end
 
 (* -------------------------------------------------------------------------- *)

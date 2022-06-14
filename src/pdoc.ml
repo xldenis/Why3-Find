@@ -52,6 +52,8 @@ let pp_name fmt a =
 
 let pp_html = Why3.Pp.html_string
 let to_html = Format.asprintf "%a" pp_html
+let pp_keyword fmt s =
+  Format.fprintf fmt "<span class=\"keyword\">%s</span>" s
 
 (* -------------------------------------------------------------------------- *)
 (* --- Html Buffers                                                       --- *)
@@ -117,6 +119,7 @@ let flush output =
   Buffer.add_string output.target.contents (buffered output)
 
 let fork output ~file ~title =
+  flush output ;
   output.target <- {
     file ; htitle = title ; hbase = 0 ; headers = [] ;
     contents = Buffer.create 80 ;
@@ -182,5 +185,11 @@ let close output =
   Option.iter
     (fun tgt -> output.target <- tgt)
     output.target.forked
+
+let close_all output =
+  close output ;
+  while output.target.forked <> None do
+    close output ;
+  done
 
 (* -------------------------------------------------------------------------- *)
