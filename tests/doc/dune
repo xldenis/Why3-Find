@@ -1,2 +1,2 @@
 (cram
-  (deps %{bin:why3find} (alias ../../install)))
+  (deps (package why3find)))
