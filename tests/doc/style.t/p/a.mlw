@@ -1,0 +1,12 @@
+(**
+  Testing Documentation.
+
+  This is _emph text_.
+
+  This is __bold text__.
+
+  This is __multiple
+  line bold text__.
+
+  Nested _emph **bold** emph_.
+  *)

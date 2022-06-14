@@ -31,17 +31,27 @@ module P = Pdoc
 (* --- HTML Mode                                                          --- *)
 (* -------------------------------------------------------------------------- *)
 
-type mode = Body | Pre | Div
+type mode = Body | Pre | Doc | Emph | Bold
 
 let open_mode out = function
   | Body -> ()
-  | Div -> Pdoc.printf out "<div class=\"doc\">"
+  | Doc -> Pdoc.printf out "<div class=\"doc\">"
   | Pre -> Pdoc.printf out "<pre class=\"src\">@\n"
+  | Emph -> Pdoc.printf out "<em>"
+  | Bold -> Pdoc.printf out "<strong>"
 
 let close_mode out = function
   | Body -> ()
-  | Div -> Pdoc.printf out "</div>@\n"
+  | Doc -> Pdoc.printf out "</div>@\n"
   | Pre -> Pdoc.printf out "</pre>@\n"
+  | Emph -> Pdoc.printf out "</em>"
+  | Bold -> Pdoc.printf out "</strong>"
+
+let switch out ~mode style =
+  if mode = style then
+    (close_mode out mode ; Doc)
+  else
+    ((if mode <> Doc then close_mode out mode) ; open_mode out style ; style)
 
 let is_opening = function
   | "scope" | "match" | "try" | "begin" -> true
@@ -157,11 +167,18 @@ let process_newline env =
   match env.mode with
   | Body ->
     if Token.emptyline env.input then Pdoc.flush env.out
-  | Div ->
+  | Doc | Emph | Bold ->
     Pdoc.printf env.out "@\n"
   | Pre ->
     Pdoc.printf env.out "@\n" ;
     Pdoc.flush env.out
+
+(* -------------------------------------------------------------------------- *)
+(* --- Style Processing                                                   --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process_style env m =
+  env.mode <- switch env.out ~mode:env.mode m
 
 (* -------------------------------------------------------------------------- *)
 (* --- File Processing                                                    --- *)
@@ -188,24 +205,26 @@ let process_file ~env ~out:dir file =
         Pdoc.pp_html_s out ~className:"comment" s
       | Verb s | Ref s ->
         Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
+      | Style(Emph,_) -> process_style env Emph
+      | Style(Bold,_) -> process_style env Bold
       | Style _ -> ()
       | OpenDoc ->
         begin
           Pdoc.flush ~indent:false out ;
           close_mode out env.mode ;
-          env.mode <- Div ;
-          open_mode out Div ;
+          env.mode <- Doc ;
+          open_mode out Doc ;
         end
       | CloseDoc ->
         begin
-          close_mode out Div ;
+          close_mode out Doc ;
           env.mode <- env.file ;
           open_mode out env.file ;
         end
       | Space ->
         begin match env.mode with
           | Body -> ()
-          | Pre | Div -> Pdoc.pp out Format.pp_print_char ' '
+          | Pre | Doc | Emph | Bold -> Pdoc.pp out Format.pp_print_char ' '
         end
       | Newline -> process_newline env
       | Ident s -> process_ident env s
