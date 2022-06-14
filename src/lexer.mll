@@ -90,8 +90,7 @@ and document = parse
   | space+ { Space }
   | space* '*'+ ')' { CloseDoc }
   | ('#'+ as head) space* { Style(Head,head) }
-  | '-' { style Ulist lexbuf }
-  | ['0'-'9']+ '.' { style Olist lexbuf }
+  | ['0'-'9']+ '.' { style Ordered lexbuf }
   | '-'+ { style Dash lexbuf }
   | '_' | '*' { style Emph lexbuf }
   | "__" | "**" { style Bold lexbuf }

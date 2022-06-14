@@ -9,7 +9,7 @@
   line bold text__.
 
   Nested _emph **bold** emph_.
-  *)
+ *)
 
 
 (**
@@ -33,3 +33,18 @@
   ## Title F
   Section 1.3
  *)
+
+(**
+  List & Dashes
+
+  Text with normal-size dash.
+
+  Text with long--size dash.
+
+  - item (a)
+  - item (b)
+    - sub-item (b.1)
+    - sub-item (b.2)
+  - item (c)
+
+  *)

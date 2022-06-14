@@ -52,6 +52,20 @@
    <h2><a name="_6">Title F</a></h2>
    Section 3
   </div>
+  <div class="doc">
+   List &amp; Dashes
+  
+   Text with normal&ndash;size dash.
+  
+   Text with long&mdash;size dash.
+  
+   &ndash; item (a)
+   &ndash; item (b)
+   &ndash; sub&ndash;item (b.1)
+   &ndash; sub&ndash;item (b.2)
+   &ndash; item (c)
+  
+  </div>
   </body>
   </html>
 --------------------------------------------------------------------------

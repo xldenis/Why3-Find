@@ -28,8 +28,7 @@ type style =
   | Emph
   | Bold
   | Dash
-  | Ulist
-  | Olist
+  | Ordered
 
 type token =
   | Eof
@@ -74,6 +73,10 @@ val token : input -> token (** next buffer *)
 
 (** Potision of the last token. *)
 val position : input -> Lexing.position * Lexing.position
+
+(** Indentation of current token if at the beginning of the line.
+    Negative value means the token is not at beginning of the line. *)
+val indent : input -> int
 
 (** The last returned token is at then beginning of the line
     {i and} after an empty line. *)

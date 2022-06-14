@@ -171,6 +171,10 @@ let process_ident env s =
 let process_style env m =
   env.mode <- switch env.out ~mode:env.mode m
 
+let process_dash env s =
+  let n = String.length s in
+  Pdoc.printf env.out "&%cdash;" (if n > 1 then 'm' else 'n')
+
 let process_header env h =
   begin
     let level = String.length h in
@@ -226,6 +230,7 @@ let process_file ~env ~out:dir file =
       | Style(Emph,_) -> process_style env Emph
       | Style(Bold,_) -> process_style env Bold
       | Style(Head,h) -> process_header env h
+      | Style(Dash,n) -> process_dash env n
       | Style _ -> ()
       | OpenDoc ->
         begin

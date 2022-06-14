@@ -28,8 +28,7 @@ type style =
   | Emph
   | Bold
   | Dash
-  | Ulist
-  | Olist
+  | Ordered
 
 type token =
   | Eof
@@ -49,10 +48,11 @@ type token =
 type context = Src | Doc | End
 
 type input = {
-  lexbuf: Lexing.lexbuf;
-  channel: in_channel;
-  mutable newlines: int; (* number of consecutive \n (space excluded) *)
-  mutable context: context;
+  lexbuf : Lexing.lexbuf;
+  channel : in_channel;
+  mutable newlines : int; (* number of consecutive \n (space excluded) *)
+  mutable tokcount : int; (* number of tokens on the line *)
+  mutable context : context;
 }
 
 let src_lexer = ref (fun _ -> assert false)
@@ -66,6 +66,7 @@ let input ?(doc=false) file =
     lexbuf ;
     channel = inc ;
     context = if doc then Doc else Src;
+    tokcount = 0;
     newlines = 0;
   }
 
@@ -86,6 +87,14 @@ let eof input = input.context = End
 let src input = input.context = Src
 let doc input = input.context = Doc
 let emptyline input = input.newlines > 1
+
+let indent input =
+  if input.tokcount <= 1 then
+    let Lexing.{ pos_cnum = c ; pos_bol = b } =
+      Lexing.lexeme_start_p input.lexbuf
+    in c - b
+  else (-1)
+
 let position input =
   Lexing.lexeme_start_p input.lexbuf ,
   Lexing.lexeme_end_p input.lexbuf
@@ -100,8 +109,12 @@ let spaces input tk =
   begin
     match tk with
     | Space -> ()
-    | Newline -> input.newlines <- succ input.newlines
-    | _ -> input.newlines <- 0 ;
+    | Newline ->
+      input.tokcount <- 0 ;
+      input.newlines <- succ input.newlines ;
+    | _ ->
+      input.tokcount <- succ input.tokcount ;
+      input.newlines <- 0 ;
   end
 
 let context input tk =
