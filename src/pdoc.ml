@@ -115,8 +115,17 @@ let output ~file ~title =
 
 let buffered output = contents output.current
 
-let flush output =
-  Buffer.add_string output.target.contents (buffered output)
+let spaceonly s =
+  try
+    for i = 0 to String.length s - 1 do
+      match s.[i] with ' ' | '\t' | '\n' -> () | _ -> raise Exit
+    done ; true
+  with Exit -> false
+
+let flush ?(indent=true) output =
+  let trailing = buffered output in
+  if indent || not (spaceonly trailing) then
+    Buffer.add_string output.target.contents trailing
 
 let fork output ~file ~title =
   flush output ;

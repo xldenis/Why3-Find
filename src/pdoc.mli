@@ -64,8 +64,10 @@ val output : file:string -> title:string -> output
 (** Extract and clear the current output buffer. *)
 val buffered : output -> string
 
-(** Flushes the current output buffer. *)
-val flush : output -> unit
+(** Flushes the current output buffer.
+    When [~indent:false], space-only trailing contents is {i not} output.
+*)
+val flush : ?indent:bool -> output -> unit
 
 (** Fork the current output buffer into another file. *)
 val fork : output -> file:string -> title:string -> unit

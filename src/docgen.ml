@@ -157,7 +157,9 @@ let process_newline env =
   match env.mode with
   | Body ->
     if Token.emptyline env.input then Pdoc.flush env.out
-  | Pre | Div ->
+  | Div ->
+    Pdoc.printf env.out "@\n"
+  | Pre ->
     Pdoc.printf env.out "@\n" ;
     Pdoc.flush env.out
 
@@ -189,8 +191,8 @@ let process_file ~env ~out:dir file =
       | Style _ -> ()
       | OpenDoc ->
         begin
+          Pdoc.flush ~indent:false out ;
           close_mode out env.mode ;
-          Pdoc.flush out ;
           env.mode <- Div ;
           open_mode out Div ;
         end

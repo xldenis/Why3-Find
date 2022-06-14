@@ -52,7 +52,7 @@
   
     <span class="keyword">type</span> <a name="t_6">t</a> = <a name="A_6">A</a> | <a name="B_6">B</a>
   
-    </pre>
+  </pre>
   <div class="doc">Testing matchwith</div>
   <pre class="src">
   
@@ -89,7 +89,7 @@
     <span class="keyword">val</span> <a name="wrong_24">wrong</a> () : unit
       <span class="keyword">raises</span> { <a href="#Error_22">Error</a> }
   
-    </pre>
+  </pre>
   <div class="doc">Testing trywith</div>
   <pre class="src">
   
