@@ -115,6 +115,16 @@ let output ~file ~title =
 
 let buffered output = contents output.current
 
+let push output =
+  let stacked = output.current in
+  output.current <- buffer () ;
+  stacked
+
+let pop output stack =
+  let contents = contents output.current in
+  output.current <- stack ;
+  Buffer.add_string stack.buffer contents
+
 let spaceonly s =
   try
     for i = 0 to String.length s - 1 do
@@ -122,9 +132,9 @@ let spaceonly s =
     done ; true
   with Exit -> false
 
-let flush ?(indent=true) output =
+let flush ?(onlyspace=true) output =
   let trailing = buffered output in
-  if indent || not (spaceonly trailing) then
+  if onlyspace || not (spaceonly trailing) then
     Buffer.add_string output.target.contents trailing
 
 let fork output ~file ~title =
@@ -144,7 +154,7 @@ let pp_html_s output ?className s =
 
 let header output ~level ~title ?(toc=title) () =
   let target = output.target in
-  let name = Printf.sprintf "hd%d" (succ @@ List.length target.headers) in
+  let name = Printf.sprintf "_%d" (succ @@ List.length target.headers) in
   if target.hbase <= 0 then target.hbase <- level ;
   let level = 1 + level - target.hbase in
   target.headers <- { level ; name ; title = toc } :: target.headers ;

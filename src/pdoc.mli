@@ -61,13 +61,19 @@ type output
 (** Open with (sanitized) title. *)
 val output : file:string -> title:string -> output
 
+(** Stack current buffer. *)
+val push : output -> buffer
+
+(** Pop previous buffer and flush buffered contents into. *)
+val pop : output -> buffer -> unit
+
 (** Extract and clear the current output buffer. *)
 val buffered : output -> string
 
 (** Flushes the current output buffer.
     When [~indent:false], space-only trailing contents is {i not} output.
 *)
-val flush : ?indent:bool -> output -> unit
+val flush : ?onlyspace:bool -> output -> unit
 
 (** Fork the current output buffer into another file. *)
 val fork : output -> file:string -> title:string -> unit

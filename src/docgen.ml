@@ -31,7 +31,10 @@ module P = Pdoc
 (* --- HTML Mode                                                          --- *)
 (* -------------------------------------------------------------------------- *)
 
-type mode = Body | Pre | Doc | Emph | Bold
+type mode =
+  | Body | Pre | Doc
+  | Emph | Bold
+  | Head of Pdoc.buffer * int
 
 let open_mode out = function
   | Body -> ()
@@ -39,6 +42,7 @@ let open_mode out = function
   | Pre -> Pdoc.printf out "<pre class=\"src\">@\n"
   | Emph -> Pdoc.printf out "<em>"
   | Bold -> Pdoc.printf out "<strong>"
+  | Head _ -> ()
 
 let close_mode out = function
   | Body -> ()
@@ -46,6 +50,7 @@ let close_mode out = function
   | Pre -> Pdoc.printf out "</pre>@\n"
   | Emph -> Pdoc.printf out "</em>"
   | Bold -> Pdoc.printf out "</strong>"
+  | Head _ -> ()
 
 let switch out ~mode style =
   if mode = style then
@@ -160,6 +165,21 @@ let process_ident env s =
     process_ref env href s
 
 (* -------------------------------------------------------------------------- *)
+(* --- Style Processing                                                   --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process_style env m =
+  env.mode <- switch env.out ~mode:env.mode m
+
+let process_header env h =
+  begin
+    let level = String.length h in
+    let buffer = Pdoc.push env.out in
+    if env.mode <> Doc then close_mode env.out env.mode ;
+    env.mode <- Head(buffer,level) ;
+  end
+
+(* -------------------------------------------------------------------------- *)
 (* --- Newline Processing                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -169,16 +189,14 @@ let process_newline env =
     if Token.emptyline env.input then Pdoc.flush env.out
   | Doc | Emph | Bold ->
     Pdoc.printf env.out "@\n"
+  | Head(buffer,level) ->
+    let title = Pdoc.buffered env.out in
+    Pdoc.pop env.out buffer ;
+    Pdoc.header env.out ~level ~title () ;
+    env.mode <- Doc ;
   | Pre ->
     Pdoc.printf env.out "@\n" ;
     Pdoc.flush env.out
-
-(* -------------------------------------------------------------------------- *)
-(* --- Style Processing                                                   --- *)
-(* -------------------------------------------------------------------------- *)
-
-let process_style env m =
-  env.mode <- switch env.out ~mode:env.mode m
 
 (* -------------------------------------------------------------------------- *)
 (* --- File Processing                                                    --- *)
@@ -207,10 +225,11 @@ let process_file ~env ~out:dir file =
         Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
       | Style(Emph,_) -> process_style env Emph
       | Style(Bold,_) -> process_style env Bold
+      | Style(Head,h) -> process_header env h
       | Style _ -> ()
       | OpenDoc ->
         begin
-          Pdoc.flush ~indent:false out ;
+          Pdoc.flush ~onlyspace:false out ;
           close_mode out env.mode ;
           env.mode <- Doc ;
           open_mode out Doc ;
@@ -224,7 +243,8 @@ let process_file ~env ~out:dir file =
       | Space ->
         begin match env.mode with
           | Body -> ()
-          | Pre | Doc | Emph | Bold -> Pdoc.pp out Format.pp_print_char ' '
+          | Pre | Doc | Emph | Bold | Head _ ->
+            Pdoc.pp out Format.pp_print_char ' '
         end
       | Newline -> process_newline env
       | Ident s -> process_ident env s

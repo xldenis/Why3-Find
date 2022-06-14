@@ -89,7 +89,7 @@ and document = parse
   | '\n' { newline lexbuf ; Newline }
   | space+ { Space }
   | space* '*'+ ')' { CloseDoc }
-  | '#'+ { style Head lexbuf }
+  | ('#'+ as head) space* { Style(Head,head) }
   | '-' { style Ulist lexbuf }
   | ['0'-'9']+ '.' { style Olist lexbuf }
   | '-'+ { style Dash lexbuf }
