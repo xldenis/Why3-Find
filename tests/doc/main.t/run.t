@@ -23,17 +23,10 @@
   <nav>
   </nav>
   <header>Library <tt>p.a</tt></header>
-  <pre class="src">
   
-  </pre>
   <div class="doc">This is normal text.</div>
-  <pre class="src">
-  
-  
-  </pre>
   <div class="doc">Introducing A.</div>
   <pre class="src">
-  
   <span class="keyword">module</span> A
     <span class="keyword">use</span> int.<a href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">use</span> list.<a href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
@@ -50,7 +43,8 @@
       <span class="keyword">end</span>
   
   <span class="keyword">end</span>
-  
+  </pre>
+  <pre class="src">
   <span class="keyword">module</span> Assoc
     <span class="keyword">use</span> int.<a href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">let</span> <span class="keyword">constant</span> <a name="one_23">one</a> = 1

@@ -28,6 +28,30 @@ module L = Lexer
 module P = Pdoc
 
 (* -------------------------------------------------------------------------- *)
+(* --- HTML Mode                                                          --- *)
+(* -------------------------------------------------------------------------- *)
+
+type mode = Body | Pre | Div
+
+let open_mode out = function
+  | Body -> ()
+  | Div -> Pdoc.printf out "<div class=\"doc\">"
+  | Pre -> Pdoc.printf out "<pre class=\"src\">@\n"
+
+let close_mode out = function
+  | Body -> ()
+  | Div -> Pdoc.printf out "</div>@\n"
+  | Pre -> Pdoc.printf out "</pre>@\n"
+
+let is_opening = function
+  | "scope" | "match" | "try" | "begin" -> true
+  | _ -> false
+
+let is_closing = function
+  | "end" -> true
+  | _ -> false
+
+(* -------------------------------------------------------------------------- *)
 (* --- Identifiers                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -56,27 +80,74 @@ let process_file ~env ~out file =
   let resolve ?(infix=false) () =
     Docref.resolve ~pkg:src.pkg ~infix (Token.position input)
   in
+  let mode = ref Body in
+  let opened = ref 0 in
   begin
     Pdoc.printf out "<header>%s</header>@\n" title ;
-    Pdoc.printf out "<pre class=\"src\">@\n" ;
     while not (Token.eof input) do
       match Token.token input with
-      | Eof -> ()
-      | Space -> Pdoc.pp out Format.pp_print_char ' '
+      | Eof -> close_mode out !mode
       | Char c -> Pdoc.pp_html_c out c
       | Text s -> Pdoc.pp_html_s out s
-      | Ident s -> process_ident out resolve s
+      | OpenDoc ->
+        begin
+          if not @@ Token.startline input then Pdoc.printf out "@\n" ;
+          close_mode out !mode ;
+          mode := Div ;
+          open_mode out Div ;
+        end
+      | CloseDoc ->
+        begin
+          close_mode out Div ;
+          mode := Body ;
+        end
+      | Space ->
+        begin match !mode with
+          | Body -> ()
+          | Pre | Div -> Pdoc.pp out Format.pp_print_char ' '
+        end
+      | Newline ->
+        begin match !mode with
+          | Body -> if Token.emptyline input then Pdoc.flush out
+          | Pre | Div -> Pdoc.printf out "@\n"
+        end
+      | Ident (("module" | "theory") as key) ->
+        begin
+          if not (!opened = 0) then
+            Token.error input "unexpected module or theory" ;
+          close_mode out !mode ;
+          open_mode out Pre ;
+          mode := Pre ;
+          Pdoc.printf out "<span class=\"keyword\">%s</span>" key ;
+        end
+      | Ident ("end" as key) when !opened = 0 ->
+        begin
+          Pdoc.printf out "<span class=\"keyword\">%s</span>@\n" key ;
+          close_mode out Pre ;
+          mode := Body ;
+        end
+      | Ident s ->
+        begin
+          if is_opening s then
+            begin
+              incr opened ;
+              Pdoc.pp_html_s out ~className:"keyword" s ;
+            end
+          else
+          if is_closing s then
+            begin
+              decr opened ;
+              Pdoc.pp_html_s out ~className:"keyword" s ;
+            end
+          else
+            process_ident out resolve s
+        end
       | Infix s -> process_ident out (resolve ~infix:true) s
       | Comment s -> Pdoc.pp_html_s out ~className:"comment" s
-      | Newline -> Pdoc.printf out "@\n"
-      | OpenDoc ->
-        if not @@ Token.startline input then Pdoc.printf out "@\n" ;
-        Pdoc.printf out "</pre>@\n<div class=\"doc\">" ;
-      | CloseDoc ->
-        Pdoc.printf out "</div>@\n<pre class=\"src\">@\n" ;
-      | _ -> ()
+      | Verb s | Ref s ->
+        Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
+      | Style _ -> ()
     done ;
-    Pdoc.printf out "</pre>@\n" ;
     Pdoc.close out ;
   end
 
