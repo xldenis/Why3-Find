@@ -70,6 +70,7 @@ rule source = parse
   | "(*" '*'+  space* { OpenDoc }
   | "(*" { Comment (buffered (comment 0) lexbuf) }
   | (ident | operator) as id { Ident id }
+  | space { Space }
   | _ as c { Char c }
 
 and comment level buffer = parse

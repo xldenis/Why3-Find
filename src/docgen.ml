@@ -67,6 +67,12 @@ let process_ident out (resolve : unit -> Docref.href) s =
     | _ ->
       Pdoc.pp_html_s out s
 
+let rec fetch_ident input =
+  match Token.token input with
+  | Space | Newline -> fetch_ident input
+  | Ident s -> s
+  | _ -> Token.error input "missing module or theory name"
+
 (* -------------------------------------------------------------------------- *)
 (* --- File Processing                                                    --- *)
 (* -------------------------------------------------------------------------- *)
@@ -115,10 +121,12 @@ let process_file ~env ~out file =
         begin
           if not (!opened = 0) then
             Token.error input "unexpected module or theory" ;
+          let id = fetch_ident input in
           close_mode out !mode ;
           open_mode out Pre ;
           mode := Pre ;
-          Pdoc.printf out "<span class=\"keyword\">%s</span>" key ;
+          Pdoc.printf out "<span class=\"keyword\">%s</span> " key ;
+          process_ident out resolve id
         end
       | Ident ("end" as key) when !opened = 0 ->
         begin
