@@ -23,7 +23,7 @@
    This is <strong>multiple
    line bold text</strong>.
   
-   Nested <em>emph </em><strong>bold</strong> emph<em>.
+   Nested <em>emph <strong>bold</strong> emph</em>.
   </div>
   </body>
   </html>

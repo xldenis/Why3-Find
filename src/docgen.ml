@@ -32,31 +32,12 @@ module P = Pdoc
 (* -------------------------------------------------------------------------- *)
 
 type mode =
-  | Body | Pre | Doc
-  | Emph | Bold
+  | Body
+  | Pre
+  | Doc
+  | Emph
+  | Bold
   | Head of Pdoc.buffer * int
-
-let open_mode out = function
-  | Body -> ()
-  | Doc -> Pdoc.printf out "<div class=\"doc\">"
-  | Pre -> Pdoc.printf out "<pre class=\"src\">@\n"
-  | Emph -> Pdoc.printf out "<em>"
-  | Bold -> Pdoc.printf out "<strong>"
-  | Head _ -> ()
-
-let close_mode out = function
-  | Body -> ()
-  | Doc -> Pdoc.printf out "</div>@\n"
-  | Pre -> Pdoc.printf out "</pre>@\n"
-  | Emph -> Pdoc.printf out "</em>"
-  | Bold -> Pdoc.printf out "</strong>"
-  | Head _ -> ()
-
-let switch out ~mode style =
-  if mode = style then
-    (close_mode out mode ; Doc)
-  else
-    ((if mode <> Doc then close_mode out mode) ; open_mode out style ; style)
 
 let is_opening = function
   | "scope" | "match" | "try" | "begin" -> true
@@ -75,10 +56,42 @@ type env = {
   src : Docref.source ; (* source file infos *)
   input : Token.input ; (* input lexer *)
   out : Pdoc.output ; (* output buffer *)
-  mutable mode : mode ; (* current output state *)
-  mutable file : mode ; (* default file mode *)
+  mutable mode : mode ; (* current output mode *)
+  mutable file : mode ; (* global file output mode *)
+  mutable stack : mode list ; (* currently opened modes *)
   mutable opened : int ; (* number of pending 'end' *)
 }
+
+let push env m =
+  env.stack <- env.mode :: env.stack ;
+  env.mode <- m ;
+  match m with
+  | Body | Head _ -> ()
+  | Pre -> Pdoc.printf env.out "<pre class=\"src\">@\n"
+  | Doc -> Pdoc.printf env.out "<div class=\"doc\">"
+  | Emph -> Pdoc.printf env.out "<em>"
+  | Bold -> Pdoc.printf env.out "<strong>"
+
+let pop env =
+  let m = env.mode in
+  begin match env.stack with [] -> () | old :: stk ->
+    env.mode <- old ;
+    env.stack <- stk ;
+  end ;
+  match m with
+  | Body | Head _ -> ()
+  | Pre -> Pdoc.printf env.out "</pre>@\n"
+  | Doc -> Pdoc.printf env.out "</div>@\n"
+  | Emph -> Pdoc.printf env.out "</em>"
+  | Bold -> Pdoc.printf env.out "</strong>"
+
+let rec close env =
+  match env.mode with
+  | Body -> ()
+  | Emph -> Token.error env.input "unclosed emphasis style"
+  | Bold -> Token.error env.input "unclosed bold style"
+  | Head _ -> Token.error env.input "unclose headings"
+  | Doc | Pre -> pop env ; close env
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -123,11 +136,9 @@ let process_module env key =
     Pdoc.fork env.out ~file ~title ;
     Pdoc.printf env.out
       "<header>%s <tt><a href=\"%s\">%s</a>.%s</tt></header>@\n"
-      kind env.src.url env.src.name id
-    ;
-    Pdoc.printf env.out "%s" prelude ;
-    open_mode env.out Pre ;
-    env.mode <- Pre ;
+      kind env.src.url env.src.name id ;
+    Pdoc.pp env.out Format.pp_print_string prelude ;
+    push env Pre ;
     env.file <- Pre ;
     Pdoc.printf env.out "%a " Pdoc.pp_keyword key ;
     process_ref env href id
@@ -135,8 +146,7 @@ let process_module env key =
 
 let process_close env key =
   begin
-    Pdoc.printf env.out "%a@\n" Pdoc.pp_keyword key ;
-    close_mode env.out Pre ;
+    Pdoc.printf env.out "%a@\n</pre>@\n" Pdoc.pp_keyword key ;
     env.mode <- Body ;
     env.file <- Body ;
     Pdoc.close env.out ;
@@ -169,7 +179,7 @@ let process_ident env s =
 (* -------------------------------------------------------------------------- *)
 
 let process_style env m =
-  env.mode <- switch env.out ~mode:env.mode m
+  if env.mode = m then pop env else push env m
 
 let process_dash env s =
   let n = String.length s in
@@ -179,12 +189,11 @@ let process_header env h =
   begin
     let level = String.length h in
     let buffer = Pdoc.push env.out in
-    if env.mode <> Doc then close_mode env.out env.mode ;
-    env.mode <- Head(buffer,level) ;
+    push env (Head(buffer,level))
   end
 
 (* -------------------------------------------------------------------------- *)
-(* --- Newline Processing                                                 --- *)
+(* --- Newline & Eof Processing                                           --- *)
 (* -------------------------------------------------------------------------- *)
 
 let process_newline env =
@@ -197,7 +206,7 @@ let process_newline env =
     let title = Pdoc.buffered env.out in
     Pdoc.pop env.out buffer ;
     Pdoc.header env.out ~level ~title () ;
-    env.mode <- Doc ;
+    pop env
   | Pre ->
     Pdoc.printf env.out "@\n" ;
     Pdoc.flush env.out
@@ -213,14 +222,13 @@ let process_file ~env ~out:dir file =
   let input = Token.input file in
   let env = {
     dir ; src ; input ; out ;
-    file = Body ; mode = Body ;
-    opened = 0 ;
+    mode = Body ; file = Body ; stack = [] ; opened = 0 ;
   } in
   begin
     Pdoc.printf out "<header>Library <tt>%s</tt></header>@\n" src.name ;
     while not (Token.eof env.input) do
       match Token.token env.input with
-      | Eof -> close_mode out env.mode
+      | Eof -> close env
       | Char c -> Pdoc.pp_html_c out c
       | Text s -> Pdoc.pp_html_s out s
       | Comment s ->
@@ -235,15 +243,13 @@ let process_file ~env ~out:dir file =
       | OpenDoc ->
         begin
           Pdoc.flush ~onlyspace:false out ;
-          close_mode out env.mode ;
-          env.mode <- Doc ;
-          open_mode out Doc ;
+          close env ;
+          push env Doc ;
         end
       | CloseDoc ->
         begin
-          close_mode out Doc ;
-          env.mode <- env.file ;
-          open_mode out env.file ;
+          close env ;
+          push env env.file ;
         end
       | Space ->
         begin match env.mode with
