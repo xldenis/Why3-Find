@@ -131,20 +131,21 @@ type source = {
   pkg: string;
   name: string;
   url: string;
+  theories: Why3.Theory.theory Why3.Wstdlib.Mstr.t;
 }
 
 let parse ~why3env file =
   let lib = library_path file in
   let pkg = match lib with [] | [_] -> "" | pkg::_ -> pkg in
   let name = String.concat "." lib in
-  let _theories =
+  let theories =
     try fst @@ Why3.Env.read_file Why3.Env.base_language why3env file
     with exn ->
       Format.eprintf "%s@." (Printexc.to_string exn) ;
       exit 1
   in
   let url = Printf.sprintf "%s.html" name in
-  { pkg ; name ; url }
+  { pkg ; name ; url ; theories }
 
 let derived src id =
   Printf.sprintf "%s.%s.html" src.name id
@@ -168,7 +169,34 @@ let infix s =
 let href ~pkg id =
   Printf.sprintf "%s#%s" (baseurl ~pkg id) (anchor ~kind:"" id)
 
-let reference ~why3env ~pkg r =
+let ns_find_ts ns qid =
+  try [(Why3.Theory.ns_find_ts ns qid).ts_name] with Not_found -> []
+
+let ns_find_ls ns qid =
+  try [(Why3.Theory.ns_find_ls ns qid).ls_name] with Not_found -> []
+
+let ns_find_pr ns qid =
+  try [(Why3.Theory.ns_find_pr ns qid).pr_name] with Not_found -> []
+
+let ns_find ns kind qid =
+  match kind with
+  | 't' -> ns_find_ts ns qid
+  | 'v' -> ns_find_ls ns qid
+  | 'p' -> ns_find_pr ns qid
+  | '?' ->
+    List.concat [
+      ns_find_ts ns qid ;
+      ns_find_ls ns qid ;
+      ns_find_pr ns qid ;
+    ]
+  | _ -> failwith "invalid reference kind (use 't', 'v' or 'p')"
+
+let select ~pkg = function
+  | [id] -> href ~pkg id
+  | [] -> failwith "invalid reference"
+  | _ -> failwith "ambiguous reference"
+
+let reference ~why3env ~src r =
   let kind,name =
     let n = String.length r in
     if n >= 2 && r.[1] = ':'
@@ -181,31 +209,16 @@ let reference ~why3env ~pkg r =
         if is_uppercased p then List.rev rp,p,List.map infix ps
         else split (p::rp) ps
     in split [] (String.split_on_char '.' name) in
+  let pkg = src.pkg in
   let url =
+    let thy =
+      try Why3.Env.read_theory why3env lp m
+      with Not_found -> failwith "unknown theory or module"
+    in
     if kind = '?' && qid = [] then
       pathurl ~pkg lp m
     else
-      let open Why3 in
-      let thy = Env.read_theory why3env lp m in
-      let ns = thy.th_export in
-      match kind with
-      | 't' -> href ~pkg (Theory.ns_find_ts ns qid).ts_name
-      | 'v' -> href ~pkg (Theory.ns_find_ls ns qid).ls_name
-      | 'p' -> href ~pkg (Theory.ns_find_pr ns qid).pr_name
-      | '?' ->
-        begin
-          match
-            List.concat [
-              (try [(Theory.ns_find_ts ns qid).ts_name] with Not_found -> []);
-              (try [(Theory.ns_find_ls ns qid).ls_name] with Not_found -> []);
-              (try [(Theory.ns_find_pr ns qid).pr_name] with Not_found -> []);
-            ]
-          with
-          | [id] -> href ~pkg id
-          | [] -> raise Not_found
-          | _ -> failwith "ambiguous reference"
-      end
-      | _ -> failwith "invalid reference kind (use 't', 'v' or 'p')"
+      select ~pkg @@ ns_find thy.th_export kind qid
   in url, name
 
 (* -------------------------------------------------------------------------- *)

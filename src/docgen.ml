@@ -282,7 +282,7 @@ let process_newline env =
 
 let process_reference ~why3env ~env r =
   try
-    let url,name = Docref.reference ~why3env ~pkg:env.src.pkg r in
+    let url,name = Docref.reference ~why3env ~src:env.src r in
     text env ;
     Pdoc.printf env.out
       "<code class=\"src\"><a href=\"%s\">%s</a></code>" url name

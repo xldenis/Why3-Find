@@ -29,6 +29,7 @@ type source = {
   pkg: string; (* package name *)
   name: string; (* library path *)
   url: string; (* URL name *)
+  theories: Why3.Theory.theory Why3.Wstdlib.Mstr.t; (* Source *)
 }
 
 val parse : why3env:Why3.Env.env -> string -> source
@@ -44,6 +45,6 @@ type href =
 type position = Lexing.position * Lexing.position
 
 val resolve : pkg:string -> infix:bool -> position -> href
-val reference : why3env:Why3.Env.env -> pkg:string -> string -> string * string
+val reference : why3env:Why3.Env.env -> src:source -> string -> string * string
 
 (* -------------------------------------------------------------------------- *)
