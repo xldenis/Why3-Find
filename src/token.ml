@@ -78,8 +78,11 @@ let error input msg =
   Format.kasprintf
     (fun msg ->
        let p = Lexing.lexeme_start_p input.lexbuf in
-       Format.printf "File \"%s\", line %d: %s@."
-         p.pos_fname p.pos_lnum msg ;
+       let q = Lexing.lexeme_end_p input.lexbuf in
+       let a = p.pos_cnum - p.pos_bol in
+       let b = q.pos_cnum - p.pos_bol in
+       Format.printf "File \"%s\", line %d, characters %d-%d: %s@."
+         p.pos_fname p.pos_lnum a b msg ;
        exit 1
     ) msg
 

@@ -94,8 +94,8 @@ and document = parse
   | '-'+ { style Dash lexbuf }
   | '_' | '*' { style Emph lexbuf }
   | "__" | "**" { style Bold lexbuf }
-  | '{' ([^'}']* as rf) '}' { Ref rf }
-  | '`' ([^'`']* as tt) '`' { Verb tt }
+  | '{' ([^ '}' '\n']* as rf) '}' { Ref rf }
+  | '`' ([^ '`' '\n']* as tt) '`' { Verb tt }
   | _ as c { Char c }
 
 (* -------------------------------------------------------------------------- *)
