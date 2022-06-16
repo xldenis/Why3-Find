@@ -17,6 +17,7 @@
   <p>Testing Documentation.</p>
   <p>This is <em>emph text</em>.</p>
   <p>This is <strong>bold text</strong>.</p>
+  <p>This is <code class="src">verbatim</code> text.</p>
   <p>This is <strong>multiple line bold text</strong>.</p>
   <p>Nested <em>emph <strong>bold</strong> emph</em>.</p>
   </div>
