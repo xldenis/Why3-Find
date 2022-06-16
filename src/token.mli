@@ -74,9 +74,11 @@ val token : input -> token (** next buffer *)
 (** Potision of the last token. *)
 val position : input -> Lexing.position * Lexing.position
 
-(** Indentation of current token if at the beginning of the line.
-    Negative value means the token is not at beginning of the line. *)
+(** Indentation of the token. *)
 val indent : input -> int
+
+(** The last returned token is at then beginninf of the line. *)
+val startline : input -> bool
 
 (** The last returned token is at then beginning of the line
     {i and} after an empty line. *)

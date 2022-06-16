@@ -87,13 +87,12 @@ let eof input = input.context = End
 let src input = input.context = Src
 let doc input = input.context = Doc
 let emptyline input = input.newlines > 1
+let startline input = input.tokcount <= 1
 
 let indent input =
-  if input.tokcount <= 1 then
-    let Lexing.{ pos_cnum = c ; pos_bol = b } =
-      Lexing.lexeme_start_p input.lexbuf
-    in c - b
-  else (-1)
+  let Lexing.{ pos_cnum = c ; pos_bol = b } =
+    Lexing.lexeme_start_p input.lexbuf
+  in c - b
 
 let position input =
   Lexing.lexeme_start_p input.lexbuf ,

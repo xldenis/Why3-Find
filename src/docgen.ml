@@ -39,6 +39,8 @@ type mode =
   | Emph
   | Bold
   | Head of Pdoc.buffer * int
+  | List of int (* indent *)
+  | Item of int (* indent *)
 
 let is_opening = function
   | "scope" | "match" | "try" | "begin" -> true
@@ -64,11 +66,14 @@ type env = {
   mutable opened : int ; (* number of pending 'end' *)
 }
 
+let clear env =
+  env.space <- false
+
 let space env =
   if env.space then
     begin
       Pdoc.pp_print_char env.out ' ' ;
-      env.space <- false
+      clear env ;
     end
 
 let push env m =
@@ -79,6 +84,8 @@ let push env m =
   | Div -> Pdoc.pp_print_string env.out "<div class=\"doc\">\n"
   | Pre -> Pdoc.pp_print_string env.out "<pre class=\"src\">\n"
   | Par -> Pdoc.pp_print_string env.out "<p>"
+  | List _ -> Pdoc.pp_print_string env.out "<ul>\n"
+  | Item _ -> Pdoc.pp_print_string env.out "<li>"
   | Emph -> space env ; Pdoc.pp_print_string env.out "<em>"
   | Bold -> space env ; Pdoc.pp_print_string env.out "<strong>"
 
@@ -90,9 +97,11 @@ let pop env =
   end ;
   match m with
   | Body | Head _ -> ()
-  | Pre -> Pdoc.pp_print_string env.out "</pre>\n" ; env.space <- false
-  | Div -> Pdoc.pp_print_string env.out "</div>\n" ; env.space <- false
-  | Par -> Pdoc.pp_print_string env.out "</p>\n" ; env.space <- false
+  | Pre -> Pdoc.pp_print_string env.out "</pre>\n" ; clear env
+  | Div -> Pdoc.pp_print_string env.out "</div>\n" ; clear env
+  | Par -> Pdoc.pp_print_string env.out "</p>\n" ; clear env
+  | List _ -> Pdoc.pp_print_string env.out "</ul>\n" ; clear env
+  | Item _ -> Pdoc.pp_print_string env.out "</li>\n" ; clear env
   | Emph -> Pdoc.pp_print_string env.out "</em>" (* keep space *)
   | Bold -> Pdoc.pp_print_string env.out "</strong>" (* keep space *)
 
@@ -100,8 +109,9 @@ let text env =
   match env.mode with
   | Body -> push env env.file
   | Div -> push env Par
+  | List n -> push env (Item n)
   | Pre -> ()
-  | Par | Head _ | Emph | Bold -> space env
+  | Par | Item _ | Head _ | Emph | Bold -> space env
 
 let rec close env =
   match env.mode with
@@ -109,7 +119,7 @@ let rec close env =
   | Emph -> Token.error env.input "unclosed emphasis style"
   | Bold -> Token.error env.input "unclosed bold style"
   | Head _ -> Token.error env.input "unclose headings"
-  | Div | Par | Pre -> pop env ; close env
+  | Div | Par | List _ | Item _ | Pre -> pop env ; close env
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -201,10 +211,33 @@ let process_style env m =
   text env ;
   if env.mode = m then pop env else push env m
 
+let rec list env n =
+  match env.mode with
+  | Body | Head _ | Pre -> ()
+  | Emph -> Token.error env.input "unclosed bold style"
+  | Bold -> Token.error env.input "unclosed emphasis style"
+  | Par -> pop env ; push env (List n)
+  | Div -> push env (List n)
+  | Item _ -> pop env ; list env n
+  | List m ->
+    if n < m then
+      begin
+        pop env ;
+        list env n ;
+      end
+    else
+    if n > m then
+      push env (List n)
+
 let process_dash env s =
-  text env ;
-  let n = String.length s in
-  Pdoc.printf env.out "&%cdash;" (if n > 1 then 'm' else 'n')
+  let s = String.length s in
+  if s = 1 && Token.startline env.input then
+    list env (Token.indent env.input)
+  else
+    begin
+      text env ;
+      Pdoc.printf env.out "&%cdash;" (if s > 1 then 'm' else 'n')
+    end
 
 let process_header env h =
   begin
@@ -219,16 +252,16 @@ let process_header env h =
 
 let process_space env =
   match env.mode with
-  | Body | Div -> ()
-  | Par | Head _ | Emph | Bold -> env.space <- true
+  | Body | Div | List _ -> ()
+  | Par | Item _ | Head _ | Emph | Bold -> env.space <- true
   | Pre ->
     Pdoc.pp_print_char env.out ' '
 
 let process_newline env =
   match env.mode with
   | Body -> if Token.emptyline env.input then Pdoc.flush env.out
-  | Div -> ()
-  | Par ->
+  | Div | List _ -> ()
+  | Par | Item _ ->
     if Token.emptyline env.input then
       pop env
     else
