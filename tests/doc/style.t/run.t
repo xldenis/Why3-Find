@@ -14,16 +14,11 @@
   </nav>
   <header>Library <tt>a</tt></header>
   <div class="doc">
-   Testing Documentation.
-  
-   This is <em>emph text</em>.
-  
-   This is <strong>bold text</strong>.
-  
-   This is <strong>multiple
-   line bold text</strong>.
-  
-   Nested <em>emph <strong>bold</strong> emph</em>.
+  <p>Testing Documentation.</p>
+  <p>This is <em>emph text</em>.</p>
+  <p>This is <strong>bold text</strong>.</p>
+  <p>This is <strong>multiple line bold text</strong>.</p>
+  <p>Nested <em>emph <strong>bold</strong> emph</em>.</p>
   </div>
   </body>
   </html>

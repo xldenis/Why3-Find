@@ -84,6 +84,12 @@ val close : output -> unit
 (** Prints (sanitized) contents. *)
 val printf : output -> 'a printf
 
+(** Prints (sanitized) contents. *)
+val pp_print_string : output -> string -> unit
+
+(** Prints (sanitized) contents. *)
+val pp_print_char : output -> char -> unit
+
 (** Print the data with the pretty printer. *)
 val pp : output -> 'a fmt -> 'a -> unit
 

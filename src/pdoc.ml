@@ -137,28 +137,31 @@ let flush ?(onlyspace=true) output =
   if onlyspace || not (spaceonly trailing) then
     Buffer.add_string output.target.contents trailing
 
-let fork output ~file ~title =
-  flush output ;
-  output.target <- {
+let fork out ~file ~title =
+  flush out ;
+  out.target <- {
     file ; htitle = title ; hbase = 0 ; headers = [] ;
     contents = Buffer.create 80 ;
-    forked = Some output.target ;
+    forked = Some out.target ;
   }
 
-let printf output msg = Format.fprintf output.current.fmt msg
-let pp output pp v = pp output.current.fmt v
+let printf out msg = Format.fprintf out.current.fmt msg
+let pp out pp v = pp out.current.fmt v
 
-let pp_html_c output c = Why3.Pp.html_char output.current.fmt c
-let pp_html_s output ?className s =
-  pp_span ?className Why3.Pp.html_string output.current.fmt s
+let pp_print_char out c = pp out Format.pp_print_char c
+let pp_print_string out s = pp out Format.pp_print_string s
 
-let header output ~level ~title ?(toc=title) () =
-  let target = output.target in
+let pp_html_c out c = Why3.Pp.html_char out.current.fmt c
+let pp_html_s out ?className s =
+  pp_span ?className Why3.Pp.html_string out.current.fmt s
+
+let header out ~level ~title ?(toc=title) () =
+  let target = out.target in
   let name = Printf.sprintf "_%d" (succ @@ List.length target.headers) in
   if target.hbase <= 0 then target.hbase <- level ;
   let level = 1 + level - target.hbase in
   target.headers <- { level ; name ; title = toc } :: target.headers ;
-  Format.fprintf output.current.fmt "<h%d><a name=\"%s\">%s</a></h%d>@\n"
+  Format.fprintf out.current.fmt "<h%d><a name=\"%s\">%s</a></h%d>@\n"
     level name title level
 
 let head =

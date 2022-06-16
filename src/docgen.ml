@@ -34,7 +34,8 @@ module P = Pdoc
 type mode =
   | Body
   | Pre
-  | Doc
+  | Div
+  | Par
   | Emph
   | Bold
   | Head of Pdoc.buffer * int
@@ -56,21 +57,30 @@ type env = {
   src : Docref.source ; (* source file infos *)
   input : Token.input ; (* input lexer *)
   out : Pdoc.output ; (* output buffer *)
+  mutable space : bool ; (* leading space in Par mode *)
   mutable mode : mode ; (* current output mode *)
   mutable file : mode ; (* global file output mode *)
   mutable stack : mode list ; (* currently opened modes *)
   mutable opened : int ; (* number of pending 'end' *)
 }
 
+let space env =
+  if env.space then
+    begin
+      Pdoc.pp_print_char env.out ' ' ;
+      env.space <- false
+    end
+
 let push env m =
   env.stack <- env.mode :: env.stack ;
   env.mode <- m ;
   match m with
   | Body | Head _ -> ()
-  | Pre -> Pdoc.printf env.out "<pre class=\"src\">@\n"
-  | Doc -> Pdoc.printf env.out "<div class=\"doc\">"
-  | Emph -> Pdoc.printf env.out "<em>"
-  | Bold -> Pdoc.printf env.out "<strong>"
+  | Div -> Pdoc.pp_print_string env.out "<div class=\"doc\">\n"
+  | Pre -> Pdoc.pp_print_string env.out "<pre class=\"src\">\n"
+  | Par -> Pdoc.pp_print_string env.out "<p>"
+  | Emph -> space env ; Pdoc.pp_print_string env.out "<em>"
+  | Bold -> space env ; Pdoc.pp_print_string env.out "<strong>"
 
 let pop env =
   let m = env.mode in
@@ -80,10 +90,18 @@ let pop env =
   end ;
   match m with
   | Body | Head _ -> ()
-  | Pre -> Pdoc.printf env.out "</pre>@\n"
-  | Doc -> Pdoc.printf env.out "</div>@\n"
-  | Emph -> Pdoc.printf env.out "</em>"
-  | Bold -> Pdoc.printf env.out "</strong>"
+  | Pre -> Pdoc.pp_print_string env.out "</pre>\n" ; env.space <- false
+  | Div -> Pdoc.pp_print_string env.out "</div>\n" ; env.space <- false
+  | Par -> Pdoc.pp_print_string env.out "</p>\n" ; env.space <- false
+  | Emph -> Pdoc.pp_print_string env.out "</em>" (* keep space *)
+  | Bold -> Pdoc.pp_print_string env.out "</strong>" (* keep space *)
+
+let text env =
+  match env.mode with
+  | Body -> push env env.file
+  | Div -> push env Par
+  | Pre -> ()
+  | Par | Head _ | Emph | Bold -> space env
 
 let rec close env =
   match env.mode with
@@ -91,7 +109,7 @@ let rec close env =
   | Emph -> Token.error env.input "unclosed emphasis style"
   | Bold -> Token.error env.input "unclosed bold style"
   | Head _ -> Token.error env.input "unclose headings"
-  | Doc | Pre -> pop env ; close env
+  | Div | Par | Pre -> pop env ; close env
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -140,7 +158,8 @@ let process_module env key =
     Pdoc.pp env.out Format.pp_print_string prelude ;
     push env Pre ;
     env.file <- Pre ;
-    Pdoc.printf env.out "%a " Pdoc.pp_keyword key ;
+    Pdoc.pp env.out Pdoc.pp_keyword key ;
+    Pdoc.pp_print_char env.out ' ' ;
     process_ref env href id
   end
 
@@ -179,9 +198,11 @@ let process_ident env s =
 (* -------------------------------------------------------------------------- *)
 
 let process_style env m =
+  text env ;
   if env.mode = m then pop env else push env m
 
 let process_dash env s =
+  text env ;
   let n = String.length s in
   Pdoc.printf env.out "&%cdash;" (if n > 1 then 'm' else 'n')
 
@@ -193,22 +214,33 @@ let process_header env h =
   end
 
 (* -------------------------------------------------------------------------- *)
-(* --- Newline & Eof Processing                                           --- *)
+(* --- Space & Newline Processing                                           --- *)
 (* -------------------------------------------------------------------------- *)
+
+let process_space env =
+  match env.mode with
+  | Body | Div -> ()
+  | Par | Head _ | Emph | Bold -> env.space <- true
+  | Pre ->
+    Pdoc.pp_print_char env.out ' '
 
 let process_newline env =
   match env.mode with
-  | Body ->
-    if Token.emptyline env.input then Pdoc.flush env.out
-  | Doc | Emph | Bold ->
-    Pdoc.printf env.out "@\n"
+  | Body -> if Token.emptyline env.input then Pdoc.flush env.out
+  | Div -> ()
+  | Par ->
+    if Token.emptyline env.input then
+      pop env
+    else
+      env.space <- true
+  | Emph | Bold -> env.space <- true
   | Head(buffer,level) ->
     let title = Pdoc.buffered env.out in
     Pdoc.pop env.out buffer ;
     Pdoc.header env.out ~level ~title () ;
     pop env
   | Pre ->
-    Pdoc.printf env.out "@\n" ;
+    Pdoc.pp_print_char env.out '\n' ;
     Pdoc.flush env.out
 
 (* -------------------------------------------------------------------------- *)
@@ -221,7 +253,7 @@ let process_file ~env ~out:dir file =
   let out = Pdoc.output ~file:(Filename.concat dir src.url) ~title in
   let input = Token.input file in
   let env = {
-    dir ; src ; input ; out ;
+    dir ; src ; input ; out ; space = false ;
     mode = Body ; file = Body ; stack = [] ; opened = 0 ;
   } in
   begin
@@ -229,11 +261,13 @@ let process_file ~env ~out:dir file =
     while not (Token.eof env.input) do
       match Token.token env.input with
       | Eof -> close env
-      | Char c -> Pdoc.pp_html_c out c
-      | Text s -> Pdoc.pp_html_s out s
+      | Char c -> text env ; Pdoc.pp_html_c out c
+      | Text s -> text env ; Pdoc.pp_html_s out s
       | Comment s ->
+        text env ;
         Pdoc.pp_html_s out ~className:"comment" s
       | Verb s | Ref s ->
+        text env ;
         Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
       | Style(Emph,_) -> process_style env Emph
       | Style(Bold,_) -> process_style env Bold
@@ -244,22 +278,18 @@ let process_file ~env ~out:dir file =
         begin
           Pdoc.flush ~onlyspace:false out ;
           close env ;
-          push env Doc ;
+          push env Div ;
         end
       | CloseDoc ->
         begin
           close env ;
           push env env.file ;
         end
-      | Space ->
-        begin match env.mode with
-          | Body -> ()
-          | Pre | Doc | Emph | Bold | Head _ ->
-            Pdoc.pp out Format.pp_print_char ' '
-        end
+      | Space -> process_space env
       | Newline -> process_newline env
-      | Ident s -> process_ident env s
+      | Ident s -> text env ; process_ident env s
       | Infix s ->
+        text env ;
         let href = resolve env ~infix:true () in
         process_ref env href s
     done ;

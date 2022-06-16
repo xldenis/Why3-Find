@@ -20,25 +20,19 @@
   </nav>
   <header>Library <tt>a</tt></header>
   <div class="doc">
-   Headings.
-  
-   <h1><a name="_1">Title A</a></h1>
-   Section 1
-  
-   <h2><a name="_2">Title B</a></h2>
-   Section 1
-  
-   <h2><a name="_3">Title E</a></h2>
-   Section 2
-  
-   <h3><a name="_4">Title C</a></h3>
-   Section 1
-  
-   <h3><a name="_5">Title D</a></h3>
-   Section 2
-  
-   <h2><a name="_6">Title F</a></h2>
-   Section 3
+  <p>Headings.</p>
+  <h1><a name="_1">Title A</a></h1>
+  <p>Section 1</p>
+  <h2><a name="_2">Title B</a></h2>
+  <p>Section 1</p>
+  <h2><a name="_3">Title E</a></h2>
+  <p>Section 2</p>
+  <h3><a name="_4">Title C</a></h3>
+  <p>Section 1</p>
+  <h3><a name="_5">Title D</a></h3>
+  <p>Section 2</p>
+  <h2><a name="_6">Title F</a></h2>
+  <p>Section 3</p>
   </div>
   </body>
   </html>

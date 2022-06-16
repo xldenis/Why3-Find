@@ -25,11 +25,17 @@
   <nav>
   </nav>
   <header>Library <tt>p.a</tt></header>
-  <div class="doc">Before A</div>
+  <div class="doc">
+  <p>Before A</p>
+  </div>
   <div class="src module">module <tt><a href="p.a.A.html">A</a></tt></div>
-  <div class="doc">Before B</div>
+  <div class="doc">
+  <p>Before B</p>
+  </div>
   <div class="src module">module <tt><a href="p.a.B.html">B</a></tt></div>
-  <div class="doc">After B</div>
+  <div class="doc">
+  <p>After B</p>
+  </div>
   </body>
   </html>
 --------------------------------------------------------------------------
@@ -46,14 +52,18 @@
   <nav>
   </nav>
   <header>Module <tt><a href="p.a.html">p.a</a>.A</tt></header>
-  <div class="doc">Introducing A</div>
+  <div class="doc">
+  <p>Introducing A</p>
+  </div>
   <pre class="src">
   <span class="keyword">module</span> <a name="A_">A</a>
   
     <span class="keyword">type</span> <a name="t_6">t</a> = <a name="A_6">A</a> | <a name="B_6">B</a>
   
   </pre>
-  <div class="doc">Testing match&ndash;with</div>
+  <div class="doc">
+  <p>Testing match&ndash;with</p>
+  </div>
   <pre class="src">
   
     <span class="keyword">let</span> <a name="swap_9">swap</a> (e : <a href="#t_6">t</a>) : <a href="#t_6">t</a> =
@@ -80,7 +90,9 @@
   <nav>
   </nav>
   <header>Module <tt><a href="p.a.html">p.a</a>.B</tt></header>
-  <div class="doc">Introducing B</div>
+  <div class="doc">
+  <p>Introducing B</p>
+  </div>
   <pre class="src">
   <span class="keyword">module</span> <a name="B_">B</a>
   
@@ -90,7 +102,9 @@
       <span class="keyword">raises</span> { <a href="#Error_22">Error</a> }
   
   </pre>
-  <div class="doc">Testing try&ndash;with</div>
+  <div class="doc">
+  <p>Testing try&ndash;with</p>
+  </div>
   <pre class="src">
   
     <span class="keyword">let</span> <a name="test_28">test</a> () : unit =
