@@ -277,11 +277,25 @@ let process_newline env =
     Pdoc.flush env.out
 
 (* -------------------------------------------------------------------------- *)
+(* --- References                                                         --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process_reference ~why3env ~env r =
+  try
+    let url,name = Docref.reference ~why3env ~pkg:env.src.pkg r in
+    text env ;
+    Pdoc.printf env.out
+      "<code class=\"src\"><a href=\"%s\">%s</a></code>" url name
+  with
+  | Not_found -> Token.error env.input "unknown reference"
+  | Failure msg -> Token.error env.input "%s" msg
+
+(* -------------------------------------------------------------------------- *)
 (* --- File Processing                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_file ~env ~out:dir file =
-  let src = Docref.parse ~env file in
+let process_file ~why3env ~out:dir file =
+  let src = Docref.parse ~why3env file in
   let title = Printf.sprintf "Library %s" src.name in
   let out = Pdoc.output ~file:(Filename.concat dir src.url) ~title in
   let input = Token.input file in
@@ -299,9 +313,10 @@ let process_file ~env ~out:dir file =
       | Comment s ->
         text env ;
         Pdoc.pp_html_s out ~className:"comment" s
-      | Verb s | Ref s ->
+      | Verb s ->
         text env ;
         Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
+      | Ref s -> process_reference ~why3env ~env s
       | Style(Emph,_) -> process_style env Emph
       | Style(Bold,_) -> process_style env Bold
       | Style(Head,h) -> process_header env h
@@ -333,7 +348,7 @@ let process_file ~env ~out:dir file =
 (* --- Main Doc Command                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-let install ~out ~file =
+let shared ~out ~file =
   let tgt = Filename.concat out file in
   if not (Sys.file_exists tgt) then
     let src = Meta.shared file in
@@ -341,10 +356,10 @@ let install ~out ~file =
 
 let main ~pkgs ~out ~files =
   begin
-    let env = Docref.init ~pkgs in
+    let why3env = Docref.init ~pkgs in
     Utils.mkdirs out ;
-    install ~out ~file:"style.css" ;
-    List.iter (process_file ~env ~out) files
+    shared ~out ~file:"style.css" ;
+    List.iter (process_file ~why3env ~out) files
   end
 
 (* -------------------------------------------------------------------------- *)

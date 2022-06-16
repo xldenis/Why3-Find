@@ -1,0 +1,7 @@
+(**
+  Infix reference: {int.Int.(+)}
+
+  Prefix reference: {int.Int.(-_)}
+
+  Value reference: {int.MinMax.max}
+  *)

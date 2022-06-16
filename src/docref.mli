@@ -31,7 +31,7 @@ type source = {
   url: string; (* URL name *)
 }
 
-val parse : env:Why3.Env.env -> string -> source
+val parse : why3env:Why3.Env.env -> string -> source
 val derived : source -> string -> string (* URL name *)
 
 val is_keyword : string -> bool
@@ -44,5 +44,6 @@ type href =
 type position = Lexing.position * Lexing.position
 
 val resolve : pkg:string -> infix:bool -> position -> href
+val reference : why3env:Why3.Env.env -> pkg:string -> string -> string * string
 
 (* -------------------------------------------------------------------------- *)
