@@ -14,16 +14,18 @@
   </nav>
   <header>Library <tt>a</tt></header>
   <div class="doc">
-   Testing Documentation.
+   List &amp; Dashes
   
-   This is <em>emph text</em>.
+   Text with normal&ndash;size dash.
   
-   This is <strong>bold text</strong>.
+   Text with long&mdash;size dash.
   
-   This is <strong>multiple
-   line bold text</strong>.
+   &ndash; item (a)
+   &ndash; item (b)
+   &ndash; sub&ndash;item (b.1)
+   &ndash; sub&ndash;item (b.2)
+   &ndash; item (c)
   
-   Nested <em>emph </em><strong>bold</strong> emph<em>.
   </div>
   </body>
   </html>
