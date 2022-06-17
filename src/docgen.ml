@@ -59,6 +59,7 @@ type env = {
   src : Docref.source ; (* source file infos *)
   input : Token.input ; (* input lexer *)
   out : Pdoc.output ; (* output buffer *)
+  mutable scope : string option ; (* current module name *)
   mutable space : bool ; (* leading space in Par mode *)
   mutable mode : mode ; (* current output mode *)
   mutable file : mode ; (* global file output mode *)
@@ -132,7 +133,7 @@ let rec fetch_id input =
   | _ -> Token.error input "missing module or theory name"
 
 let resolve env ?(infix=false) () =
-  Docref.resolve ~pkg:env.src.pkg ~infix (Token.position env.input)
+  Docref.resolve ~src:env.src ~infix (Token.position env.input)
 
 let process_ref env (href : Docref.href) s =
   match href with
@@ -168,6 +169,7 @@ let process_module env key =
     Pdoc.pp env.out Format.pp_print_string prelude ;
     push env Pre ;
     env.file <- Pre ;
+    env.scope <- Some id ;
     Pdoc.pp env.out Pdoc.pp_keyword key ;
     Pdoc.pp_print_char env.out ' ' ;
     process_ref env href id
@@ -178,6 +180,7 @@ let process_close env key =
     Pdoc.printf env.out "%a@\n</pre>@\n" Pdoc.pp_keyword key ;
     env.mode <- Body ;
     env.file <- Body ;
+    env.scope <- None ;
     Pdoc.close env.out ;
   end
 
@@ -282,7 +285,8 @@ let process_newline env =
 
 let process_reference ~why3env ~env r =
   try
-    let url,name = Docref.reference ~why3env ~src:env.src r in
+    let scope = match env.scope with None -> "" | Some m -> m in
+    let url,name = Docref.reference ~why3env ~src:env.src ~scope r in
     text env ;
     Pdoc.printf env.out
       "<code class=\"src\"><a href=\"%s\">%s</a></code>" url name
@@ -300,7 +304,7 @@ let process_file ~why3env ~out:dir file =
   let out = Pdoc.output ~file:(Filename.concat dir src.url) ~title in
   let input = Token.input file in
   let env = {
-    dir ; src ; input ; out ; space = false ;
+    dir ; src ; input ; out ; space = false ; scope = None ;
     mode = Body ; file = Body ; stack = [] ; opened = 0 ;
   } in
   begin

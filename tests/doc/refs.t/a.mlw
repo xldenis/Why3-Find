@@ -4,4 +4,19 @@
   Prefix reference: {int.Int.(-_)}
 
   Value reference: {int.MinMax.max}
+
+  Local references {A.t} and {op}.
   *)
+
+theory A
+  type t
+  function op t t : t
+end
+
+module B
+  type t
+  val binop t t : t
+
+  (** B reference {t} *)
+  (** A reference {A.op} *)
+end

@@ -32,6 +32,13 @@ let is_keyword = Hashtbl.mem keywords
 
 type position = Lexing.position * Lexing.position
 
+type source = {
+  pkg: string;
+  name: string;
+  url: string;
+  theories: Why3.Theory.theory Why3.Wstdlib.Mstr.t;
+}
+
 let extract ~infix position =
   let loc = Why3.Loc.extract position in
   if infix then
@@ -58,29 +65,34 @@ let restore_path id =
   with Not_found ->
     Why3.Theory.restore_path id
 
-let pathurl ~pkg lp md =
-  if lp = [] then "" else
+let pathurl ~src ?scope lp md =
+  if lp = [] then
+    match scope with
+    | None -> ""
+    | Some s ->
+      if s = md then "" else
+        Printf.sprintf "%s.%s.html" src.name md
+  else
     let lpkg = List.hd lp in
     let path = String.concat "." lp in
-    if pkg = lpkg then
+    if src.pkg = lpkg then
       Printf.sprintf "%s.%s.html" path md
     else
       try
-        let meta = Meta.find pkg in
+        let meta = Meta.find src.pkg in
         Printf.sprintf "file://%s/html/%s.%s.html" meta.Meta.path path md
       with _ ->
         Printf.sprintf "https://why3.lri.fr/stdlib/%s.html" path
 
-let baseurl ~pkg id =
-  let lp,md,_ = restore_path id in
-  pathurl ~pkg lp md
+let baseurl ~src ?scope id =
+  let lp,md,_ = restore_path id in pathurl ~src ?scope lp md
 
 type href =
   | NoRef
   | Def of string
   | Ref of string * string
 
-let resolve ~pkg ~infix pos =
+let resolve ~src ~infix pos =
   try
     let loc = extract ~infix pos in
     match Why3.Glob.find loc with
@@ -92,7 +104,7 @@ let resolve ~pkg ~infix pos =
         | exception Not_found -> id
         | ({ Why3.Ident.id_loc = Some _ } as id0, Why3.Glob.Def, _) -> id0
         | _ -> id in
-      Ref(baseurl ~pkg id, anchor ~kind id)
+      Ref(baseurl ~src id, anchor ~kind id)
   with Not_found -> NoRef
 
 (* -------------------------------------------------------------------------- *)
@@ -127,13 +139,6 @@ let library_path file =
     else scan (Filename.basename p :: r) d
   in scan [] (Filename.chop_extension file)
 
-type source = {
-  pkg: string;
-  name: string;
-  url: string;
-  theories: Why3.Theory.theory Why3.Wstdlib.Mstr.t;
-}
-
 let parse ~why3env file =
   let lib = library_path file in
   let pkg = match lib with [] | [_] -> "" | pkg::_ -> pkg in
@@ -166,9 +171,6 @@ let infix s =
     else "infix " ^ String.sub s 1 (n-2)
   else s
 
-let href ~pkg id =
-  Printf.sprintf "%s#%s" (baseurl ~pkg id) (anchor ~kind:"" id)
-
 let ns_find_ts ns qid =
   try [(Why3.Theory.ns_find_ts ns qid).ts_name] with Not_found -> []
 
@@ -189,14 +191,24 @@ let ns_find ns kind qid =
       ns_find_ls ns qid ;
       ns_find_pr ns qid ;
     ]
-  | _ -> failwith "invalid reference kind (use 't', 'v' or 'p')"
+  | _ -> failwith @@ Printf.sprintf
+      "invalid reference kind '%c' (use 't', 'v' or 'p')" kind
 
-let select ~pkg = function
-  | [id] -> href ~pkg id
-  | [] -> failwith "invalid reference"
-  | _ -> failwith "ambiguous reference"
+let theory_find kind qid thy = ns_find thy.Why3.Theory.th_export kind qid
 
-let reference ~why3env ~src r =
+let find ~scope ~theories kind m qid =
+  let module M = Why3.Wstdlib.Mstr in
+  let m = if m = "" then scope else m in
+  if m <> ""
+  then theory_find kind qid (M.find m theories)
+  else List.concat @@ List.map (theory_find kind qid) (M.values theories)
+
+let select ~src ~name ?scope = function
+  | [id] -> Printf.sprintf "%s#%s" (baseurl ~src ?scope id) (anchor ~kind:"" id)
+  | [] -> failwith (Printf.sprintf "reference '%s' not found" name)
+  | _ -> failwith (Printf.sprintf "ambiguous reference '%s'" name)
+
+let reference ~why3env ~src ~scope r =
   let kind,name =
     let n = String.length r in
     if n >= 2 && r.[1] = ':'
@@ -209,16 +221,20 @@ let reference ~why3env ~src r =
         if is_uppercased p then List.rev rp,p,List.map infix ps
         else split (p::rp) ps
     in split [] (String.split_on_char '.' name) in
-  let pkg = src.pkg in
   let url =
-    let thy =
-      try Why3.Env.read_theory why3env lp m
-      with Not_found -> failwith "unknown theory or module"
-    in
-    if kind = '?' && qid = [] then
-      pathurl ~pkg lp m
+    if lp = [] then
+      select ~src ~name ~scope @@ find ~scope ~theories:src.theories kind m qid
     else
-      select ~pkg @@ ns_find thy.th_export kind qid
+      let thy =
+        try Why3.Env.read_theory why3env lp m
+        with Not_found ->
+          failwith @@ Printf.sprintf "unknown theory or module '%s.%s'"
+            (String.concat "." lp) m
+      in
+      if kind = '?' && qid = [] then
+        pathurl ~src lp m
+      else
+        select ~src ~name @@ theory_find kind qid thy
   in url, name
 
 (* -------------------------------------------------------------------------- *)

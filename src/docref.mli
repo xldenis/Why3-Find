@@ -44,7 +44,9 @@ type href =
 
 type position = Lexing.position * Lexing.position
 
-val resolve : pkg:string -> infix:bool -> position -> href
-val reference : why3env:Why3.Env.env -> src:source -> string -> string * string
+val resolve : src:source -> infix:bool -> position -> href
+val reference :
+  why3env:Why3.Env.env -> src:source -> scope:string ->
+  string -> string * string
 
 (* -------------------------------------------------------------------------- *)
