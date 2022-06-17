@@ -1,0 +1,24 @@
+module A
+  use list.List
+  type t
+  val constant neutral : t
+  val op t t : t
+  let rec assoc (xs : list t) : t =
+    variant { xs }
+    match xs with
+    | Nil -> neutral
+    | Cons x xs -> op x (assoc xs)
+    end
+end
+
+module B
+  use int.Int
+  let constant zero = 0
+  clone export A with type t = int, val neutral = zero, val op = (+)
+end
+
+module E
+  use B
+  use list.List
+  let single (x : int) : int = assoc (Cons x Nil)
+end

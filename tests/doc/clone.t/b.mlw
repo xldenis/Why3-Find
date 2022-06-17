@@ -1,0 +1,5 @@
+module C
+  use a.B
+  use list.List
+  let single (x : int) : int = assoc (Cons x Nil)
+end

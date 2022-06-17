@@ -32,11 +32,18 @@ let is_keyword = Hashtbl.mem keywords
 
 type position = Lexing.position * Lexing.position
 
+type clone = {
+  scope : string ;
+  id_source : Why3.Ident.ident ;
+  id_target : Why3.Ident.ident ;
+}
+
 type source = {
   pkg: string;
   name: string;
   url: string;
   theories: Why3.Theory.theory Why3.Wstdlib.Mstr.t;
+  clones: clone list ;
 }
 
 let extract ~infix position =
@@ -140,6 +147,72 @@ let library_path file =
     else scan (Filename.basename p :: r) d
   in scan [] (Filename.chop_extension file)
 
+let is_cloned id =
+  try ignore @@ Why3.Glob.find (id_loc id) ; false
+  with Not_found -> true
+
+let iter_mi f (mi : Why3.Pmodule.mod_inst) =
+  begin
+    let open Why3.Ty in
+    let open Why3.Ity in
+    let open Why3.Term in
+    let open Why3.Decl in
+    let open Why3.Expr in
+    Mts.iter
+      (fun a ity ->
+         match ity.ity_node with
+         | Ityreg b -> f a.ts_name b.reg_name
+         | Ityapp(b,_,_) -> f a.ts_name b.its_ts.ts_name
+         | Ityvar b -> f a.ts_name b.tv_name
+      ) mi.mi_ty ;
+    Mts.iter (fun a b  -> f a.ts_name b.its_ts.ts_name) mi.mi_ts ;
+    Mls.iter (fun a b -> f a.ls_name b.ls_name) mi.mi_ls ;
+    Mpr.iter (fun a b -> f a.pr_name b.pr_name) mi.mi_pr ;
+    Mvs.iter (fun a b -> f a.vs_name b.pv_vs.vs_name) mi.mi_pv ;
+    Mrs.iter (fun a b -> f a.rs_name b.rs_name) mi.mi_rs ;
+    Mxs.iter (fun a b -> f a.xs_name b.xs_name) mi.mi_xs ;
+  end
+
+let iter_sm f (sm : Why3.Theory.symbol_map) =
+  begin
+    let open Why3.Ty in
+    let open Why3.Term in
+    let open Why3.Decl in
+    Mts.iter
+      (fun a ty ->
+         match ty.ty_node with
+         | Tyvar _ -> ()
+         | Tyapp(b,_) -> f a.ts_name b.ts_name
+      ) sm.sm_ty ;
+    Mts.iter (fun a b -> f a.ts_name b.ts_name) sm.sm_ts ;
+    Mls.iter (fun a b -> f a.ls_name b.ls_name) sm.sm_ls ;
+    Mpr.iter (fun a b -> f a.pr_name b.pr_name) sm.sm_pr ;
+  end
+
+let iter_module f (thy : Why3.Theory.theory) =
+  try
+    let open Why3.Pmodule in
+    let module S = Why3.Ident.Sid in
+    let m = restore_module thy in
+    List.iter
+      (function
+        | Uclone mi ->
+          iter_mi (fun a b -> if S.mem b m.mod_local then f a b) mi
+        | _ -> ()
+      ) m.mod_units
+  with Not_found -> ()
+
+let iter_theory f thy =
+  iter_module f thy ;
+  let module S = Why3.Ident.Sid in
+  List.iter
+    (fun d ->
+       match d.Why3.Theory.td_node with
+       | Clone(_,sm) ->
+         iter_sm (fun a b -> if S.mem b thy.th_local then f a b) sm
+       | _ -> ()
+    ) thy.th_decls
+
 let parse ~why3env file =
   let lib = library_path file in
   let pkg = match lib with [] | [_] -> "" | pkg::_ -> pkg in
@@ -150,8 +223,17 @@ let parse ~why3env file =
       Format.eprintf "%s@." (Printexc.to_string exn) ;
       exit 1
   in
+  let clones = ref [] in
+  Why3.Wstdlib.Mstr.iter
+    (fun scope thy ->
+       iter_theory
+         (fun a b ->
+            if is_cloned b then
+              clones := { scope ; id_source = a ; id_target = b } :: !clones
+         ) thy
+    ) theories ;
   let url = Printf.sprintf "%s.html" name in
-  { pkg ; name ; url ; theories }
+  { pkg ; name ; url ; theories ; clones = !clones }
 
 let derived src id =
   Printf.sprintf "%s.%s.html" src.name id

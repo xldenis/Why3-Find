@@ -25,11 +25,18 @@
 
 val init : pkgs:string list -> Why3.Env.env
 
+type clone = {
+  scope : string ;
+  id_source : Why3.Ident.ident ;
+  id_target : Why3.Ident.ident ;
+}
+
 type source = {
   pkg: string; (* package name *)
   name: string; (* library path *)
   url: string; (* URL name *)
   theories: Why3.Theory.theory Why3.Wstdlib.Mstr.t; (* Source *)
+  clones : clone list ;
 }
 
 val parse : why3env:Why3.Env.env -> string -> source
