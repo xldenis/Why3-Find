@@ -92,18 +92,19 @@ type href =
   | Def of string
   | Ref of string * string
 
+let definition id =
+  match Why3.Glob.find (id_loc id) with
+  | exception Not_found -> id
+  | ({ Why3.Ident.id_loc = Some _ } as id0, Why3.Glob.Def, _) -> id0
+  | _ -> id
+
 let resolve ~src ~infix pos =
   try
     let loc = extract ~infix pos in
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, kind) -> Def(anchor ~kind id)
     | (id, Why3.Glob.Use, kind) ->
-      let loc = id_loc id in
-      let id =
-        match Why3.Glob.find loc with
-        | exception Not_found -> id
-        | ({ Why3.Ident.id_loc = Some _ } as id0, Why3.Glob.Def, _) -> id0
-        | _ -> id in
+      let id = definition id in
       Ref(baseurl ~src id, anchor ~kind id)
   with Not_found -> NoRef
 
@@ -173,8 +174,9 @@ let ns_find_pr ns qid =
 let ns_find ns kind qid =
   match kind with
   | 't' -> ns_find_ts ns qid
-  | 'v' -> ns_find_ls ns qid
+  | 'l' -> ns_find_ls ns qid
   | 'p' -> ns_find_pr ns qid
+  | 'v' -> []
   | 'e' -> []
   | '?' ->
     List.concat [
@@ -183,7 +185,7 @@ let ns_find ns kind qid =
       ns_find_pr ns qid ;
     ]
   | _ -> failwith @@ Printf.sprintf
-      "invalid reference kind '%c' (use 't', 'v', 'e' or 'p')" kind
+      "invalid reference kind '%c' (use 't', 'l', 'v', 'e' or 'p')" kind
 
 (* Module lookup *)
 
@@ -205,16 +207,18 @@ let pns_find pm kind qid =
   | 't' -> pns_find_ts ns tns qid
   | 'v' -> pns_find_rs ns tns qid
   | 'e' -> pns_find_xs ns qid
+  | 'l' -> ns_find_ls tns qid
   | 'p' -> ns_find_pr tns qid
   | '?' ->
     List.concat [
       pns_find_ts ns tns qid ;
       pns_find_rs ns tns qid ;
       pns_find_xs ns qid ;
+      ns_find_ls tns qid ;
       ns_find_pr tns qid ;
     ]
   | _ -> failwith @@ Printf.sprintf
-      "invalid reference kind '%c' (use 't', 'v', 'e' or 'p')" kind
+      "invalid reference kind '%c' (use 't', 'l', 'v', 'e' or 'p')" kind
 
 (* Reference Lookup *)
 
@@ -229,7 +233,10 @@ let lookup ~scope ~theories kind m qid =
   then find kind qid (M.find m theories)
   else List.concat @@ List.map (find kind qid) (M.values theories)
 
-let select ~src ~name ?scope = function
+let select ~src ~name ?scope ids =
+  let ids = List.map definition ids in
+  let ids = List.sort_uniq Why3.Ident.id_compare ids in
+  match ids with
   | [id] -> Printf.sprintf "%s#%s" (baseurl ~src ?scope id) (anchor ~kind:"" id)
   | [] -> failwith (Printf.sprintf "reference '%s' not found" name)
   | _ -> failwith (Printf.sprintf "ambiguous reference '%s'" name)

@@ -3,9 +3,11 @@
 
   Prefix reference: {int.Int.(-_)}
 
-  Value reference: {int.MinMax.max}
+  Value reference: {v:int.MinMax.max}
 
-  Local references {A.t} and {op}.
+  Logic reference: {l:int.MinMax.max}
+
+  Local references {A.t}, {binop}
   *)
 
 theory A
