@@ -159,17 +159,7 @@ let derived src id =
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-let is_uppercased s =
-  String.length s > 0 &&
-  let c = s.[0] in 'A' <= c && c <= 'Z'
-
-let infix s =
-  let n = String.length s in
-  if n > 2 && s.[0] = '(' && s.[n-1] = ')' then
-    if s.[n-2] = '_'
-    then "prefix " ^ String.sub s 1 (n-3)
-    else "infix " ^ String.sub s 1 (n-2)
-  else s
+(* Theory lookup *)
 
 let ns_find_ts ns qid =
   try [(Why3.Theory.ns_find_ts ns qid).ts_name] with Not_found -> []
@@ -185,6 +175,7 @@ let ns_find ns kind qid =
   | 't' -> ns_find_ts ns qid
   | 'v' -> ns_find_ls ns qid
   | 'p' -> ns_find_pr ns qid
+  | 'e' -> []
   | '?' ->
     List.concat [
       ns_find_ts ns qid ;
@@ -192,21 +183,72 @@ let ns_find ns kind qid =
       ns_find_pr ns qid ;
     ]
   | _ -> failwith @@ Printf.sprintf
-      "invalid reference kind '%c' (use 't', 'v' or 'p')" kind
+      "invalid reference kind '%c' (use 't', 'v', 'e' or 'p')" kind
 
-let theory_find kind qid thy = ns_find thy.Why3.Theory.th_export kind qid
+(* Module lookup *)
 
-let find ~scope ~theories kind m qid =
+let pns_find_ts ns tns qid =
+  try [(Why3.Pmodule.ns_find_its ns qid).its_ts.ts_name]
+  with Not_found -> ns_find_ts tns qid
+
+let pns_find_rs ns tns qid =
+  try [(Why3.Pmodule.ns_find_rs ns qid).rs_name]
+  with Not_found -> ns_find_ls tns qid
+
+let pns_find_xs ns qid =
+  try [(Why3.Pmodule.ns_find_xs ns qid).xs_name] with Not_found -> []
+
+let pns_find pm kind qid =
+  let ns = pm.Why3.Pmodule.mod_export in
+  let tns = pm.mod_theory.th_export in
+  match kind with
+  | 't' -> pns_find_ts ns tns qid
+  | 'v' -> pns_find_rs ns tns qid
+  | 'e' -> pns_find_xs ns qid
+  | 'p' -> ns_find_pr tns qid
+  | '?' ->
+    List.concat [
+      pns_find_ts ns tns qid ;
+      pns_find_rs ns tns qid ;
+      pns_find_xs ns qid ;
+      ns_find_pr tns qid ;
+    ]
+  | _ -> failwith @@ Printf.sprintf
+      "invalid reference kind '%c' (use 't', 'v', 'e' or 'p')" kind
+
+(* Reference Lookup *)
+
+let find kind qid thy =
+  try pns_find (Why3.Pmodule.restore_module thy) kind qid
+  with Not_found -> ns_find thy.Why3.Theory.th_export kind qid
+
+let lookup ~scope ~theories kind m qid =
   let module M = Why3.Wstdlib.Mstr in
   let m = if m = "" then scope else m in
   if m <> ""
-  then theory_find kind qid (M.find m theories)
-  else List.concat @@ List.map (theory_find kind qid) (M.values theories)
+  then find kind qid (M.find m theories)
+  else List.concat @@ List.map (find kind qid) (M.values theories)
 
 let select ~src ~name ?scope = function
   | [id] -> Printf.sprintf "%s#%s" (baseurl ~src ?scope id) (anchor ~kind:"" id)
   | [] -> failwith (Printf.sprintf "reference '%s' not found" name)
   | _ -> failwith (Printf.sprintf "ambiguous reference '%s'" name)
+
+(* Reference Parsing *)
+
+let is_uppercased s =
+  String.length s > 0 &&
+  let c = s.[0] in 'A' <= c && c <= 'Z'
+
+let infix s =
+  let n = String.length s in
+  if n > 2 && s.[0] = '(' && s.[n-1] = ')' then
+    if s.[n-2] = '_'
+    then "prefix " ^ String.sub s 1 (n-3)
+    else "infix " ^ String.sub s 1 (n-2)
+  else s
+
+(* Global reference resolution *)
 
 let reference ~why3env ~src ~scope r =
   let kind,name =
@@ -223,7 +265,7 @@ let reference ~why3env ~src ~scope r =
     in split [] (String.split_on_char '.' name) in
   let url =
     if lp = [] then
-      select ~src ~name ~scope @@ find ~scope ~theories:src.theories kind m qid
+      select ~src ~name ~scope @@ lookup ~scope ~theories:src.theories kind m qid
     else
       let thy =
         try Why3.Env.read_theory why3env lp m
@@ -234,7 +276,7 @@ let reference ~why3env ~src ~scope r =
       if kind = '?' && qid = [] then
         pathurl ~src lp m
       else
-        select ~src ~name @@ theory_find kind qid thy
+        select ~src ~name @@ find kind qid thy
   in url, name
 
 (* -------------------------------------------------------------------------- *)
