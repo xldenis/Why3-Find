@@ -134,7 +134,9 @@ let rec fetch_id input =
   | _ -> Token.error input "missing module or theory name"
 
 let resolve env ?(infix=false) () =
-  Docref.resolve ~src:env.src ~infix (Token.position env.input)
+  Docref.resolve
+    ~src:env.src ~scope:env.scope ~infix
+    (Token.position env.input)
 
 let process_ref env (href : Docref.href) s =
   match href with
@@ -144,6 +146,123 @@ let process_ref env (href : Docref.href) s =
     Pdoc.printf env.out "<a href=\"%s#%s\">%a</a>" url name Pdoc.pp_html s
   | Docref.NoRef ->
     Pdoc.pp_html_s env.out s
+
+(* -------------------------------------------------------------------------- *)
+(* --- Printing Declarations                                              --- *)
+(* -------------------------------------------------------------------------- *)
+
+let pp_ident ~env fmt id =
+  let name = Docref.id_name id in
+  try
+    let href = Docref.id_href ~src:env.src ~scope:env.scope id in
+    Format.fprintf fmt "<a href=\"%s\">%s</a>" href name
+  with Not_found ->
+    Format.pp_print_string fmt name
+
+let rec pp_type ~env ~par fmt (ty : Why3.Ty.ty) =
+  match ty.ty_node with
+  | Tyvar tv -> Format.pp_print_string fmt tv.tv_name.id_string
+  | Tyapp(ts,[]) -> pp_ident ~env fmt ts.ts_name
+  | Tyapp(ts,args) ->
+    begin
+      if par then Format.pp_print_char fmt '(' ;
+      pp_ident ~env fmt ts.ts_name ;
+      List.iter (Format.fprintf fmt " %a" (pp_type ~env ~par:true)) args ;
+      if par then Format.pp_print_char fmt ')' ;
+    end
+
+let attributes (rs : Why3.Expr.rsymbol) =
+  (if Why3.Expr.rs_ghost rs then ["ghost"] else []) @
+  (match Why3.Expr.rs_kind rs with
+   | RKnone | RKlocal -> []
+   | RKfunc -> ["function"]
+   | RKpred -> ["predicate"]
+   | RKlemma -> ["lemma"])
+
+let defkind = function
+  | { Why3.Expr.c_node = Cany } -> "val"
+  | _ -> "let"
+
+let declare env kwd ?(attr=[]) id =
+  let name = Docref.id_name id in
+  let anchor = Docref.id_anchor id in
+  Pdoc.printf env.out "    %a" Pdoc.pp_keyword kwd ;
+  List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
+  Pdoc.printf env.out " <a name=\"%s\">%s</a>" anchor name
+
+let symbol env ?attr (ls : Why3.Term.lsymbol) =
+  match ls.ls_value with
+  | None ->
+    declare env "predicate" ?attr ls.ls_name ;
+    List.iter (Pdoc.pp env.out @@ pp_type ~env ~par:true) ls.ls_args
+  | Some r ->
+    declare env "function" ?attr ls.ls_name ;
+    List.iter (Pdoc.pp env.out @@ pp_type ~env ~par:true) ls.ls_args ;
+    Pdoc.printf env.out " : %a" (pp_type ~env ~par:false) r
+
+let decl id env (d : Why3.Decl.decl) =
+  match d.d_node with
+  | Dtype _ | Ddata _ -> declare env "type" id
+  | Dparam ls -> symbol env ~attr:["{parameter}"] ls
+  | Dlogic ds ->
+    List.iter
+      (fun (ls,_) ->
+         if ls.Why3.Term.ls_name = id then
+           symbol env ls
+      ) ds
+  | Dind _ -> declare env "inductive" id
+  | Dprop _ -> ()
+
+let signature env (rs : Why3.Expr.rsymbol) =
+  begin
+    List.iter
+      (fun x ->
+         Pdoc.printf env.out " %a"
+           (pp_type ~env ~par:true)
+           Why3.Ity.(ty_of_ity x.pv_ity)
+      ) rs.rs_cty.cty_args ;
+    Pdoc.printf env.out " : %a"
+      (pp_type ~env ~par:false)
+      Why3.Ity.(ty_of_ity rs.rs_cty.cty_result) ;
+  end
+
+let mdecl id env (pd: Why3.Pdecl.pdecl) =
+  match pd.pd_node with
+  | PDpure -> ()
+  | PDtype _ -> declare env "type" id
+  | PDexn _ -> declare env "exception" id
+  | PDlet def ->
+    begin
+      match def with
+      | LDvar(pv,_) ->
+        declare env "let" id ;
+        Pdoc.printf env.out " : %a"
+          (pp_type ~env ~par:false) pv.pv_vs.vs_ty
+      | LDsym(rs,def) ->
+        declare env (defkind def) ~attr:(attributes rs) id ;
+        signature env rs
+      | LDrec defs ->
+        List.iter
+          (fun (d : Why3.Expr.rec_defn) ->
+             let rs = d.rec_sym in
+             if Why3.Ident.id_equal id rs.rs_name then
+               begin
+                 declare env (defkind d.rec_fun)
+                   ~attr:(attributes rs) id ;
+                 signature env rs ;
+               end
+          ) defs
+    end
+
+let declaration id env (th : Why3.Theory.theory) =
+  try
+    let m = Why3.Pmodule.restore_module th in
+    let pd = Why3.Ident.Mid.find id m.mod_known in
+    mdecl id env pd
+  with Not_found ->
+  try decl id env (Why3.Ident.Mid.find id th.th_known)
+  with Not_found ->
+    assert false
 
 (* -------------------------------------------------------------------------- *)
 (* --- Flushing Declarations                                              --- *)
@@ -162,18 +281,16 @@ let process_declarations env (th : Docref.theory) line =
       ) th.clones in
   if cloned <> [] then
     begin
-      Pdoc.printf env.out "<div class=\"clone\">@\n" ;
+      text env ;
+      Pdoc.printf env.out "  <div class=\"clone\">@\n" ;
       List.iter
         (fun (clone : Docref.clone) ->
-           let source = Docref.id_name clone.id_source in
-           let target = Docref.id_name clone.id_target in
-           let anchor = Docref.id_anchor clone.id_target in
-           let href = Docref.id_href ~src:env.src clone.id_source in
-           Pdoc.printf env.out
-             "<a name=\"%s\">%s</a> = {<a href=\"%s\">%s</a>}@\n"
-             anchor target href source
+           try
+             declaration clone.id_target env th.theory ;
+             Pdoc.printf env.out " = {%a}@\n" (pp_ident ~env) clone.id_source
+           with Not_found -> ()
         ) cloned ;
-      Pdoc.printf env.out "</div>@\n" ;
+      Pdoc.printf env.out "  </div>@\n" ;
     end ;
   env.declared <- line
 
@@ -336,8 +453,7 @@ let process_newline env =
 
 let process_reference ~why3env ~env r =
   try
-    let scope = match env.scope with None -> "" | Some m -> m in
-    let url,name = Docref.reference ~why3env ~src:env.src ~scope r in
+    let url,name = Docref.reference ~why3env ~src:env.src ~scope:env.scope r in
     text env ;
     Pdoc.printf env.out
       "<code class=\"src\"><a href=\"%s\">%s</a></code>" url name

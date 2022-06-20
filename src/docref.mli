@@ -40,7 +40,6 @@ type theory = {
 }
 
 type source = {
-  pkg: string;
   name: string;
   url: string;
   theories: theory Mstr.t;
@@ -54,7 +53,7 @@ val is_keyword : string -> bool
 val id_line : Why3.Ident.ident -> int
 val id_name : Why3.Ident.ident -> string
 val id_anchor : Why3.Ident.ident -> string
-val id_href : src:source -> Why3.Ident.ident -> string
+val id_href : src:source -> scope:string option -> Why3.Ident.ident -> string
 
 type href =
   | NoRef
@@ -63,9 +62,13 @@ type href =
 
 type position = Lexing.position * Lexing.position
 
-val resolve : src:source -> infix:bool -> position -> href
+val resolve :
+  src:source -> scope:string option -> infix:bool ->
+  position -> href
+
 val reference :
-  why3env:Why3.Env.env -> src:source -> scope:string ->
+  why3env:Why3.Env.env ->
+  src:source -> scope:string option ->
   string -> string * string
 
 (* -------------------------------------------------------------------------- *)

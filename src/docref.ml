@@ -47,7 +47,6 @@ type theory = {
 }
 
 type source = {
-  pkg: string;
   name: string;
   url: string;
   theories: theory Mstr.t;
@@ -68,6 +67,9 @@ let id_loc id =
 let id_line id =
   let _,line,_,_ = Why3.Loc.get (id_loc id) in line
 
+let id_file id =
+  let file,_,_,_ = Why3.Loc.get (id_loc id) in file
+
 let anchor ~kind id =
   let name = id.Why3.Ident.id_string in
   let line = id_line id in
@@ -81,27 +83,23 @@ let restore_path id =
   with Not_found ->
     Why3.Theory.restore_path id
 
-let pathurl ~src ?scope lp md =
+let baseurl ~src ~scope id =
+  let lp,md,_ = restore_path id in
   if lp = [] then
     match scope with
-    | None -> ""
-    | Some s ->
-      if s = md then "" else
-        Printf.sprintf "%s.%s.html" src.name md
+    | Some m when m = md -> ""
+    | _ -> Printf.sprintf "%s.%s.html" src.name md
   else
-    let lpkg = List.hd lp in
     let path = String.concat "." lp in
-    if src.pkg = lpkg then
+    if Filename.is_relative (id_file id) then
       Printf.sprintf "%s.%s.html" path md
     else
       try
-        let meta = Meta.find src.pkg in
+        let pkg = List.hd lp in
+        let meta = Meta.find pkg in
         Printf.sprintf "file://%s/html/%s.%s.html" meta.Meta.path path md
       with _ ->
         Printf.sprintf "https://why3.lri.fr/stdlib/%s.html" path
-
-let baseurl ~src ?scope id =
-  let lp,md,_ = restore_path id in pathurl ~src ?scope lp md
 
 type href =
   | NoRef
@@ -120,21 +118,21 @@ let definition id =
   | ({ Why3.Ident.id_loc = Some _ } as id0, Why3.Glob.Def, _) -> id0
   | _ -> id
 
-let resolve ~src ~infix pos =
+let resolve ~src ~scope ~infix pos =
   try
     let loc = extract ~infix pos in
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, kind) -> Def(anchor ~kind id)
     | (id, Why3.Glob.Use, kind) ->
       let id = definition id in
-      Ref(baseurl ~src id, anchor ~kind id)
+      Ref(baseurl ~src ~scope id, anchor ~kind id)
   with Not_found -> NoRef
 
 let id_name id = id.Why3.Ident.id_string
 let id_anchor id = anchor ~kind:"" id
-let id_href ~src id =
+let id_href ~src ~scope id =
   let id = definition id in
-  Printf.sprintf "%s#%s" (baseurl ~src id) (anchor ~kind:"" id)
+  Printf.sprintf "%s#%s" (baseurl ~src ~scope id) (anchor ~kind:"" id)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Environment                                                        --- *)
@@ -237,7 +235,6 @@ let iter_theory f thy =
 
 let parse ~why3env file =
   let lib = library_path file in
-  let pkg = match lib with [] | [_] -> "" | pkg::_ -> pkg in
   let name = String.concat "." lib in
   let thys =
     try fst @@ Why3.Env.read_file Why3.Env.base_language why3env file
@@ -258,7 +255,7 @@ let parse ~why3env file =
       ) thys
   in
   let url = Printf.sprintf "%s.html" name in
-  { pkg ; name ; url ; theories }
+  { name ; url ; theories }
 
 let derived src id =
   Printf.sprintf "%s.%s.html" src.name id
@@ -336,16 +333,17 @@ let find kind qid thy =
 let find_theory kind qid { theory } = find kind qid theory
 
 let lookup ~scope ~theories kind m qid =
-  let m = if m = "" then scope else m in
-  if m <> ""
-  then find_theory kind qid (Mstr.find m theories)
-  else List.concat @@ List.map (find_theory kind qid) (Mstr.values theories)
+  match if m <> "" then Some m else scope with
+  | Some m0 ->
+    (try find_theory kind qid (Mstr.find m0 theories) with Not_found -> [])
+  | None ->
+    List.concat @@ List.map (find_theory kind qid) (Mstr.values theories)
 
-let select ~src ~name ?scope ids =
+let select ~src ~name ~scope ids =
   let ids = List.map definition ids in
   let ids = List.sort_uniq Why3.Ident.id_compare ids in
   match ids with
-  | [id] -> Printf.sprintf "%s#%s" (baseurl ~src ?scope id) (anchor ~kind:"" id)
+  | [id] -> Printf.sprintf "%s#%s" (baseurl ~src ~scope id) (anchor ~kind:"" id)
   | [] -> failwith (Printf.sprintf "reference '%s' not found" name)
   | _ -> failwith (Printf.sprintf "ambiguous reference '%s'" name)
 
@@ -389,9 +387,9 @@ let reference ~why3env ~src ~scope r =
             (String.concat "." lp) m
       in
       if kind = '?' && qid = [] then
-        pathurl ~src lp m
+        baseurl ~src ~scope thy.th_name
       else
-        select ~src ~name @@ find kind qid thy
+        select ~src ~scope ~name @@ find kind qid thy
   in url, name
 
 (* -------------------------------------------------------------------------- *)
