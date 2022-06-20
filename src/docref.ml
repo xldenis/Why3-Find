@@ -30,20 +30,27 @@ let is_keyword = Hashtbl.mem keywords
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
+module Mstr = Why3.Wstdlib.Mstr
+module Sid = Why3.Ident.Sid
+
 type position = Lexing.position * Lexing.position
 
 type clone = {
-  scope : string ;
   id_source : Why3.Ident.ident ;
   id_target : Why3.Ident.ident ;
+}
+
+type theory = {
+  theory: Why3.Theory.theory;
+  locals: Sid.t ;
+  clones: clone list ;
 }
 
 type source = {
   pkg: string;
   name: string;
   url: string;
-  theories: Why3.Theory.theory Why3.Wstdlib.Mstr.t;
-  clones: clone list ;
+  theories: theory Mstr.t;
 }
 
 let extract ~infix position =
@@ -58,13 +65,15 @@ let id_loc id =
   | None -> raise Not_found
   | Some loc -> loc
 
+let id_line id =
+  let _,line,_,_ = Why3.Loc.get (id_loc id) in line
+
 let anchor ~kind id =
-  let loc = id_loc id in
-  let tag = id.Why3.Ident.id_string in
-  let _,line,_,_ = Why3.Loc.get loc in
+  let name = id.Why3.Ident.id_string in
+  let line = id_line id in
   if kind = "theory"
-  then Printf.sprintf "%s_" tag
-  else Printf.sprintf "%s_%d" tag line
+  then Printf.sprintf "%s_" name
+  else Printf.sprintf "%s_%d" name line
 
 let restore_path id =
   try
@@ -99,6 +108,12 @@ type href =
   | Def of string
   | Ref of string * string
 
+let declaration id =
+  match Why3.Glob.find (id_loc id) with
+  | exception Not_found -> false
+  | ({ Why3.Ident.id_loc = Some _ }, Why3.Glob.Def, _) -> true
+  | _ -> false
+
 let definition id =
   match Why3.Glob.find (id_loc id) with
   | exception Not_found -> id
@@ -114,6 +129,12 @@ let resolve ~src ~infix pos =
       let id = definition id in
       Ref(baseurl ~src id, anchor ~kind id)
   with Not_found -> NoRef
+
+let id_name id = id.Why3.Ident.id_string
+let id_anchor id = anchor ~kind:"" id
+let id_href ~src id =
+  let id = definition id in
+  Printf.sprintf "%s#%s" (baseurl ~src id) (anchor ~kind:"" id)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Environment                                                        --- *)
@@ -192,48 +213,52 @@ let iter_sm f (sm : Why3.Theory.symbol_map) =
 let iter_module f (thy : Why3.Theory.theory) =
   try
     let open Why3.Pmodule in
-    let module S = Why3.Ident.Sid in
     let m = restore_module thy in
     List.iter
       (function
         | Uclone mi ->
-          iter_mi (fun a b -> if S.mem b m.mod_local then f a b) mi
+          iter_mi (fun a b -> if Sid.mem b m.mod_local then f a b) mi
         | _ -> ()
-      ) m.mod_units
-  with Not_found -> ()
+      ) m.mod_units ;
+    Sid.filter declaration m.mod_local
+  with Not_found ->
+    Sid.empty
 
 let iter_theory f thy =
-  iter_module f thy ;
-  let module S = Why3.Ident.Sid in
+  let m = iter_module f thy in
   List.iter
     (fun d ->
        match d.Why3.Theory.td_node with
        | Clone(_,sm) ->
-         iter_sm (fun a b -> if S.mem b thy.th_local then f a b) sm
+         iter_sm (fun a b -> if Sid.mem b thy.th_local then f a b) sm
        | _ -> ()
-    ) thy.th_decls
+    ) thy.th_decls ;
+  Sid.union m (Sid.filter declaration thy.th_local)
 
 let parse ~why3env file =
   let lib = library_path file in
   let pkg = match lib with [] | [_] -> "" | pkg::_ -> pkg in
   let name = String.concat "." lib in
-  let theories =
+  let thys =
     try fst @@ Why3.Env.read_file Why3.Env.base_language why3env file
     with exn ->
       Format.eprintf "%s@." (Printexc.to_string exn) ;
       exit 1
   in
-  let clones = ref [] in
-  Why3.Wstdlib.Mstr.iter
-    (fun scope thy ->
-       iter_theory
-         (fun a b ->
-            if is_cloned b then
-              clones := { scope ; id_source = a ; id_target = b } :: !clones
-         ) thy
-    ) theories ;
+  let theories =
+    Mstr.map
+      (fun theory ->
+         let clones = ref [] in
+         let locals = iter_theory
+           (fun a b ->
+              if is_cloned b then
+                clones := { id_source = a ; id_target = b } :: !clones
+           ) theory
+         in { theory ; locals ; clones = !clones }
+      ) thys
+  in
   let url = Printf.sprintf "%s.html" name in
-  { pkg ; name ; url ; theories ; clones = !clones }
+  { pkg ; name ; url ; theories }
 
 let derived src id =
   Printf.sprintf "%s.%s.html" src.name id
@@ -308,12 +333,13 @@ let find kind qid thy =
   try pns_find (Why3.Pmodule.restore_module thy) kind qid
   with Not_found -> ns_find thy.Why3.Theory.th_export kind qid
 
+let find_theory kind qid { theory } = find kind qid theory
+
 let lookup ~scope ~theories kind m qid =
-  let module M = Why3.Wstdlib.Mstr in
   let m = if m = "" then scope else m in
   if m <> ""
-  then find kind qid (M.find m theories)
-  else List.concat @@ List.map (find kind qid) (M.values theories)
+  then find_theory kind qid (Mstr.find m theories)
+  else List.concat @@ List.map (find_theory kind qid) (Mstr.values theories)
 
 let select ~src ~name ?scope ids =
   let ids = List.map definition ids in

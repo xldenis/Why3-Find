@@ -71,8 +71,11 @@ val error : input -> ('a,Format.formatter,unit,'b) format4 -> 'a
 (** Fetch the next token from input. *)
 val token : input -> token (** next buffer *)
 
-(** Potision of the last token. *)
+(** Position of the last token. *)
 val position : input -> Lexing.position * Lexing.position
+
+(** Line number of the last token. *)
+val line : input -> int
 
 (** Indentation of the token. *)
 val indent : input -> int

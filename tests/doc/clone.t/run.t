@@ -52,6 +52,9 @@
     <span class="keyword">use</span> int.<a href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">let</span> <span class="keyword">constant</span> <a name="zero_16">zero</a> = 0
     <span class="keyword">clone</span> <span class="keyword">export</span> <a href="#A_">A</a> <span class="keyword">with</span> <span class="keyword">type</span> <a href="#t_3">t</a> = int, <span class="keyword">val</span> <a href="#neutral_4">neutral</a> = <a href="#zero_16">zero</a>, <span class="keyword">val</span> <a href="#op_5">op</a> = (<a href="https://why3.lri.fr/stdlib/int.html#infix +_19">+</a>)
+  <div class="clone">
+  <a name="assoc_17">assoc</a> = <a href="#assoc_6">assoc</a>
+  </div>
   <span class="keyword">end</span>
   </pre>
   </body>

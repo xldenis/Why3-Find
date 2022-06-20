@@ -101,6 +101,9 @@ let position input =
   Lexing.lexeme_start_p input.lexbuf ,
   Lexing.lexeme_end_p input.lexbuf
 
+let line input =
+  (Lexing.lexeme_start_p input.lexbuf).pos_lnum
+
 let fetch input =
   match input.context with
   | End -> Eof

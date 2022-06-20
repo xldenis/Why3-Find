@@ -59,6 +59,7 @@ type env = {
   src : Docref.source ; (* source file infos *)
   input : Token.input ; (* input lexer *)
   out : Pdoc.output ; (* output buffer *)
+  mutable declared : int ; (* last line for declarations *)
   mutable scope : string option ; (* current module name *)
   mutable space : bool ; (* leading space in Par mode *)
   mutable mode : mode ; (* current output mode *)
@@ -145,6 +146,38 @@ let process_ref env (href : Docref.href) s =
     Pdoc.pp_html_s env.out s
 
 (* -------------------------------------------------------------------------- *)
+(* --- Flushing Declarations                                              --- *)
+(* -------------------------------------------------------------------------- *)
+
+let on_theory env f =
+  match env.scope with
+  | None -> ()
+  | Some s -> f (Docref.Mstr.find s env.src.theories)
+
+let process_declarations env (th : Docref.theory) line =
+  let cloned = List.filter
+      (fun clone ->
+         let l = Docref.id_line clone.Docref.id_target in
+         env.declared <= l && l < line
+      ) th.clones in
+  if cloned <> [] then
+    begin
+      Pdoc.printf env.out "<div class=\"clone\">@\n" ;
+      List.iter
+        (fun (clone : Docref.clone) ->
+           let source = Docref.id_name clone.id_source in
+           let target = Docref.id_name clone.id_target in
+           let anchor = Docref.id_anchor clone.id_target in
+           let href = Docref.id_href ~src:env.src clone.id_source in
+           Pdoc.printf env.out
+             "<a name=\"%s\">%s</a> = {<a href=\"%s\">%s</a>}@\n"
+             anchor target href source
+        ) cloned ;
+      Pdoc.printf env.out "</div>@\n" ;
+    end ;
+  env.declared <- line
+
+(* -------------------------------------------------------------------------- *)
 (* --- Module & Theory Processing                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -170,6 +203,7 @@ let process_module env key =
     push env Pre ;
     env.file <- Pre ;
     env.scope <- Some id ;
+    env.declared <- Token.line env.input ;
     Pdoc.pp env.out Pdoc.pp_keyword key ;
     Pdoc.pp_print_char env.out ' ' ;
     process_ref env href id
@@ -177,6 +211,11 @@ let process_module env key =
 
 let process_close env key =
   begin
+    on_theory env
+      begin fun th ->
+        let line = Token.line env.input in
+        process_declarations env th line
+      end ;
     Pdoc.printf env.out "%a@\n</pre>@\n" Pdoc.pp_keyword key ;
     env.mode <- Body ;
     env.file <- Body ;
@@ -276,7 +315,19 @@ let process_newline env =
     Pdoc.header env.out ~level ~title () ;
     pop env
   | Pre ->
+    if Token.emptyline env.input then
+      on_theory env
+        begin fun th ->
+          let line = Token.line env.input in
+          process_declarations env th line
+        end;
     Pdoc.pp_print_char env.out '\n' ;
+    on_theory env
+      begin fun th ->
+        let next = succ @@ Token.line env.input in
+        if Docref.Sid.exists (fun id -> Docref.id_line id = next) th.locals
+        then process_declarations env th next
+      end ;
     Pdoc.flush env.out
 
 (* -------------------------------------------------------------------------- *)
@@ -304,7 +355,8 @@ let process_file ~why3env ~out:dir file =
   let out = Pdoc.output ~file:(Filename.concat dir src.url) ~title in
   let input = Token.input file in
   let env = {
-    dir ; src ; input ; out ; space = false ; scope = None ;
+    dir ; src ; input ; out ; space = false ;
+    scope = None ; declared = 0 ;
     mode = Body ; file = Body ; stack = [] ; opened = 0 ;
   } in
   begin
