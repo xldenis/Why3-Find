@@ -51,7 +51,7 @@
   <body>
   <nav>
   </nav>
-  <header>Module <tt><a href="p.a.html">p.a</a>.A</tt></header>
+  <header>Module <code class="src"><a href="p.a.html">p.a</a>.A</code></header>
   <div class="doc">
   <p>Introducing A</p>
   </div>
@@ -89,7 +89,7 @@
   <body>
   <nav>
   </nav>
-  <header>Module <tt><a href="p.a.html">p.a</a>.B</tt></header>
+  <header>Module <code class="src"><a href="p.a.html">p.a</a>.B</code></header>
   <div class="doc">
   <p>Introducing B</p>
   </div>

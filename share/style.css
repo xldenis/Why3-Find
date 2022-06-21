@@ -47,4 +47,13 @@ div.doc {
     background: orange;
 }
 
+.src a:visited {
+    color: blue;
+}
+
+.clone {
+    display: inline-block;
+    border-left: thin solid red;
+}
+
 /* -------------------------------------------------------------------------- */

@@ -15,7 +15,7 @@
   <body>
   <nav>
   </nav>
-  <header>Module <tt><a href="a.html">a</a>.A</tt></header>
+  <header>Module <code class="src"><a href="a.html">a</a>.A</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a name="A_">A</a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
@@ -45,15 +45,15 @@
   <body>
   <nav>
   </nav>
-  <header>Module <tt><a href="a.html">a</a>.B</tt></header>
+  <header>Module <code class="src"><a href="a.html">a</a>.B</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a name="B_">B</a>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">let</span> <span class="keyword">constant</span> <a name="zero_16">zero</a> = 0
     <span class="keyword">clone</span> <span class="keyword">export</span> <a title="a.A" href="a.A.html#A_">A</a> <span class="keyword">with</span> <span class="keyword">type</span> <a title="a.A.t" href="a.A.html#t_3">t</a> = int, <span class="keyword">val</span> <a title="a.A.neutral" href="a.A.html#neutral_4">neutral</a> = <a title="B.zero" href="#zero_16">zero</a>, <span class="keyword">val</span> <a title="a.A.op" href="a.A.html#op_5">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix +_19">+</a>)
-    <div class="clone">
-      <span class="keyword">let</span> <a name="assoc_17">assoc</a> (<a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> int) : int = {<a title="a.A.assoc" href="a.A.html#assoc_6">assoc</a>}
-    </div>
+    <span class="clone">
+    <span class="keyword">let</span> <a name="assoc_17">assoc</a> (<a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> int) : int = {<a title="a.A.assoc" href="a.A.html#assoc_6">assoc</a>}
+    </span>
   <span class="keyword">end</span>
   </pre>
   </body>
@@ -71,7 +71,7 @@
   <body>
   <nav>
   </nav>
-  <header>Module <tt><a href="a.html">a</a>.E</tt></header>
+  <header>Module <code class="src"><a href="a.html">a</a>.E</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a name="E_">E</a>
     <span class="keyword">use</span> <a title="a.B" href="a.B.html#B_">B</a>
@@ -94,7 +94,7 @@
   <body>
   <nav>
   </nav>
-  <header>Module <tt><a href="b.html">b</a>.C</tt></header>
+  <header>Module <code class="src"><a href="b.html">b</a>.C</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a name="C_">C</a>
     <span class="keyword">use</span> a.<a title="a.B" href="a.B.html#B_">B</a>

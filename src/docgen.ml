@@ -189,7 +189,7 @@ let defkind = function
 let declare env kwd ?(attr=[]) id =
   let name = Docref.id_name id in
   let anchor = Docref.id_anchor id in
-  Pdoc.printf env.out "    %a" Pdoc.pp_keyword kwd ;
+  Pdoc.printf env.out "  %a" Pdoc.pp_keyword kwd ;
   List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
   Pdoc.printf env.out " <a name=\"%s\">%s</a>" anchor name
 
@@ -285,7 +285,7 @@ let process_declarations env (th : Docref.theory) line =
   if cloned <> [] then
     begin
       text env ;
-      Pdoc.printf env.out "  <div class=\"clone\">@\n" ;
+      Pdoc.printf env.out "  <span class=\"clone\">@\n" ;
       List.iter
         (fun (clone : Docref.clone) ->
            try
@@ -293,7 +293,7 @@ let process_declarations env (th : Docref.theory) line =
              Pdoc.printf env.out " = {%a}@\n" (pp_ident ~env) clone.id_source
            with Not_found -> ()
         ) cloned ;
-      Pdoc.printf env.out "  </div>@\n" ;
+      Pdoc.printf env.out "  </span>@\n" ;
     end ;
   env.declared <- line
 
@@ -317,7 +317,9 @@ let process_module env key =
     let title = Printf.sprintf "%s %s.%s" kind env.src.name id in
     Pdoc.fork env.out ~file ~title ;
     Pdoc.printf env.out
-      "<header>%s <tt><a href=\"%s\">%s</a>.%s</tt></header>@\n"
+      "<header>\
+       %s <code class=\"src\"><a href=\"%s\">%s</a>.%s</code>\
+       </header>@\n"
       kind env.src.url env.src.name id ;
     Pdoc.pp env.out Format.pp_print_string prelude ;
     push env Pre ;

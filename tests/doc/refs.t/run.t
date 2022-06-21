@@ -46,7 +46,7 @@
   <body>
   <nav>
   </nav>
-  <header>Theory <tt><a href="a.html">a</a>.A</tt></header>
+  <header>Theory <code class="src"><a href="a.html">a</a>.A</code></header>
   <pre class="src">
   <span class="keyword">theory</span> <a name="A_">A</a>
     <span class="keyword">type</span> <a name="t_14">t</a>
@@ -68,7 +68,7 @@
   <body>
   <nav>
   </nav>
-  <header>Module <tt><a href="a.html">a</a>.B</tt></header>
+  <header>Module <code class="src"><a href="a.html">a</a>.B</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a name="B_">B</a>
     <span class="keyword">type</span> <a name="t_19">t</a>
