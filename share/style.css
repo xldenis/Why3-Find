@@ -2,18 +2,29 @@
 /* --- CSS Style Sheet for why3find doc generator                         --- */
 /* -------------------------------------------------------------------------- */
 
+/* -------------------------------------------------------------------------- */
+/* --- Header Styling                                                     --- */
+/* -------------------------------------------------------------------------- */
+
 header {
     /* File title block styling */
 }
+
+header code {
+    font-size: larger;
+}
+
+/* -------------------------------------------------------------------------- */
+/* --- Table Of Contents                                                  --- */
+/* -------------------------------------------------------------------------- */
 
 nav {
     display: none;
 }
 
-pre.src {
-    /* Source code block styling */
-    margin: 0px;
-}
+/* -------------------------------------------------------------------------- */
+/* --- Documentation Styling                                              --- */
+/* -------------------------------------------------------------------------- */
 
 div.doc {
     /* Documentation block styling */
@@ -23,20 +34,29 @@ div.doc {
 /* --- Source Code Styling                                                --- */
 /* -------------------------------------------------------------------------- */
 
-.src .keyword {
+pre.src {
+    /* Source code block styling */
+    margin: 0px;
+}
+
+.keyword {
     color: purple;
 }
 
-.src .attribute {
+.attribute {
     color: green;
 }
 
-.src .comment {
+.comment {
     color: grey;
 }
 
+.clone {
+    display: inline-block;
+}
+
 .src a {
-    text-decoration: none
+    text-decoration: none;
 }
 
 .src a:hover {
@@ -45,15 +65,6 @@ div.doc {
 
 .src a:target {
     background: orange;
-}
-
-.src a:visited {
-    color: blue;
-}
-
-.clone {
-    display: inline-block;
-    border-left: thin solid red;
 }
 
 /* -------------------------------------------------------------------------- */

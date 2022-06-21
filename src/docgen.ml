@@ -151,14 +151,19 @@ let process_href env (href : Docref.href) s =
 (* --- Printing Declarations                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-let pp_ident ~env fmt id =
-  let name = Docref.id_name id in
+let pp_attr fmt = function
+  | None -> ()
+  | Some c -> Format.fprintf fmt " class=\"%s\"" c
+
+let pp_ident ~env ?attr ?name fmt id =
+  let name = match name with Some a -> a | None -> Docref.id_name id in
   try
     let src = env.src in
     let scope = env.scope in
     let title = Docref.id_path ~src ~scope id in
     let href = Docref.id_href ~src ~scope id in
-    Format.fprintf fmt "<a title=\"%s\" href=\"%s\">%s</a>" title href name
+    Format.fprintf fmt "<a %atitle=\"%s\" href=\"%s\">%s</a>"
+      pp_attr attr title href name
   with Not_found ->
     Format.pp_print_string fmt name
 
@@ -285,15 +290,21 @@ let process_declarations env (th : Docref.theory) line =
   if cloned <> [] then
     begin
       text env ;
-      Pdoc.printf env.out "  <span class=\"clone\">@\n" ;
+      Pdoc.printf env.out
+        "  <span class=\"clone section\">\
+         <span class=\"comment section-toggle\">(*cloned*)</span>@\n" ;
       List.iter
         (fun (clone : Docref.clone) ->
            try
              declaration clone.id_target env th.theory ;
-             Pdoc.printf env.out " = {%a}@\n" (pp_ident ~env) clone.id_source
+             Pdoc.printf env.out " = {%a}@\n"
+               (pp_ident ~env ~attr:"attribute" ~name:"cloned")
+               clone.id_source
            with Not_found -> ()
         ) cloned ;
-      Pdoc.printf env.out "  </span>@\n" ;
+      Pdoc.printf env.out
+        "<span class=\"comment section-toggle\">(*end*)</span>\
+         </span>@\n" ;
     end ;
   env.declared <- line
 
@@ -486,7 +497,7 @@ let process_file ~why3env ~out:dir file =
     mode = Body ; file = Body ; stack = [] ; opened = 0 ;
   } in
   begin
-    Pdoc.printf out "<header>Library <tt>%s</tt></header>@\n" src.name ;
+    Pdoc.printf out "<header>Library <code>%s</code></header>@\n" src.name ;
     Pdoc.flush out ;
     while not (Token.eof env.input) do
       match Token.token env.input with
