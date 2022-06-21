@@ -26,6 +26,32 @@
 let keywords = Hashtbl.create 97
 let is_keyword = Hashtbl.mem keywords
 
+(* Reference Parsing *)
+
+let is_uppercased s =
+  String.length s > 0 &&
+  let c = s.[0] in 'A' <= c && c <= 'Z'
+
+let to_infix s =
+  let n = String.length s in
+  if n > 2 && s.[0] = '(' && s.[n-1] = ')' then
+    if s.[n-2] = '_'
+    then "prefix " ^ String.sub s 1 (n-3)
+    else "infix " ^ String.sub s 1 (n-2)
+  else s
+
+let of_infix s =
+  let unwrap ~prefix s =
+    let n = String.length s in
+    let p = String.length prefix in
+    Printf.sprintf "(%s)" @@ String.sub s p (n-p) in
+  let prefix = "prefix " in
+  if String.starts_with ~prefix s then unwrap ~prefix s
+  else
+    let prefix = "infix " in
+    if String.starts_with ~prefix s then unwrap ~prefix s
+    else s
+
 (* -------------------------------------------------------------------------- *)
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
@@ -34,6 +60,8 @@ module Mstr = Why3.Wstdlib.Mstr
 module Sid = Why3.Ident.Sid
 
 type position = Lexing.position * Lexing.position
+
+type ident = Why3.Ident.ident
 
 type clone = {
   id_source : Why3.Ident.ident ;
@@ -70,18 +98,19 @@ let id_line id =
 let id_file id =
   let file,_,_,_ = Why3.Loc.get (id_loc id) in file
 
-let anchor ~kind id =
-  let name = id.Why3.Ident.id_string in
-  let line = id_line id in
-  if kind = "theory"
-  then Printf.sprintf "%s_" name
-  else Printf.sprintf "%s_%d" name line
-
 let restore_path id =
   try
     Why3.Pmodule.restore_path id
   with Not_found ->
     Why3.Theory.restore_path id
+
+let id_path ~src ~scope id =
+  let lp,md,qid = restore_path id in
+  let lp =
+    match lp, scope with
+    | [], Some m when m <> md -> [src.name]
+    | _ -> lp
+  in String.concat "." (lp @ md :: List.map of_infix qid)
 
 let baseurl ~src ~scope id =
   let lp,md,_ = restore_path id in
@@ -101,10 +130,17 @@ let baseurl ~src ~scope id =
       with _ ->
         Printf.sprintf "https://why3.lri.fr/stdlib/%s.html" path
 
+let anchor ~kind id =
+  let name = id.Why3.Ident.id_string in
+  let line = id_line id in
+  if kind = "theory"
+  then Printf.sprintf "%s_" name
+  else Printf.sprintf "%s_%d" name line
+
 type href =
   | NoRef
   | Def of string
-  | Ref of string * string
+  | Ref of { path: string ; href: string }
 
 let declaration id =
   match Why3.Glob.find (id_loc id) with
@@ -125,7 +161,10 @@ let resolve ~src ~scope ~infix pos =
     | (id, Why3.Glob.Def, kind) -> Def(anchor ~kind id)
     | (id, Why3.Glob.Use, kind) ->
       let id = definition id in
-      Ref(baseurl ~src ~scope id, anchor ~kind id)
+      let path = id_path ~src ~scope id in
+      let base = baseurl ~src ~scope id in
+      let name = anchor ~kind id in
+      Ref { path ; href = Printf.sprintf "%s#%s" base name }
   with Not_found -> NoRef
 
 let id_name id = id.Why3.Ident.id_string
@@ -339,27 +378,13 @@ let lookup ~scope ~theories kind m qid =
   | None ->
     List.concat @@ List.map (find_theory kind qid) (Mstr.values theories)
 
-let select ~src ~name ~scope ids =
+let select ~name ids =
   let ids = List.map definition ids in
   let ids = List.sort_uniq Why3.Ident.id_compare ids in
   match ids with
-  | [id] -> Printf.sprintf "%s#%s" (baseurl ~src ~scope id) (anchor ~kind:"" id)
+  | [id] -> id
   | [] -> failwith (Printf.sprintf "reference '%s' not found" name)
   | _ -> failwith (Printf.sprintf "ambiguous reference '%s'" name)
-
-(* Reference Parsing *)
-
-let is_uppercased s =
-  String.length s > 0 &&
-  let c = s.[0] in 'A' <= c && c <= 'Z'
-
-let infix s =
-  let n = String.length s in
-  if n > 2 && s.[0] = '(' && s.[n-1] = ')' then
-    if s.[n-2] = '_'
-    then "prefix " ^ String.sub s 1 (n-3)
-    else "infix " ^ String.sub s 1 (n-2)
-  else s
 
 (* Global reference resolution *)
 
@@ -369,27 +394,26 @@ let reference ~why3env ~src ~scope r =
     if n >= 2 && r.[1] = ':'
     then r.[0],String.sub r 2 (n-2)
     else '?',r in
+  name,
   let lp,m,qid =
     let rec split rp = function
-      | [] -> [], "", List.rev_map infix rp
+      | [] -> [], "", List.rev_map to_infix rp
       | p::ps ->
-        if is_uppercased p then List.rev rp,p,List.map infix ps
+        if is_uppercased p then List.rev rp,p,List.map to_infix ps
         else split (p::rp) ps
     in split [] (String.split_on_char '.' name) in
-  let url =
-    if lp = [] then
-      select ~src ~name ~scope @@ lookup ~scope ~theories:src.theories kind m qid
+  if lp = [] then
+    select ~name @@ lookup ~scope ~theories:src.theories kind m qid
+  else
+    let thy =
+      try Why3.Env.read_theory why3env lp m
+      with Not_found ->
+        failwith @@ Printf.sprintf "unknown theory or module '%s.%s'"
+          (String.concat "." lp) m
+    in
+    if kind = '?' && qid = [] then
+      thy.th_name
     else
-      let thy =
-        try Why3.Env.read_theory why3env lp m
-        with Not_found ->
-          failwith @@ Printf.sprintf "unknown theory or module '%s.%s'"
-            (String.concat "." lp) m
-      in
-      if kind = '?' && qid = [] then
-        baseurl ~src ~scope thy.th_name
-      else
-        select ~src ~scope ~name @@ find kind qid thy
-  in url, name
+      select ~name @@ find kind qid thy
 
 (* -------------------------------------------------------------------------- *)

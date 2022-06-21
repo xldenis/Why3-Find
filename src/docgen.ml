@@ -138,12 +138,12 @@ let resolve env ?(infix=false) () =
     ~src:env.src ~scope:env.scope ~infix
     (Token.position env.input)
 
-let process_ref env (href : Docref.href) s =
+let process_href env (href : Docref.href) s =
   match href with
   | Docref.Def name ->
     Pdoc.printf env.out "<a name=\"%s\">%a</a>" name Pdoc.pp_html s
-  | Docref.Ref(url,name) ->
-    Pdoc.printf env.out "<a href=\"%s#%s\">%a</a>" url name Pdoc.pp_html s
+  | Docref.Ref { path = p ; href = h } ->
+    Pdoc.printf env.out "<a title=\"%s\" href=\"%s\">%a</a>" p h Pdoc.pp_html s
   | Docref.NoRef ->
     Pdoc.pp_html_s env.out s
 
@@ -154,8 +154,11 @@ let process_ref env (href : Docref.href) s =
 let pp_ident ~env fmt id =
   let name = Docref.id_name id in
   try
-    let href = Docref.id_href ~src:env.src ~scope:env.scope id in
-    Format.fprintf fmt "<a href=\"%s\">%s</a>" href name
+    let src = env.src in
+    let scope = env.scope in
+    let title = Docref.id_path ~src ~scope id in
+    let href = Docref.id_href ~src ~scope id in
+    Format.fprintf fmt "<a title=\"%s\" href=\"%s\">%s</a>" title href name
   with Not_found ->
     Format.pp_print_string fmt name
 
@@ -308,8 +311,8 @@ let process_module env key =
     let kind = String.capitalize_ascii key in
     let url = Docref.derived env.src id in
     Pdoc.printf env.out
-      "<div class=\"src %s\">%s <tt><a href=\"%s\">%s</a></tt></div>@."
-      key key url id ;
+      "<pre class=\"src %s\">%a <a title=\"%s.%s\" href=\"%s\">%s</a></div>@."
+      key Pdoc.pp_keyword key env.src.name id url id ;
     let file = Filename.concat env.dir url in
     let title = Printf.sprintf "%s %s.%s" kind env.src.name id in
     Pdoc.fork env.out ~file ~title ;
@@ -323,7 +326,7 @@ let process_module env key =
     env.declared <- Token.line env.input ;
     Pdoc.pp env.out Pdoc.pp_keyword key ;
     Pdoc.pp_print_char env.out ' ' ;
-    process_ref env href id
+    process_href env href id
   end
 
 let process_close env key =
@@ -360,7 +363,7 @@ let process_ident env s =
     end
   else
     let href = resolve env () in
-    process_ref env href s
+    process_href env href s
 
 (* -------------------------------------------------------------------------- *)
 (* --- Style Processing                                                   --- *)
@@ -453,10 +456,15 @@ let process_newline env =
 
 let process_reference ~why3env ~env r =
   try
-    let url,name = Docref.reference ~why3env ~src:env.src ~scope:env.scope r in
+    let src = env.src in
+    let scope = env.scope in
+    let name, id = Docref.reference ~why3env ~src ~scope r in
+    let title = Docref.id_path ~src ~scope id in
+    let href = Docref.id_href ~src ~scope id in
     text env ;
     Pdoc.printf env.out
-      "<code class=\"src\"><a href=\"%s\">%s</a></code>" url name
+      "<code class=\"src\"><a title=\"%s\" href=\"%s\">%s</a></code>"
+      title href name
   with
   | Not_found -> Token.error env.input "unknown reference"
   | Failure msg -> Token.error env.input "%s" msg
@@ -477,6 +485,7 @@ let process_file ~why3env ~out:dir file =
   } in
   begin
     Pdoc.printf out "<header>Library <tt>%s</tt></header>@\n" src.name ;
+    Pdoc.flush out ;
     while not (Token.eof env.input) do
       match Token.token env.input with
       | Eof -> close env
@@ -511,7 +520,7 @@ let process_file ~why3env ~out:dir file =
       | Infix s ->
         text env ;
         let href = resolve env ~infix:true () in
-        process_ref env href s
+        process_href env href s
     done ;
     Pdoc.close_all out ;
   end

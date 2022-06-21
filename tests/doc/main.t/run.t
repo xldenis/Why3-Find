@@ -28,11 +28,11 @@
   <div class="doc">
   <p>Before A</p>
   </div>
-  <div class="src module">module <tt><a href="p.a.A.html">A</a></tt></div>
+  <pre class="src module"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a></div>
   <div class="doc">
   <p>Before B</p>
   </div>
-  <div class="src module">module <tt><a href="p.a.B.html">B</a></tt></div>
+  <pre class="src module"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a></div>
   <div class="doc">
   <p>After B</p>
   </div>
@@ -66,10 +66,10 @@
   </div>
   <pre class="src">
   
-    <span class="keyword">let</span> <a name="swap_9">swap</a> (e : <a href="#t_6">t</a>) : <a href="#t_6">t</a> =
+    <span class="keyword">let</span> <a name="swap_9">swap</a> (e : <a title="A.t" href="#t_6">t</a>) : <a title="A.t" href="#t_6">t</a> =
       <span class="keyword">match</span> e <span class="keyword">with</span>
-      | <a href="#A_6">A</a> -&gt; <a href="#B_6">B</a>
-      | <a href="#B_6">B</a> -&gt; <a href="#A_6">A</a>
+      | <a title="A.A" href="#A_6">A</a> -&gt; <a title="A.B" href="#B_6">B</a>
+      | <a title="A.B" href="#B_6">B</a> -&gt; <a title="A.A" href="#A_6">A</a>
       <span class="keyword">end</span>
   
   <span class="keyword">end</span>
@@ -99,7 +99,7 @@
     <span class="keyword">exception</span> <a name="Error_22">Error</a>
   
     <span class="keyword">val</span> <a name="wrong_24">wrong</a> () : unit
-      <span class="keyword">raises</span> { <a href="#Error_22">Error</a> }
+      <span class="keyword">raises</span> { <a title="B.Error" href="#Error_22">Error</a> }
   
   </pre>
   <div class="doc">
@@ -108,7 +108,7 @@
   <pre class="src">
   
     <span class="keyword">let</span> <a name="test_28">test</a> () : unit =
-      <span class="keyword">try</span> <a href="#wrong_24">wrong</a> () <span class="keyword">with</span> <a href="#Error_22">Error</a> -&gt; () <span class="keyword">end</span>
+      <span class="keyword">try</span> <a title="B.wrong" href="#wrong_24">wrong</a> () <span class="keyword">with</span> <a title="B.Error" href="#Error_22">Error</a> -&gt; () <span class="keyword">end</span>
   
   <span class="keyword">end</span>
   </pre>
