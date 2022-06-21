@@ -18,7 +18,7 @@
   <a class="toc3" href="#_5">Title D</a>
   <a class="toc2" href="#_6">Title F</a>
   </nav>
-  <header>Library <tt>a</tt></header>
+  <header>Library <code>a</code></header>
   <div class="doc">
   <p>Headings.</p>
   <h1><a name="_1">Title A</a></h1>
@@ -34,6 +34,7 @@
   <h2><a name="_6">Title F</a></h2>
   <p>Section 3</p>
   </div>
+  <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
 --------------------------------------------------------------------------

@@ -12,7 +12,7 @@
   <body>
   <nav>
   </nav>
-  <header>Library <tt>a</tt></header>
+  <header>Library <code>a</code></header>
   <div class="doc">
   <p>List &amp; Dashes</p>
   <p>Text with normal&ndash;size dash.</p>
@@ -34,6 +34,7 @@
   <li>item (c)</li>
   </ul>
   </div>
+  <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
 --------------------------------------------------------------------------

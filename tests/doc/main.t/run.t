@@ -10,6 +10,7 @@
   html/p.a.A.html
   html/p.a.B.html
   html/p.a.html
+  html/script.js
   html/style.css
 --------------------------------------------------------------------------
 --- Generated File p.a.html
@@ -24,7 +25,7 @@
   <body>
   <nav>
   </nav>
-  <header>Library <tt>p.a</tt></header>
+  <header>Library <code>p.a</code></header>
   <div class="doc">
   <p>Before A</p>
   </div>
@@ -36,6 +37,7 @@
   <div class="doc">
   <p>After B</p>
   </div>
+  <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
 --------------------------------------------------------------------------
@@ -74,6 +76,7 @@
   
   <span class="keyword">end</span>
   </pre>
+  <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
 --------------------------------------------------------------------------
@@ -112,6 +115,7 @@
   
   <span class="keyword">end</span>
   </pre>
+  <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
 --------------------------------------------------------------------------

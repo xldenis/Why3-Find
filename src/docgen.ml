@@ -292,7 +292,9 @@ let process_declarations env (th : Docref.theory) line =
       text env ;
       Pdoc.printf env.out
         "  <span class=\"clone section\">\
-         <span class=\"comment section-toggle\">(*cloned*)</span>@\n" ;
+         {<span class=\"attribute section-toggle\">cloned</span>\
+         <span class=\"section-text active\">…</span>}\
+         <span class=\"section-text\">@\n" ;
       List.iter
         (fun (clone : Docref.clone) ->
            try
@@ -303,8 +305,8 @@ let process_declarations env (th : Docref.theory) line =
            with Not_found -> ()
         ) cloned ;
       Pdoc.printf env.out
-        "<span class=\"comment section-toggle\">(*end*)</span>\
-         </span>@\n" ;
+        "{<span class=\"attribute section-toggle\">end</span>}\
+         </span></span>@\n" ;
     end ;
   env.declared <- line
 

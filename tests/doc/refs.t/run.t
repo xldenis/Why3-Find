@@ -7,6 +7,7 @@
   html/a.A.html
   html/a.B.html
   html/a.html
+  html/script.js
   html/style.css
 --------------------------------------------------------------------------
 --- Library
@@ -21,7 +22,7 @@
   <body>
   <nav>
   </nav>
-  <header>Library <tt>a</tt></header>
+  <header>Library <code>a</code></header>
   <div class="doc">
   <p>Infix reference: <code class="src"><a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix +_19">int.Int.(+)</a></code></p>
   <p>Prefix reference: <code class="src"><a title="int.Int.(-)" href="https://why3.lri.fr/stdlib/int.html#prefix -_18">int.Int.(-_)</a></code></p>
@@ -31,6 +32,7 @@
   </div>
   <pre class="src theory"><span class="keyword">theory</span> <a title="a.A" href="a.A.html">A</a></div>
   <pre class="src module"><span class="keyword">module</span> <a title="a.B" href="a.B.html">B</a></div>
+  <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
 --------------------------------------------------------------------------
@@ -53,6 +55,7 @@
     <span class="keyword">function</span> <a name="op_15">op</a> <a title="A.t" href="#t_14">t</a> <a title="A.t" href="#t_14">t</a> : <a title="A.t" href="#t_14">t</a>
   <span class="keyword">end</span>
   </pre>
+  <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
 --------------------------------------------------------------------------
@@ -88,6 +91,7 @@
   
   <span class="keyword">end</span>
   </pre>
+  <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
 --------------------------------------------------------------------------

@@ -12,7 +12,7 @@
   <body>
   <nav>
   </nav>
-  <header>Library <tt>a</tt></header>
+  <header>Library <code>a</code></header>
   <div class="doc">
   <p>Testing Documentation.</p>
   <p>This is <em>emph text</em>.</p>
@@ -21,6 +21,7 @@
   <p>This is <strong>multiple line bold text</strong>.</p>
   <p>Nested <em>emph <strong>bold</strong> emph</em>.</p>
   </div>
+  <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
 --------------------------------------------------------------------------

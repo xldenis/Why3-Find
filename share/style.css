@@ -68,3 +68,29 @@ pre.src {
 }
 
 /* -------------------------------------------------------------------------- */
+/* --- Foldable Section                                                   --- */
+/* -------------------------------------------------------------------------- */
+
+.section { }
+
+.section-toggle:hover {
+    background: lightgreen;
+}
+
+.section-toggle {
+    cursor: zoom-in ;
+}
+
+.section-toggle.active {
+    cursor: zoom-out ;
+}
+
+.section-text {
+    display: none;
+}
+
+.section-text.active {
+    display: inline;
+}
+
+/* -------------------------------------------------------------------------- */
