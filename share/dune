@@ -7,4 +7,5 @@
     dune.template
     make.template
     style.css
+    script.js
   ))

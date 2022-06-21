@@ -179,7 +179,8 @@ let body =
    <body>\n"
 
 let foot =
-  "</body>\n\
+  "<script type=\"text/javascript\" src=\"script.js\"></script>\n\
+   </body>\n\
    </html>\n"
 
 let table_of_contents cout heads =

@@ -533,15 +533,15 @@ let process_file ~why3env ~out:dir file =
 
 let shared ~out ~file =
   let tgt = Filename.concat out file in
-  if not (Sys.file_exists tgt) then
-    let src = Meta.shared file in
-    Utils.copy ~src ~tgt
+  let src = Meta.shared file in
+  Utils.copy ~src ~tgt
 
 let main ~pkgs ~out ~files =
   begin
     let why3env = Docref.init ~pkgs in
     Utils.mkdirs out ;
     shared ~out ~file:"style.css" ;
+    shared ~out ~file:"script.js" ;
     List.iter (process_file ~why3env ~out) files
   end
 
