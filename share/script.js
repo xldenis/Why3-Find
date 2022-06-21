@@ -17,3 +17,22 @@ for (i = 0; i < nodes.length; i++) {
     toggle(this);
   });
 }
+
+function focus(h) {
+  var elts,e,tk,i;
+  elts = document.getElementsByName(h.substring(1));
+  for (i=0; i< elts.length; i++) {
+    e = elts[i];
+    while (e) {
+      tk = e.classList;
+      if (tk.contains("section-text") && !tk.contains("active")) {
+        toggle(e);
+        break;
+      }
+      e = e.parentElement;
+    }
+  }
+}
+
+focus(window.location.hash);
+window.addEventListener('hashchange',focus);
