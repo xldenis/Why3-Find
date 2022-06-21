@@ -13,8 +13,10 @@ end
 
 module B
   use int.Int
+  use list.List
   let constant zero = 0
   clone export A with type t = int, val neutral = zero, val op = (+)
+  let twice (x : int) : int = assoc (Cons x (Cons x Nil))
 end
 
 module E

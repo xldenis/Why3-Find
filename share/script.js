@@ -9,17 +9,9 @@ function toggle(elt) {
     elts[j].classList.toggle("active");
 }
 
-var nodes,i;
-
-nodes = document.getElementsByClassName("section-toggle");
-for (i = 0; i < nodes.length; i++) {
-  nodes[i].addEventListener("click", function() {
-    toggle(this);
-  });
-}
-
-function focus(h) {
-  var elts,e,tk,i;
+function focus() {
+  var h,elts,e,tk,i;
+  h = window.location.hash;
   elts = document.getElementsByName(h.substring(1));
   for (i=0; i< elts.length; i++) {
     e = elts[i];
@@ -34,5 +26,32 @@ function focus(h) {
   }
 }
 
-focus(window.location.hash);
-window.addEventListener('hashchange',focus);
+function escape(evt) {
+  var elts,e,i;
+  if (evt.code === "Escape") {
+    window.location = "#";
+    elts = document.querySelectorAll(".section");
+    for (i=0; i< elts.length; i++) {
+      e = elts[i];
+      if (e.querySelectorAll(".section-toggle.active").length)
+        toggle(e);
+    }
+  }
+}
+
+(function(){
+  var nodes,i;
+
+  nodes = document.getElementsByClassName("section-toggle");
+  for (i = 0; i < nodes.length; i++) {
+    nodes[i].addEventListener("click", function() {
+      window.location = "#";
+      toggle(this);
+    });
+  }
+
+  focus();
+  window.addEventListener('hashchange',focus);
+  window.addEventListener('keypress',escape);
+
+})();
