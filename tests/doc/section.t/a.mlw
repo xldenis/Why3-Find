@@ -1,0 +1,16 @@
+module A
+  use list.List
+  type t
+  val constant neutral : t
+  val op t t : t
+  let rec assoc (xs : list t) : t =
+    (*proof*) variant { xs } (*qed*)
+    (*[Code]+*)
+    match xs with
+    (*[Nil case]-*)
+    | Nil -> neutral (*/*)
+    (*[Cons case]+*)
+    | Cons x xs -> op x (assoc xs) (*/*)
+    end
+    (*[]*)
+end

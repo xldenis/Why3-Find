@@ -40,6 +40,8 @@ type token =
   | Ident of string
   | OpenDoc
   | CloseDoc
+  | OpenSection of bool * string
+  | CloseSection of string
   | Space
   | Style of style * string
   | Ref of string

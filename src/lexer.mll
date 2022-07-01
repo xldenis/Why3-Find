@@ -58,6 +58,8 @@ let operator =
 
 let space = [' ' '\t']
 
+let title = ['A' - 'Z' 'a'-'z' '0'-'9' '-' ' ']+
+
 (* -------------------------------------------------------------------------- *)
 (* --- Source Code Lexer                                                  --- *)
 (* -------------------------------------------------------------------------- *)
@@ -66,6 +68,13 @@ rule source = parse
   | eof { Eof }
   | '\n' { newline lexbuf ; Newline }
   | "(*)" { Infix "(*)" }
+  | "(*proof*)" { OpenSection(false,"proof") }
+  | "(*qed*)" { CloseSection "qed" }
+  | "(*[" (title as t) "]*)" { OpenSection(false,t) }
+  | "(*[" (title as t) "]-*)" { OpenSection(false,t) }
+  | "(*[" (title as t) "]+*)" { OpenSection(true,t) }
+  | "(*/[" (title as t) "]*)" { CloseSection t }
+  | "(*/[]*)" | "(*/*)" | "(*[]*)" { CloseSection "&#8718;" }
   | "(*" '*'* "*)" { Comment (Lexing.lexeme lexbuf) }
   | "(*" '*'+  space* { OpenDoc }
   | "(*" { Comment (buffered (comment 0) lexbuf) }

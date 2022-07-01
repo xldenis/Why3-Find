@@ -311,6 +311,27 @@ let process_declarations env (th : Docref.theory) line =
   env.declared <- line
 
 (* -------------------------------------------------------------------------- *)
+(* --- Foldable Sections                                                  --- *)
+(* -------------------------------------------------------------------------- *)
+
+let pp_active fmt b =
+  if b then Format.fprintf fmt " active"
+
+let process_open_section env ~active title =
+  Pdoc.printf env.out
+    "<span class=\"section\">\
+     <span class=\"attribute section-toggle\">%s</span>\
+     <span class=\"section-text%a\">…</span>\
+     <span class=\"section-text%a\">"
+    title pp_active (not active) pp_active active
+
+let process_close_section env title =
+  Pdoc.printf env.out
+    "<span class=\"attribute section-toggle\">%s</span>\
+     </span></span>"
+    title
+
+(* -------------------------------------------------------------------------- *)
 (* --- Module & Theory Processing                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -529,6 +550,8 @@ let process_file ~why3env ~out:dir file =
           close env ;
           push env env.file ;
         end
+      | OpenSection(active,title) -> process_open_section env ~active title
+      | CloseSection title -> process_close_section env title
       | Space -> process_space env
       | Newline -> process_newline env
       | Ident s -> text env ; process_ident env s
