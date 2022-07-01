@@ -66,6 +66,7 @@ type env = {
   mutable file : mode ; (* global file output mode *)
   mutable stack : mode list ; (* currently opened modes *)
   mutable opened : int ; (* number of pending 'end' *)
+  mutable section : int ; (* code foldable section depth *)
 }
 
 let clear env =
@@ -318,16 +319,18 @@ let pp_active fmt b =
   if b then Format.fprintf fmt " active"
 
 let process_open_section env ~active title =
+  env.section <- succ env.section ;
   Pdoc.printf env.out
-    "<span class=\"section\">\
+    "<span class=\"section level%d\">\
      <span class=\"comment\">{</span>\
      <span class=\"attribute section-toggle\">%s</span>\
      <span class=\"comment section-text%a\">…</span>\
      <span class=\"comment\">}</span>\
      <span class=\"section-text%a\">"
-    title pp_active (not active) pp_active active
+    (min env.section 3) title pp_active (not active) pp_active active
 
 let process_close_section env title =
+  env.section <- pred env.section ;
   Pdoc.printf env.out
     "<span class=\"comment\">{</span>\
      <span class=\"attribute section-toggle\">%s</span>\
@@ -521,7 +524,8 @@ let process_file ~why3env ~out:dir file =
   let env = {
     dir ; src ; input ; out ; space = false ;
     scope = None ; declared = 0 ;
-    mode = Body ; file = Body ; stack = [] ; opened = 0 ;
+    mode = Body ; file = Body ; stack = [] ;
+    opened = 0 ; section = 0 ;
   } in
   begin
     Pdoc.printf out "<header>Library <code>%s</code></header>@\n" src.name ;

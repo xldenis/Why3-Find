@@ -29,7 +29,7 @@ function focus() {
 function escape(evt) {
   var elts,e,i;
   if (evt.code === "Escape") {
-    window.location = "#";
+    window.location = "";
     elts = document.querySelectorAll(".section");
     for (i=0; i< elts.length; i++) {
       e = elts[i];

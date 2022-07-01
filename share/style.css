@@ -73,6 +73,18 @@ pre.src {
 
 .section { }
 
+.section.level1:hover {
+    background: #fcfce1;
+}
+
+.section.level2:hover {
+    background: #e9ffe9;
+}
+
+.section.level3:hover {
+    background: #fff6f6;
+}
+
 .section-toggle:hover {
     background: lightgreen;
 }
