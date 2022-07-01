@@ -320,16 +320,20 @@ let pp_active fmt b =
 let process_open_section env ~active title =
   Pdoc.printf env.out
     "<span class=\"section\">\
+     <span class=\"comment\">{</span>\
      <span class=\"attribute section-toggle\">%s</span>\
-     <span class=\"section-text%a\">…</span>\
+     <span class=\"comment section-text%a\">…</span>\
+     <span class=\"comment\">}</span>\
      <span class=\"section-text%a\">"
     title pp_active (not active) pp_active active
 
 let process_close_section env title =
   Pdoc.printf env.out
-    "<span class=\"attribute section-toggle\">%s</span>\
+    "<span class=\"comment\">{</span>\
+     <span class=\"attribute section-toggle\">%s</span>\
+     <span class=\"comment\">}</span>\
      </span></span>"
-    title
+    (if title = "" then "…" else title)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Module & Theory Processing                                         --- *)

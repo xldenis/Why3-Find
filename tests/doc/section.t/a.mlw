@@ -12,5 +12,5 @@ module A
     (*[Cons case]+*)
     | Cons x xs -> op x (assoc xs) (*/*)
     end
-    (*[]*)
+    (*/[EndCode]*)
 end

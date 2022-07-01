@@ -74,7 +74,7 @@ rule source = parse
   | "(*[" (title as t) "]-*)" { OpenSection(false,t) }
   | "(*[" (title as t) "]+*)" { OpenSection(true,t) }
   | "(*/[" (title as t) "]*)" { CloseSection t }
-  | "(*/[]*)" | "(*/*)" | "(*[]*)" { CloseSection "&#8718;" }
+  | "(*/*)" { CloseSection "" }
   | "(*" '*'* "*)" { Comment (Lexing.lexeme lexbuf) }
   | "(*" '*'+  space* { OpenDoc }
   | "(*" { Comment (buffered (comment 0) lexbuf) }
