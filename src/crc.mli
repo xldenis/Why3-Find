@@ -28,7 +28,11 @@ type crc =
   | Prover of string * float
   | Transf of bool * int * string * crc list
 
-val complete : crc -> bool
 val depth : crc -> int
+val complete : crc -> bool
 val apply : string -> crc list -> crc
-val update : crc -> crc -> crc
+val merge : crc -> crc -> crc
+val of_json : Yojson.t -> crc
+val to_json : crc -> Yojson.t
+
+(* -------------------------------------------------------------------------- *)

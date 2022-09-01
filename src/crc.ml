@@ -43,11 +43,53 @@ let apply f cs =
   let n = List.fold_left (fun h c -> max h (depth c)) 0 cs in
   Transf(b,n,f,cs)
 
-let rec update a b =
+(* -------------------------------------------------------------------------- *)
+(* --- JSON                                                               --- *)
+(* -------------------------------------------------------------------------- *)
+
+let rec to_json (a : crc) : Yojson.t = match a with
+  | Stuck -> `Null
+  | Prover(p,t) ->
+      `Assoc [ "prover", `String p ; "time", `Float t]
+  | Transf(_,_,f,xs) ->
+      `Assoc [ "transf", `String f; "children", `List (List.map to_json xs)]
+
+let jstring = function
+  | `String a -> a
+  | _ -> raise Not_found
+
+let jfloat = function
+  | `Float a -> a
+  | `Int n -> float n
+  | _ -> raise Not_found
+
+let jlist = function
+  | `List xs -> xs
+  | _ -> raise Not_found
+
+let rec of_json (js : Yojson.t) : crc =
+  match js with
+  | `Assoc fds when List.mem_assoc "prover" fds ->
+      let p = List.assoc "prover" fds |> jstring in
+      let t = List.assoc "time" fds |> jfloat in
+      Prover(p,t)
+  | `Assoc fds when List.mem_assoc "transf" fds ->
+      let f = List.assoc "transf" fds |> jstring in
+      let xs = List.assoc "children" fds |> jlist in
+      apply f (List.map of_json xs)
+  | _ -> Stuck
+
+(* -------------------------------------------------------------------------- *)
+(* --- Merging                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let rec merge a b =
   match a,b with
   | Prover(p0,t0), Prover(p1,t1)
     when p0 = p1 && t0 *. 0.5 < t1 && t1 < t0 *. 2.0 -> a
   | Transf(_,_,f,xs), Transf(_,_,g,ys)
     when f = g && List.length xs = List.length ys ->
-    apply f (List.map2 update xs ys)
+      apply f (List.map2 merge xs ys)
   | _ -> b
+
+(* -------------------------------------------------------------------------- *)
