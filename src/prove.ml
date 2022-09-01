@@ -33,5 +33,10 @@ let process ~env file =
   end
 
 let prove ~pkgs ~files =
-  let env = Env.init ~pkgs in
-  List.iter (process ~env) files ;
+  begin
+    let env = Env.init ~pkgs in
+    List.iter (process ~env) files ;
+    exit 2 ;
+  end
+
+(* -------------------------------------------------------------------------- *)
