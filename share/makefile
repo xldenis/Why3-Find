@@ -70,11 +70,7 @@ WHY3_PROVE=why3find hammer $(WHY3_HAMMERS) $(WHY3_PKGS)
 	@echo "why3find ide $*.mlw, waiting…"
 	@($(WHY3_IDE) $*.mlw)
 
-%.prove: %.dir
-	@echo "why3find hammer […] $*.mlw"
-	@($(WHY3_PROVE) -q $*.mlw)
-
-%.fix: %.dir
+%.fix: %.chk %.dir
 	@echo "-----------------------------"
 	@echo "--- fixup $*"
 	@echo "-----------------------------"
@@ -82,6 +78,10 @@ WHY3_PROVE=why3find hammer $(WHY3_HAMMERS) $(WHY3_PKGS)
 	 then echo "[Fix Required] why3 ide $*, waiting…"; \
 	      $(WHY3_IDE) $*.mlw; \
 	 fi
+
+%.prove: %.dir
+	@echo "why3find hammer […] $*.mlw"
+	@($(WHY3_PROVE) -q $*.mlw)
 
 %.check: %.dir
 	@echo "--- check $*"
