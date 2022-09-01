@@ -178,19 +178,12 @@ let id_href ~src ~scope id =
 (* -------------------------------------------------------------------------- *)
 
 let init ~pkgs =
-  let open Why3 in
   begin
     (* Parser config *)
-    Debug.set_flag Why3.Glob.flag ;
-    List.iter (fun k -> Hashtbl.add keywords k ()) Keywords.keywords ;
+    Why3.Debug.set_flag Why3.Glob.flag ;
+    List.iter (fun k -> Hashtbl.add keywords k ()) Why3.Keywords.keywords ;
     (* Package config *)
-    let pkgs = Meta.find_all pkgs in
-    let pkg_path = List.map (fun m -> m.Meta.path) pkgs in
-    (* Environment config *)
-    let config = Whyconf.init_config None in
-    let main = Whyconf.get_main config in
-    let cfg_path = Whyconf.loadpath main in
-    Why3.Env.create_env ("." :: pkg_path @ cfg_path)
+    Env.init ~pkgs
   end
 
 (* -------------------------------------------------------------------------- *)
