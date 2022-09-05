@@ -593,8 +593,8 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       Arg.parse_argv argv
         [
           "-p", Arg.String (add pkgs), "| --package PKG package dependency";
-          "-P", Arg.String (add prvs), "| --prover PRV prover to use";
-          "-T", Arg.String (add trfs), "| --transf TRANS used transformation";
+          "-P", Arg.String (add prvs), "| --prover PRV prover(s) to be used";
+          "-T", Arg.String (add trfs), "| --transf TRANS transformation(s) to be used";
         ]
         (add files)
         "USAGE:\n\

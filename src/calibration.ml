@@ -20,31 +20,52 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Manager                                                      --- *)
+(* --- Prover Calibration                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-open Crc
+open Why3
 
-let process ~env ~provers ~transfs file =
-  begin
-    Format.printf "Proving %s...@." file ;
-    ignore env ;
-    ignore Stuck ;
-    ignore provers ;
-    ignore transfs ;
-    ignore Calibration.generate ;
-  end
+let ty = Ty.create_tysymbol (Ident.id_fresh "t") [] Ty.NoDef
+let t = Ty.ty_app ty []
+let f = Term.create_fsymbol (Ident.id_fresh "f") [t;t] t
+let vx = Term.create_vsymbol (Ident.id_fresh "x") t
+let vy = Term.create_vsymbol (Ident.id_fresh "y") t
+let vz = Term.create_vsymbol (Ident.id_fresh "z") t
+let x = Term.t_var vx
+let y = Term.t_var vy
+let z = Term.t_var vz
+let eq = Term.t_equ
+let op x y = Term.fs_app f [x;y] t
+let forall xs t = Term.t_forall @@ Term.t_close_quant xs [] t
+let assoc = Decl.create_prsymbol (Ident.id_fresh "assoc")
+let passoc = forall [vx;vy;vz] @@ eq (op x (op y z)) (op (op x y) z)
+let hmap = Hashtbl.create 0
+let vx i =
+  try Hashtbl.find hmap i
+  with Not_found ->
+    let v = Term.create_vsymbol (Ident.id_fresh "e") t in
+    Hashtbl.add hmap i v ; v
+let x i = Term.t_var (vx i)
+let rec vars xs n = if n > 0 then vars (vx n :: xs) (n-1) else xs
+let rec left i n =
+  if i < n then op (x i) (left (succ i) n)
+  else x i
+let rec right i n =
+  if i > 1 then op (right (pred i) n) (x i)
+  else x i
+let goal = Decl.create_prsymbol (Ident.id_fresh "goal")
+let pgoal n = forall (vars [] n) (eq (left 1 n) (right n n))
 
-let prove ~pkgs ~provers ~transfs ~files =
+let generate n =
+  let open Why3 in
+  let task : Task.task ref = ref None in
+  let declare d = task := Task.add_decl !task d in
   begin
-    let env = Env.init ~pkgs in
-    let provers =
-      if provers = []
-      then Runner.default env
-      else List.map (Runner.prover env) provers
-    in
-    List.iter (process ~env ~provers ~transfs) files ;
-    exit 2 ;
-  end
+    declare @@ Decl.create_ty_decl ty ;
+    declare @@ Decl.create_param_decl f ;
+    declare @@ Decl.create_prop_decl Paxiom assoc passoc ;
+    declare @@ Decl.create_prop_decl Plemma goal (pgoal n) ;
+  end ;
+  !task
 
 (* -------------------------------------------------------------------------- *)
