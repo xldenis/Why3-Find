@@ -36,11 +36,7 @@ type result =
 val of_json : Json.t -> result
 val to_json : result -> Json.t
 
-type process = {
-  cancel : unit -> unit ;
-  status : unit -> result option ;
-}
-
-val run : env -> task -> prover -> float -> process
+val run : env -> unit Fibers.signal ->
+  task -> prover -> float -> result Fibers.t
 
 (* -------------------------------------------------------------------------- *)

@@ -113,12 +113,8 @@ let to_json (r : result) : Json.t =
 (* --- Running Prover                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-type process = {
-  cancel : unit -> unit ;
-  status : unit -> result option ;
-}
-
-let run (env : Env.env) (task : task) (prover : prover) (time : float) =
+let run (env : Env.env) (cancel : unit Fibers.signal)
+    (task : task) (prover : prover) (time : float) =
   let main = get_main env.config in
   let limit = { empty_limit with limit_time = int_of_float (time +. 0.5) } in
   let timeout = Unix.gettimeofday () +. time in
@@ -127,24 +123,25 @@ let run (env : Env.env) (task : task) (prover : prover) (time : float) =
       ~libdir:(libdir main)
       ~datadir:(datadir main)
       ~limit prover.driver task in
-  let cancel () = interrupt_call ~libdir:(libdir main) call in
-  let status () =
-    match query_call call with
-    | ProverStarted -> None
-    | InternalFailure _ -> Some Failed
-    | ProverInterrupted ->
-      Some (if Unix.gettimeofday () > timeout then Timeout time else NoResult)
-    | NoUpdates ->
-      if Unix.gettimeofday () > timeout then cancel () ; None
-    | ProverFinished pr ->
-      Some begin
-        match pr.pr_answer with
-        | Valid -> Valid pr.pr_time
-        | Timeout -> Timeout time
-        | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
-          Unknown pr.pr_time
-        | HighFailure | Failure _ -> Failed
-      end
-  in { cancel ; status }
+  let kill () = interrupt_call ~libdir:(libdir main) call in
+  Fibers.hook cancel kill Fibers.async
+    begin fun () ->
+      match query_call call with
+      | ProverStarted -> None
+       | InternalFailure _ -> Some Failed
+       | ProverInterrupted ->
+         Some (if Unix.gettimeofday () > timeout then Timeout time else NoResult)
+       | NoUpdates ->
+         if Unix.gettimeofday () > timeout then kill () ; None
+       | ProverFinished pr ->
+         Some begin
+           match pr.pr_answer with
+           | Valid -> Valid pr.pr_time
+           | Timeout -> Timeout time
+           | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
+             Unknown pr.pr_time
+           | HighFailure | Failure _ -> Failed
+         end
+    end
 
 (* -------------------------------------------------------------------------- *)
