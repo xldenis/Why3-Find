@@ -23,9 +23,24 @@
 (* --- Why3 Runner                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-open Why3.Whyconf
+open Env
+open Why3.Task
 
-val prover : config -> string -> prover
-val default : config -> prover list
+type prover
+val default : env -> prover list
+val prover : env -> string -> prover
+
+type result =
+  | NoResult | Failed | Unknown of float | Timeout of float | Valid of float
+
+val of_json : Json.t -> result
+val to_json : result -> Json.t
+
+type process = {
+  cancel : unit -> unit ;
+  status : unit -> result option ;
+}
+
+val run : env -> task -> prover -> float -> process
 
 (* -------------------------------------------------------------------------- *)

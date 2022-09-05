@@ -32,7 +32,7 @@ val depth : crc -> int
 val complete : crc -> bool
 val apply : string -> crc list -> crc
 val merge : crc -> crc -> crc
-val of_json : Yojson.t -> crc
-val to_json : crc -> Yojson.t
+val of_json : Json.t -> crc
+val to_json : crc -> Json.t
 
 (* -------------------------------------------------------------------------- *)

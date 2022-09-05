@@ -47,27 +47,15 @@ let apply f cs =
 (* --- JSON                                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
-let rec to_json (a : crc) : Yojson.t = match a with
+let rec to_json (a : crc) : Json.t = match a with
   | Stuck -> `Null
   | Prover(p,t) ->
       `Assoc [ "prover", `String p ; "time", `Float t]
   | Transf(_,_,f,xs) ->
       `Assoc [ "transf", `String f; "children", `List (List.map to_json xs)]
 
-let jstring = function
-  | `String a -> a
-  | _ -> raise Not_found
-
-let jfloat = function
-  | `Float a -> a
-  | `Int n -> float n
-  | _ -> raise Not_found
-
-let jlist = function
-  | `List xs -> xs
-  | _ -> raise Not_found
-
-let rec of_json (js : Yojson.t) : crc =
+let rec of_json (js : Json.t) : crc =
+  let open Json in
   match js with
   | `Assoc fds when List.mem_assoc "prover" fds ->
       let p = List.assoc "prover" fds |> jstring in

@@ -20,30 +20,44 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Manager                                                      --- *)
+(* --- JSON Utilities                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-open Crc
+type t = Yojson.t
 
-let process ~env ~provers ~transfs file =
-  begin
-    Format.printf "Proving %s...@." file ;
-    ignore env ;
-    ignore Stuck ;
-    ignore provers ;
-    ignore transfs ;
-  end
+let of_file f : t = (Yojson.Basic.from_file f :> t)
+let to_file f js = Yojson.to_file ~std:true f js
 
-let prove ~pkgs ~provers ~transfs ~files =
-  begin
-    let env = Env.init ~pkgs in
-    let provers =
-      if provers = []
-      then Runner.default env
-      else List.map (Runner.prover env) provers
-    in
-    List.iter (process ~env ~provers ~transfs) files ;
-    exit 2 ;
-  end
+let jbool = function
+  | `Bool b -> b
+  | _ -> false
+
+let jint = function
+  | `Int n -> n
+  | `Float a -> int_of_float (a +. 0.5)
+  | _ -> 0
+
+let jfloat = function
+  | `Float a -> a
+  | `Int n -> float n
+  | _ -> 0.0
+
+let jstring = function
+  | `String a -> a
+  | _ -> ""
+
+let jlist = function
+  | `List xs -> xs
+  | _ -> []
+
+let jstringlist js = jlist js |> List.map jstring
+
+let jmem fd = function
+  | `Assoc fds -> List.mem_assoc fd fds
+  | _ -> false
+
+let jfield fd = function
+  | `Assoc fds -> List.assoc fd fds
+  | _ -> `Null
 
 (* -------------------------------------------------------------------------- *)
