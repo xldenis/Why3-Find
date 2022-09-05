@@ -37,12 +37,8 @@ let process ~env ~provers ~transfs file =
 
 let prove ~pkgs ~provers ~transfs ~files =
   begin
-    let env = Env.init ~pkgs in
-    let provers =
-      if provers = []
-      then Runner.default env
-      else List.map (Runner.prover env) provers
-    in
+    let env = Wenv.init ~pkgs in
+    let provers = Runner.select env provers in
     List.iter (process ~env ~provers ~transfs) files ;
     exit 2 ;
   end

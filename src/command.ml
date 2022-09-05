@@ -610,6 +610,33 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
     end
 
 (* -------------------------------------------------------------------------- *)
+(* --- CONFIG                                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
+    begin fun argv ->
+      let force = ref false in
+      let master = ref false in
+      let timeout = ref 5 in
+      let prvs = ref [] in
+      let prover p = prvs := p :: !prvs in
+      Arg.parse_argv argv
+        [
+          "-f", Arg.Set force, " force local calibration";
+          "-m", Arg.Set master, " reference calibration";
+          "-t", Arg.Set_int timeout, " T timeout (in seconds, default 5)";
+        ]
+        prover
+        "USAGE:\n\
+         \n  why3find calibrate [OPTIONS] PROVERS\n\n\
+         DESCRIPTION:\n\
+         \n  Calibrate your machine velocity.\n\n\
+         OPTIONS:\n" ;
+      Calibration.calibrate
+        ~force:!force ~master:!master ~timeout:!timeout (List.rev !prvs) ;
+    end
+
+(* -------------------------------------------------------------------------- *)
 (* --- HAMMER                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 

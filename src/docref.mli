@@ -23,7 +23,7 @@
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-val init : pkgs:string list -> Env.env
+val init : pkgs:string list -> Wenv.env
 
 module Mstr = Why3.Wstdlib.Mstr
 module Sid = Why3.Ident.Sid

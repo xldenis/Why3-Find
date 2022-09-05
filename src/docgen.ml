@@ -582,7 +582,7 @@ let shared ~out ~file =
 
 let main ~pkgs ~out ~files =
   begin
-    let Env.{ env = why3env } = Docref.init ~pkgs in
+    let Wenv.{ env = why3env } = Docref.init ~pkgs in
     Utils.mkdirs out ;
     shared ~out ~file:"style.css" ;
     shared ~out ~file:"script.js" ;

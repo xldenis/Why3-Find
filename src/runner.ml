@@ -33,7 +33,10 @@ type prover = {
   driver : driver ;
 }
 
-let find_exact (env : Env.env) s =
+let id prv = prover_parseable_format prv.config.prover
+let pretty fmt prv = Format.pp_print_string fmt @@ id prv
+
+let find_exact (env : Wenv.env) s =
   try
     let filter = parse_filter_prover s in
     let config = filter_one_prover env.config filter in
@@ -47,26 +50,26 @@ let find_exact (env : Env.env) s =
     Some { config ; driver }
   with _ -> None
 
-let find_default config name =
-  match find_exact config name with
+let find_default env name =
+  match find_exact env name with
   | Some prv -> [prv]
   | None -> []
 
-let prover config name =
+let prover env name =
   try
-    match find_exact config name with
+    match find_exact env name with
     | Some prv -> prv
     | None ->
-      match find_exact config (String.lowercase_ascii name) with
+      match find_exact env (String.lowercase_ascii name) with
       | Some prv -> prv
       | None ->
         match String.split_on_char ',' name with
         | shortname :: _ :: _ ->
           begin
-            match find_exact config (String.lowercase_ascii shortname) with
+            match find_exact env (String.lowercase_ascii shortname) with
             | Some prv ->
-              Format.eprintf "Warning: prover %S not found, fallback to %s.@."
-                name (prover_parseable_format prv.config.prover) ;
+              Format.eprintf "Warning: prover %S not found, fallback to %a.@."
+                name pretty prv ;
               prv
             | None -> raise Not_found
           end
@@ -75,10 +78,15 @@ let prover config name =
     Format.eprintf "Error: prover %S not found." name ;
     exit 2
 
-let default config =
-  find_default config "Alt-Ergo" @
-  find_default config "Z3" @
-  find_default config "CVC4"
+let default env =
+  find_default env "alt-ergo" @
+  find_default env "z3" @
+  find_default env "cvc4"
+
+let select env provers =
+  if provers = []
+  then default env
+  else List.map (prover env) provers
 
 (* -------------------------------------------------------------------------- *)
 (* --- Prover Result                                                      --- *)
@@ -113,35 +121,36 @@ let to_json (r : result) : Json.t =
 (* --- Running Prover                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-let run (env : Env.env) (cancel : unit Fibers.signal)
+let prove (env : Wenv.env) (cancel : unit Fibers.signal)
     (task : task) (prover : prover) (time : float) =
   let main = get_main env.config in
   let limit = { empty_limit with limit_time = int_of_float (time +. 0.5) } in
-  let timeout = Unix.gettimeofday () +. time in
+  let timeout = ref 0.0 in
   let call = prove_task
       ~command:prover.config.command
       ~libdir:(libdir main)
       ~datadir:(datadir main)
       ~limit prover.driver task in
-  let kill () = interrupt_call ~libdir:(libdir main) call in
+  let kill () = timeout := 0.0 ; interrupt_call ~libdir:(libdir main) call in
   Fibers.hook cancel kill Fibers.async
     begin fun () ->
+      let timer = !timeout in
+      if 0.0 < timer && timer < Unix.gettimeofday () then kill () ;
       match query_call call with
-      | ProverStarted -> None
-       | InternalFailure _ -> Some Failed
-       | ProverInterrupted ->
-         Some (if Unix.gettimeofday () > timeout then Timeout time else NoResult)
-       | NoUpdates ->
-         if Unix.gettimeofday () > timeout then kill () ; None
-       | ProverFinished pr ->
-         Some begin
-           match pr.pr_answer with
-           | Valid -> Valid pr.pr_time
-           | Timeout -> Timeout time
-           | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
-             Unknown pr.pr_time
-           | HighFailure | Failure _ -> Failed
-         end
+      | NoUpdates | ProverInterrupted -> None
+      | ProverStarted ->
+        if timer = 0.0 then timeout := Unix.gettimeofday () +. time ;
+        None
+      | InternalFailure _ -> Some Failed
+      | ProverFinished pr ->
+        Some begin
+          match pr.pr_answer with
+          | Valid -> Valid pr.pr_time
+          | Timeout -> Timeout time
+          | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
+            Unknown pr.pr_time
+          | HighFailure | Failure _ -> Failed
+        end
     end
 
 (* -------------------------------------------------------------------------- *)

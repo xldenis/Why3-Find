@@ -58,14 +58,63 @@ let pgoal n = forall (vars [] n) (eq (left 1 n) (right n n))
 
 let generate n =
   let open Why3 in
-  let task : Task.task ref = ref None in
+  let task = ref (Task.use_export None Theory.builtin_theory) in
   let declare d = task := Task.add_decl !task d in
   begin
     declare @@ Decl.create_ty_decl ty ;
     declare @@ Decl.create_param_decl f ;
     declare @@ Decl.create_prop_decl Paxiom assoc passoc ;
-    declare @@ Decl.create_prop_decl Plemma goal (pgoal n) ;
+    declare @@ Decl.create_prop_decl Pgoal goal (pgoal n) ;
   end ;
   !task
+
+(* -------------------------------------------------------------------------- *)
+(* --- Velocity Lookup                                                    --- *)
+(* -------------------------------------------------------------------------- *)
+
+open Fibers.Monad
+
+let velocity env timeout prv n =
+  let cancel = Fibers.signal () in
+  let+ result = Runner.prove env cancel (generate n) prv timeout in
+  match result with Valid t -> Some t | _ -> None
+
+let rec lookup env time prv p q best =
+  if p = q then Fibers.return best else
+    let n = if q = 0 then 2*p else (p+q)/2 in
+    Format.printf "[%a] %d\r@?" Runner.pretty prv n ;
+    let* r = velocity env (time *. 2.0) prv n in
+    match r with
+    | None -> lookup env time prv p n best
+    | Some t ->
+      let best = Some (n,t) in
+      Format.printf "[%a] N=%d %4.2fs@." Runner.pretty prv n t ;
+      if t <= time *. 0.75 then lookup env time prv n q best else
+      if time *. 1.25 <= t then lookup env time prv p n best else
+        Fibers.return best
+
+(* -------------------------------------------------------------------------- *)
+(* --- Calibration Processing                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let calibrate ~force ~master ~timeout provers =
+  begin
+    let env = Wenv.init ~pkgs:[] in
+    let provers = Runner.select env provers in
+    let timeout = float timeout in
+    List.iter
+      (fun prv ->
+         Format.printf "Calibrating %a@." Runner.pretty prv ;
+         Fibers.await (lookup env timeout prv 1 0 None)
+           (function
+             | None -> Format.printf "[%a] no result@." Runner.pretty prv
+             | Some(n,t) -> Format.printf "[%a] N=%d %4.2f@." Runner.pretty prv n t
+           )
+      ) provers ;
+    Fibers.flush ~polling:20 () ;
+    Format.printf "Finished.@." ;
+    ignore force ;
+    ignore master ;
+  end
 
 (* -------------------------------------------------------------------------- *)

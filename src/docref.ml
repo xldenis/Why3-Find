@@ -183,7 +183,7 @@ let init ~pkgs =
     Why3.Debug.set_flag Why3.Glob.flag ;
     List.iter (fun k -> Hashtbl.add keywords k ()) Why3.Keywords.keywords ;
     (* Package config *)
-    Env.init ~pkgs
+    Wenv.init ~pkgs
   end
 
 (* -------------------------------------------------------------------------- *)

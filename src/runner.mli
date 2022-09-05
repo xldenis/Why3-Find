@@ -23,12 +23,15 @@
 (* --- Why3 Runner                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-open Env
+open Wenv
 open Why3.Task
 
 type prover
+val id : prover -> string
 val default : env -> prover list
 val prover : env -> string -> prover
+val select : env -> string list -> prover list
+val pretty : Format.formatter -> prover -> unit
 
 type result =
   | NoResult | Failed | Unknown of float | Timeout of float | Valid of float
@@ -36,7 +39,7 @@ type result =
 val of_json : Json.t -> result
 val to_json : result -> Json.t
 
-val run : env -> unit Fibers.signal ->
+val prove : env -> unit Fibers.signal ->
   task -> prover -> float -> result Fibers.t
 
 (* -------------------------------------------------------------------------- *)
