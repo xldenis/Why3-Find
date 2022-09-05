@@ -586,11 +586,15 @@ let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
 let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
     begin fun argv ->
       let pkgs = ref [] in
+      let prvs = ref [] in
+      let trfs = ref [] in
       let files = ref [] in
       let add r p = r := p :: !r in
       Arg.parse_argv argv
         [
-          "-p", Arg.String (add pkgs), "package dependency"
+          "-p", Arg.String (add pkgs), "| --package PKG package dependency";
+          "-P", Arg.String (add prvs), "| --prover PRV prover to use";
+          "-T", Arg.String (add trfs), "| --transf TRANS used transformation";
         ]
         (add files)
         "USAGE:\n\
@@ -599,8 +603,10 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
          \n  Prove why3 files.\n\n\
          OPTIONS:\n" ;
       let pkgs = List.rev !pkgs in
+      let provers = List.rev !prvs in
+      let transfs = List.rev !trfs in
       let files = List.rev !files in
-      Prove.prove ~pkgs ~files
+      Prove.prove ~pkgs ~provers ~transfs ~files
     end
 
 (* -------------------------------------------------------------------------- *)

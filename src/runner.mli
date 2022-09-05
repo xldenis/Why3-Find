@@ -20,30 +20,12 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Manager                                                      --- *)
+(* --- Why3 Runner                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-open Crc
+open Why3.Whyconf
 
-let process ~env ~provers ~transfs file =
-  begin
-    Format.printf "Proving %s...@." file ;
-    ignore env ;
-    ignore Stuck ;
-    ignore provers ;
-    ignore transfs ;
-  end
-
-let prove ~pkgs ~provers ~transfs ~files =
-  begin
-    let Env.{ config } as env = Env.init ~pkgs in
-    let provers =
-      if provers = []
-      then Runner.default config
-      else List.map (Runner.prover config) provers
-    in
-    List.iter (process ~env ~provers ~transfs) files ;
-    exit 2 ;
-  end
+val prover : config -> string -> prover
+val default : config -> prover list
 
 (* -------------------------------------------------------------------------- *)

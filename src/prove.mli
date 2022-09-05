@@ -23,4 +23,9 @@
 (* --- Proof Manager                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-val prove : pkgs:string list -> files:string list -> unit
+val prove :
+  pkgs:string list ->
+  provers:string list ->
+  transfs:string list ->
+  files:string list ->
+  unit

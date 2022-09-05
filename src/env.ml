@@ -23,6 +23,11 @@
 (* --- Why3 Environment                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
+type env = {
+  config : Why3.Whyconf.config ;
+  env : Why3.Env.env ;
+}
+
 let init ~pkgs =
   let open Why3 in
   begin
@@ -32,5 +37,6 @@ let init ~pkgs =
     let config = Whyconf.init_config None in
     let main = Whyconf.get_main config in
     let cfg_path = Whyconf.loadpath main in
-    Why3.Env.create_env ("." :: pkg_path @ cfg_path)
+    let env = Why3.Env.create_env ("." :: pkg_path @ cfg_path) in
+    { config ; env }
   end

@@ -23,4 +23,9 @@
 (* --- Why3 Environment                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-val init : pkgs:string list -> Why3.Env.env
+type env = {
+  config : Why3.Whyconf.config ;
+  env : Why3.Env.env ;
+}
+
+val init : pkgs:string list -> env

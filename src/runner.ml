@@ -20,30 +20,56 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Manager                                                      --- *)
+(* --- Why3 Provers                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-open Crc
+open Why3.Whyconf
 
-let process ~env ~provers ~transfs file =
-  begin
-    Format.printf "Proving %s...@." file ;
-    ignore env ;
-    ignore Stuck ;
-    ignore provers ;
-    ignore transfs ;
-  end
+let find_exact config s =
+  try
+    let filter = parse_filter_prover s in
+    Some ((filter_one_prover config filter).prover)
+  with
+  | ProverNotFound _
+  | ParseFilterProver _
+  | ProverAmbiguity _  ->
+    None
 
-let prove ~pkgs ~provers ~transfs ~files =
-  begin
-    let Env.{ config } as env = Env.init ~pkgs in
-    let provers =
-      if provers = []
-      then Runner.default config
-      else List.map (Runner.prover config) provers
-    in
-    List.iter (process ~env ~provers ~transfs) files ;
-    exit 2 ;
-  end
+let find_default config name =
+  match find_exact config name with
+  | Some prv -> [prv]
+  | None -> []
+
+let prover config name =
+  try
+    match find_exact config name with
+    | Some prv -> prv
+    | None ->
+      match find_exact config (String.lowercase_ascii name) with
+      | Some prv -> prv
+      | None ->
+        match String.split_on_char ',' name with
+        | shortname :: _ :: _ ->
+          begin
+            match find_exact config (String.lowercase_ascii shortname) with
+            | Some prv ->
+              Format.eprintf "Warning: prover %S not found, fallback to %s.@."
+                name (prover_parseable_format prv) ;
+              prv
+            | None -> raise Not_found
+          end
+        | _ -> raise Not_found
+  with Not_found ->
+    Format.eprintf "Error: prover %S not found." name ;
+    exit 2
+
+let default config =
+  find_default config "Alt-Ergo" @
+  find_default config "Z3" @
+  find_default config "CVC4"
+
+(* -------------------------------------------------------------------------- *)
+(* ---                                                                    --- *)
+(* -------------------------------------------------------------------------- *)
 
 (* -------------------------------------------------------------------------- *)
