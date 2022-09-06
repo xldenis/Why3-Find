@@ -617,14 +617,14 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
       let force = ref false in
       let master = ref false in
-      let timeout = ref 5 in
+      let time = ref 500 in
       let prvs = ref [] in
       let prover p = prvs := p :: !prvs in
       Arg.parse_argv argv
         [
           "-f", Arg.Set force, " force local calibration";
-          "-m", Arg.Set master, " reference calibration";
-          "-t", Arg.Set_int timeout, " T timeout (in seconds, default 5)";
+          "-t", Arg.Set_int time, " T calibration unit (in milliseconds, default 500)";
+          "--master", Arg.Set master, " reference calibration";
         ]
         prover
         "USAGE:\n\
@@ -633,7 +633,7 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
          \n  Calibrate your machine velocity.\n\n\
          OPTIONS:\n" ;
       Calibration.calibrate
-        ~force:!force ~master:!master ~timeout:!timeout (List.rev !prvs) ;
+        ~force:!force ~master:!master ~time:!time (List.rev !prvs) ;
     end
 
 (* -------------------------------------------------------------------------- *)

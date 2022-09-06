@@ -34,7 +34,8 @@ type prover = {
 }
 
 let id prv = prover_parseable_format prv.config.prover
-let pretty fmt prv = Format.pp_print_string fmt @@ id prv
+let name prv = String.lowercase_ascii @@ prv.config.prover.prover_name
+let pp_prover fmt prv = Format.pp_print_string fmt @@ id prv
 
 let find_exact (env : Wenv.env) s =
   try
@@ -69,7 +70,7 @@ let prover env name =
             match find_exact env (String.lowercase_ascii shortname) with
             | Some prv ->
               Format.eprintf "Warning: prover %S not found, fallback to %a.@."
-                name pretty prv ;
+                name pp_prover prv ;
               prv
             | None -> raise Not_found
           end
@@ -94,6 +95,18 @@ let select env provers =
 
 type result =
   | NoResult | Failed | Unknown of float | Timeout of float | Valid of float
+
+let pp_time fmt t =
+  if t < 1e-3 then Format.fprintf fmt "%dns" (int_of_float @@ t *. 1e6) else
+  if t < 1.0 then Format.fprintf fmt "%dms" (int_of_float @@ t *. 1e3) else
+  Format.fprintf fmt "%ds" (int_of_float @@ t)
+
+let pp_result fmt = function
+  | NoResult -> Format.pp_print_string fmt "No Result"
+  | Failed -> Format.pp_print_string fmt "Failed"
+  | Unknown t -> Format.fprintf fmt "Unknown (%a)" pp_time t
+  | Timeout t -> Format.fprintf fmt "Timeout (%a)" pp_time t
+  | Valid t -> Format.fprintf fmt "Valid (%a)" pp_time t
 
 let of_json (js : Json.t) =
   let open Json in

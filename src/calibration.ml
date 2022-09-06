@@ -71,45 +71,54 @@ let generate n =
 (* -------------------------------------------------------------------------- *)
 (* --- Velocity Lookup                                                    --- *)
 (* -------------------------------------------------------------------------- *)
-
+open Runner
 open Fibers.Monad
 
 let velocity env timeout prv n =
   let cancel = Fibers.signal () in
-  let+ result = Runner.prove env cancel (generate n) prv timeout in
-  match result with Valid t -> Some t | _ -> None
+  Runner.prove env cancel (generate n) prv timeout
 
-let rec lookup env time prv p q best =
-  if p = q then Fibers.return best else
-    let n = if q = 0 then 2*p else (p+q)/2 in
-    Format.printf "[%a] %d\r@?" Runner.pretty prv n ;
+type range = Guess of int | Range of int * int
+let guesslist = [ "alt-ergo", 16 ; "z3", 30 ; "cvc4", 40 ]
+let guess prv = Guess (try List.assoc (name prv) guesslist with Not_found -> 20)
+let singleton = function Guess _ -> false | Range(p,q) -> q <= p+1
+let select = function Guess n -> n | Range(p,q) -> (p+q)/2
+let upper s = function Guess _ -> Guess (2*s) | Range(_,q) -> Range(s,q)
+let lower s = function Guess _ -> Range(1,s) | Range(p,_) -> Range(p,s)
+
+let rec lookup env time prv rg best =
+  if singleton rg then Fibers.return best else
+    let n = select rg in
+    Format.printf "[%s] %d…\r@?" (name prv) n ;
     let* r = velocity env (time *. 2.0) prv n in
     match r with
-    | None -> lookup env time prv p n best
-    | Some t ->
+    | Valid t ->
       let best = Some (n,t) in
-      Format.printf "[%a] N=%d %4.2fs@." Runner.pretty prv n t ;
-      if t <= time *. 0.75 then lookup env time prv n q best else
-      if time *. 1.25 <= t then lookup env time prv p n best else
+      if t <= time *. 0.75 then lookup env time prv (upper n rg) best else
+      if time *. 1.25 <= t then lookup env time prv (lower n rg) best else
         Fibers.return best
+    | _ ->
+      lookup env time prv (lower n rg) best
 
 (* -------------------------------------------------------------------------- *)
 (* --- Calibration Processing                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-let calibrate ~force ~master ~timeout provers =
+let calibrate ~force ~master ~time provers =
   begin
     let env = Wenv.init ~pkgs:[] in
     let provers = Runner.select env provers in
-    let timeout = float timeout in
+    let timeout = float time *. 1e-3 in
     List.iter
       (fun prv ->
-         Format.printf "Calibrating %a@." Runner.pretty prv ;
-         Fibers.await (lookup env timeout prv 1 0 None)
-           (function
-             | None -> Format.printf "[%a] no result@." Runner.pretty prv
-             | Some(n,t) -> Format.printf "[%a] N=%d %4.2f@." Runner.pretty prv n t
-           )
+         Format.printf "Calibrating %a@." pp_prover prv ;
+         Fibers.await (lookup env timeout prv (guess prv) None)
+           begin function
+             | None ->
+               Format.printf "[%a] no result@." pp_prover prv
+             | Some(n,t) ->
+               Format.printf "[%a] N=%d %a@." pp_prover prv n pp_time t
+           end
       ) provers ;
     Fibers.flush ~polling:20 () ;
     Format.printf "Finished.@." ;
