@@ -592,9 +592,10 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let add r p = r := p :: !r in
       Arg.parse_argv argv
         [
-          "-p", Arg.String (add pkgs), "| --package PKG package dependency";
-          "-P", Arg.String (add prvs), "| --prover PRV prover(s) to be used";
-          "-T", Arg.String (add trfs), "| --transf TRANS transformation(s) to be used";
+          "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
+          "-p", Arg.String (add pkgs), "PKG package dependency";
+          "-P", Arg.String (add prvs), "PRV use prover";
+          "-T", Arg.String (add trfs), "TRANS use transformation ";
         ]
         (add files)
         "USAGE:\n\
@@ -615,16 +616,14 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
 
 let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
-      let force = ref false in
-      let master = ref false in
       let time = ref 500 in
       let prvs = ref [] in
       let prover p = prvs := p :: !prvs in
       Arg.parse_argv argv
         [
-          "-f", Arg.Set force, " force local calibration";
-          "-t", Arg.Set_int time, " T calibration unit (in milliseconds, default 500)";
-          "--master", Arg.Set master, " reference calibration";
+          "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
+          "-t", Arg.Set_int time, "MS calibration time (default 500ms)";
+          "-P", Arg.String prover, "PRV prover to calibrate";
         ]
         prover
         "USAGE:\n\
@@ -632,8 +631,7 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
          DESCRIPTION:\n\
          \n  Calibrate your machine velocity.\n\n\
          OPTIONS:\n" ;
-      Calibration.calibrate
-        ~force:!force ~master:!master ~time:!time (List.rev !prvs) ;
+      Calibration.calibrate ~time:!time (List.rev !prvs) ;
     end
 
 (* -------------------------------------------------------------------------- *)

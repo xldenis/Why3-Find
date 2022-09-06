@@ -24,4 +24,4 @@
 (* -------------------------------------------------------------------------- *)
 
 val generate : int -> Why3.Task.task
-val calibrate : force:bool -> master:bool -> time:int -> string list -> unit
+val calibrate : time:int -> string list -> unit

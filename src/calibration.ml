@@ -98,32 +98,46 @@ let pp_range fmt = function
   | Range(p,q) -> Format.fprintf fmt "%d…%d" p q
 [@@@ warning "+32"]
 
-let rec lookup env time prv rg best =
+type cenv = {
+  env : Wenv.env ;
+  time : float ;
+  time_lo : float ;
+  time_up : float ;
+  time_out : float ;
+}
+
+let rec lookup w prv rg best =
   if singleton rg then Fibers.return best else
     let n = select rg in
     Format.printf "> %s:%d\x1B[K\r@?" (name prv) n ;
-    let* r = velocity env (time *. 2.0) prv n in
+    let* r = velocity w.env w.time_out prv n in
     match r with
     | Valid t ->
-      let best = choose time best (Some (n,t)) in
-      if t < time *. 0.9 then lookup env time prv (upper n rg) best else
-      if time *. 1.1 < t then lookup env time prv (lower n rg) best else
+      let best = choose w.time best (Some (n,t)) in
+      if t < w.time_lo then lookup w prv (upper n rg) best else
+      if w.time_up < t then lookup w prv (lower n rg) best else
         Fibers.return best
     | _ ->
-      lookup env time prv (lower n rg) best
+      lookup w prv (lower n rg) best
 
 (* -------------------------------------------------------------------------- *)
 (* --- Calibration Processing                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-let calibrate ~force ~master ~time provers =
+let calibrate ~time provers =
   begin
     let env = Wenv.init ~pkgs:[] in
+    let time = float time *. 1e-3 in
     let provers = Runner.select env provers in
-    let timeout = float time *. 1e-3 in
+    let w = {
+      env ; time ;
+      time_lo = time *. 0.9 ;
+      time_up = time *. 1.1 ;
+      time_out = time *. 2.0
+    } in
     List.iter
       (fun prv ->
-         Fibers.await (lookup env timeout prv (guess prv) None)
+         Fibers.await (lookup w prv (guess prv) None)
            begin function
              | None ->
                Format.printf "%-16s no result@." (id prv)
@@ -132,8 +146,6 @@ let calibrate ~force ~master ~time provers =
            end
       ) provers ;
     Fibers.flush ~polling:10 () ;
-    ignore force ;
-    ignore master ;
     Runner.report_stats () ;
   end
 

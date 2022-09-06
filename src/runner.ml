@@ -156,27 +156,32 @@ let write e r =
   Utils.mkdirs (Filename.dirname f) ;
   Json.to_file f (to_json r)
 
-let cache = Cache.create 0
+let hash = Cache.create 0
 
 let get e =
-  try Cache.find cache e with Not_found ->
-    let r = read e in Cache.add cache e r ; r
+  try Cache.find hash e with Not_found ->
+    let r = read e in Cache.add hash e r ; r
 
 let set e r =
   match r with
   | NoResult -> ()
-  | Failed -> Cache.replace cache e r
-  | Valid _ | Unknown _ | Timeout _ -> Cache.replace cache e r ; write e r
+  | Failed -> Cache.replace hash e r
+  | Valid _ | Unknown _ | Timeout _ -> Cache.replace hash e r ; write e r
 
 (* -------------------------------------------------------------------------- *)
 (* --- Running Prover                                                     --- *)
 (* -------------------------------------------------------------------------- *)
+
+let jobs = ref 0
 
 let call_prover (env : Wenv.env) (cancel : unit Fibers.signal)
     (task : task) (prover : prover) (time : float) =
   let main = get_main env.config in
   let limit = { empty_limit with limit_time = int_of_float (time +. 0.5) } in
   let timeout = ref 0.0 in
+  let np = !jobs in
+  if np > 0 then
+    (jobs := 0 ; Why3.Prove_client.set_max_running_provers np) ;
   let call = prove_task
       ~command:prover.config.command
       ~libdir:(libdir main)
@@ -203,6 +208,10 @@ let call_prover (env : Wenv.env) (cancel : unit Fibers.signal)
           | HighFailure | Failure _ -> Failed
         end
     end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Running Prover with Cache                                          --- *)
+(* -------------------------------------------------------------------------- *)
 
 let hits = ref 0
 let miss = ref 0
