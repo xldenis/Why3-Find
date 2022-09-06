@@ -71,6 +71,7 @@ let generate n =
 (* -------------------------------------------------------------------------- *)
 (* --- Velocity Lookup                                                    --- *)
 (* -------------------------------------------------------------------------- *)
+
 open Runner
 open Fibers.Monad
 
@@ -78,24 +79,35 @@ let velocity env timeout prv n =
   let cancel = Fibers.signal () in
   Runner.prove env cancel (generate n) prv timeout
 
-type range = Guess of int | Range of int * int
-let guesslist = [ "alt-ergo", 16 ; "z3", 30 ; "cvc4", 40 ]
-let guess prv = Guess (try List.assoc (name prv) guesslist with Not_found -> 20)
+type range = Guess of int * int | Range of int * int
+let guesslist = [ "alt-ergo", 16 ; "z3", 32 ; "cvc4", 40 ]
+let guess prv = Guess (1,try List.assoc (name prv) guesslist with Not_found -> 20)
 let singleton = function Guess _ -> false | Range(p,q) -> q <= p+1
-let select = function Guess n -> n | Range(p,q) -> (p+q)/2
-let upper s = function Guess _ -> Guess (2*s) | Range(_,q) -> Range(s,q)
-let lower s = function Guess _ -> Range(1,s) | Range(p,_) -> Range(p,s)
+let select = function Guess(_,n) -> n | Range(p,q) -> (p+q)/2
+let upper s = function Guess _ -> Guess(s,2*s) | Range(_,q) -> Range(s,q)
+let lower s = function Guess(p,_) -> Range(p,s) | Range(p,_) -> Range(p,s)
+let choose t x y =
+  match x,y with
+  | None,z | z,None -> z
+  | Some(_,tx), Some(_,ty) ->
+    if Float.abs (t -. tx) < Float.abs (t -. ty) then x else y
+
+[@@@ warning "-32"]
+let pp_range fmt = function
+  | Guess(p,q) -> Format.fprintf fmt "%d…%d?" p q
+  | Range(p,q) -> Format.fprintf fmt "%d…%d" p q
+[@@@ warning "+32"]
 
 let rec lookup env time prv rg best =
   if singleton rg then Fibers.return best else
     let n = select rg in
-    Format.printf "[%s] %d…\r@?" (name prv) n ;
+    Format.printf "> %s:%d\x1B[K\r@?" (name prv) n ;
     let* r = velocity env (time *. 2.0) prv n in
     match r with
     | Valid t ->
-      let best = Some (n,t) in
-      if t <= time *. 0.75 then lookup env time prv (upper n rg) best else
-      if time *. 1.25 <= t then lookup env time prv (lower n rg) best else
+      let best = choose time best (Some (n,t)) in
+      if t < time *. 0.9 then lookup env time prv (upper n rg) best else
+      if time *. 1.1 < t then lookup env time prv (lower n rg) best else
         Fibers.return best
     | _ ->
       lookup env time prv (lower n rg) best
@@ -111,17 +123,15 @@ let calibrate ~force ~master ~time provers =
     let timeout = float time *. 1e-3 in
     List.iter
       (fun prv ->
-         Format.printf "Calibrating %a@." pp_prover prv ;
          Fibers.await (lookup env timeout prv (guess prv) None)
            begin function
              | None ->
-               Format.printf "[%a] no result@." pp_prover prv
+               Format.printf "%-16s no result@." (id prv)
              | Some(n,t) ->
-               Format.printf "[%a] N=%d %a@." pp_prover prv n pp_time t
+               Format.printf "%-16s n=%d %a@." (id prv) n pp_time t
            end
       ) provers ;
-    Fibers.flush ~polling:20 () ;
-    Format.printf "Finished.@." ;
+    Fibers.flush ~polling:10 () ;
     ignore force ;
     ignore master ;
   end
