@@ -111,7 +111,7 @@ let pp_result fmt = function
 let of_json (js : Json.t) =
   let open Json in
   let status = try jfield "status" js |> jstring with Not_found -> "" in
-  let time = try jfield "status" js |> jfloat with Not_found -> 0.0 in
+  let time = try jfield "time" js |> jfloat with Not_found -> 0.0 in
   match status with
   | "NoResult" -> NoResult
   | "Failed" -> Failed
@@ -131,10 +131,48 @@ let to_json (r : result) : Json.t =
   | Valid t -> timed "Valid" t
 
 (* -------------------------------------------------------------------------- *)
+(* --- Prover Cache                                                       --- *)
+(* -------------------------------------------------------------------------- *)
+
+module Cache = Hashtbl.Make
+    (struct
+      type t = task * prover
+      let hash (t,p) = Hashtbl.hash (task_hash t , id p)
+      let equal (t1,p1) (t2,p2) = (p1 == p2) && (task_equal t1 t2)
+    end)
+
+let file (t,p) =
+  Printf.sprintf ".why3find/%s/%s.json"
+    (id p) Why3.Termcode.(task_checksum t |> string_of_checksum)
+
+let read e =
+  let f = file e in
+  if Sys.file_exists f then
+    try Json.of_file f |> of_json with _ -> NoResult
+  else NoResult
+
+let write e r =
+  let f = file e in
+  Utils.mkdirs (Filename.dirname f) ;
+  Json.to_file f (to_json r)
+
+let cache = Cache.create 0
+
+let get e =
+  try Cache.find cache e with Not_found ->
+    let r = read e in Cache.add cache e r ; r
+
+let set e r =
+  match r with
+  | NoResult -> ()
+  | Failed -> Cache.replace cache e r
+  | Valid _ | Unknown _ | Timeout _ -> Cache.replace cache e r ; write e r
+
+(* -------------------------------------------------------------------------- *)
 (* --- Running Prover                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-let prove (env : Wenv.env) (cancel : unit Fibers.signal)
+let call_prover (env : Wenv.env) (cancel : unit Fibers.signal)
     (task : task) (prover : prover) (time : float) =
   let main = get_main env.config in
   let limit = { empty_limit with limit_time = int_of_float (time +. 0.5) } in
@@ -165,5 +203,31 @@ let prove (env : Wenv.env) (cancel : unit Fibers.signal)
           | HighFailure | Failure _ -> Failed
         end
     end
+
+let hits = ref 0
+let miss = ref 0
+
+let prove env cancel task prover time =
+  let e = task,prover in
+  let r = get e in
+  let cached = match r with
+    | NoResult -> false
+    | Failed -> true
+    | Unknown _ -> true
+    | Valid t -> t <= time
+    | Timeout t -> time <= t
+  in
+  if cached then
+    (incr hits ; Fibers.return r)
+  else
+    (incr miss ;
+     Fibers.map
+       (fun r -> set e r ; r)
+       (call_prover env cancel task prover time))
+
+let report_stats () =
+  let h = !hits in
+  let m = !miss in
+  Format.printf "%d/%d cached@." h (h+m)
 
 (* -------------------------------------------------------------------------- *)

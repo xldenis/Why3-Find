@@ -134,6 +134,7 @@ let calibrate ~force ~master ~time provers =
     Fibers.flush ~polling:10 () ;
     ignore force ;
     ignore master ;
+    Runner.report_stats () ;
   end
 
 (* -------------------------------------------------------------------------- *)

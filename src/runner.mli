@@ -46,6 +46,6 @@ val to_json : result -> Json.t
 val prove : env -> unit Fibers.signal ->
   task -> prover -> float -> result Fibers.t
 
-
+val report_stats : unit -> unit
 
 (* -------------------------------------------------------------------------- *)
