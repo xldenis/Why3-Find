@@ -224,4 +224,6 @@ let flush ?(polling=10) () =
     yield () ;
   done
 
+let run ?polling ?(callback=ignore) f = f callback ; flush ?polling ()
+
 (* -------------------------------------------------------------------------- *)

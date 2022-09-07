@@ -197,4 +197,8 @@ val flush : ?polling:int -> unit -> unit
 (** [sleep ms] asynchronously waits for (at least) [ms] milliseconds. *)
 val sleep : int -> unit t
 
+(** {1 Main Loop} *)
+
+val run : ?polling:int -> ?callback:('a -> unit) -> 'a t -> unit
+
 (**************************************************************************)

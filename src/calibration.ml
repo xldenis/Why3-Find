@@ -75,13 +75,9 @@ let generate n =
 open Runner
 open Fibers.Monad
 
-let velocity env timeout prv n =
-  let cancel = Fibers.signal () in
-  Runner.prove env cancel (generate n) prv timeout
-
 type range = Guess of int * int | Range of int * int
-let guesslist = [ "alt-ergo", 16 ; "z3", 32 ; "cvc4", 40 ]
-let guess prv = Guess (1,try List.assoc (name prv) guesslist with Not_found -> 20)
+let guesses = [ "alt-ergo", 16 ; "z3", 32 ; "cvc4", 40 ]
+let guess prv = Guess (1,try List.assoc (name prv) guesses with Not_found -> 20)
 let singleton = function Guess _ -> false | Range(p,q) -> q <= p+1
 let select = function Guess(_,n) -> n | Range(p,q) -> (p+q)/2
 let upper s = function Guess _ -> Guess(s,2*s) | Range(_,q) -> Range(s,q)
@@ -100,18 +96,29 @@ let pp_range fmt = function
 
 type cenv = {
   env : Wenv.env ;
+  cancel : unit Fibers.signal ;
   time : float ;
   time_lo : float ;
   time_up : float ;
   time_out : float ;
 }
 
+let cenv env time =
+
+  {
+    env ; time ;
+    cancel = Fibers.signal () ;
+    time_lo = time *. 0.9 ;
+    time_up = time *. 1.1 ;
+    time_out = time *. 2.0
+  }
+
 let rec lookup w prv rg best =
   if singleton rg then Fibers.return best else
     let n = select rg in
     Format.printf "> %s:%d\x1B[K\r@?" (name prv) n ;
-    let* r = velocity w.env w.time_out prv n in
-    match r with
+    let* result = Runner.prove w.env w.cancel (generate n) prv w.time_out in
+    match result with
     | Valid t ->
       let best = choose w.time best (Some (n,t)) in
       if t < w.time_lo then lookup w prv (upper n rg) best else
@@ -125,28 +132,30 @@ let rec lookup w prv rg best =
 (* -------------------------------------------------------------------------- *)
 
 let calibrate ~time provers =
+  Fibers.run @@
   begin
     let env = Wenv.init ~pkgs:[] in
     let time = float time *. 1e-3 in
     let provers = Runner.select env provers in
-    let w = {
-      env ; time ;
-      time_lo = time *. 0.9 ;
-      time_up = time *. 1.1 ;
-      time_out = time *. 2.0
-    } in
+    let w = cenv env time in
+    let* results =
+      Fibers.all @@ List.map
+        (fun prv ->
+           let+ r = lookup w prv (guess prv) None in
+           prv, r
+        ) provers
+    in
     List.iter
-      (fun prv ->
-         Fibers.await (lookup w prv (guess prv) None)
-           begin function
-             | None ->
-               Format.printf "%-16s no result@." (id prv)
-             | Some(n,t) ->
-               Format.printf "%-16s n=%d %a@." (id prv) n pp_time t
-           end
-      ) provers ;
-    Fibers.flush ~polling:10 () ;
+      (fun (prv,res) ->
+         match res with
+         | None ->
+           Format.printf "%-16s no result@." (id prv)
+         | Some(n,t) ->
+           Format.printf "%-16s n=%d %a@." (id prv) n pp_time t
+      ) @@
+    List.sort (fun (p,_) (q,_) -> String.compare (id p) (id q)) results ;
     Runner.report_stats () ;
+    Fibers.return () ;
   end
 
 (* -------------------------------------------------------------------------- *)
