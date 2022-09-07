@@ -94,7 +94,7 @@ let pp_range fmt = function
   | Range(p,q) -> Format.fprintf fmt "%d…%d" p q
 [@@@ warning "+32"]
 
-type cenv = {
+type qenv = {
   env : Wenv.env ;
   cancel : unit Fibers.signal ;
   time : float ;
@@ -103,29 +103,27 @@ type cenv = {
   time_out : float ;
 }
 
-let cenv env time =
+let qenv env time = {
+  env ; time ;
+  cancel = Fibers.signal () ;
+  time_lo = time *. 0.9 ;
+  time_up = time *. 1.1 ;
+  time_out = time *. 2.0
+}
 
-  {
-    env ; time ;
-    cancel = Fibers.signal () ;
-    time_lo = time *. 0.9 ;
-    time_up = time *. 1.1 ;
-    time_out = time *. 2.0
-  }
-
-let rec lookup w prv rg best =
+let rec lookup q prv rg best =
   if singleton rg then Fibers.return best else
     let n = select rg in
     Format.printf "> %s:%d\x1B[K\r@?" (name prv) n ;
-    let* result = Runner.prove w.env w.cancel (generate n) prv w.time_out in
+    let* result = Runner.prove q.env q.cancel (generate n) prv q.time_out in
     match result with
     | Valid t ->
-      let best = choose w.time best (Some (n,t)) in
-      if t < w.time_lo then lookup w prv (upper n rg) best else
-      if w.time_up < t then lookup w prv (lower n rg) best else
+      let best = choose q.time best (Some (n,t)) in
+      if t < q.time_lo then lookup q prv (upper n rg) best else
+      if q.time_up < t then lookup q prv (lower n rg) best else
         Fibers.return best
     | _ ->
-      lookup w prv (lower n rg) best
+      lookup q prv (lower n rg) best
 
 (* -------------------------------------------------------------------------- *)
 (* --- Calibration Processing                                             --- *)
@@ -137,11 +135,11 @@ let calibrate ~time provers =
     let env = Wenv.init ~pkgs:[] in
     let time = float time *. 1e-3 in
     let provers = Runner.select env provers in
-    let w = cenv env time in
+    let q = qenv env time in
     let* results =
       Fibers.all @@ List.map
         (fun prv ->
-           let+ r = lookup w prv (guess prv) None in
+           let+ r = lookup q prv (guess prv) None in
            prv, r
         ) provers
     in
