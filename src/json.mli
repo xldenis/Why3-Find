@@ -35,4 +35,5 @@ val jstring : t -> string
 val jstringlist : t -> string list
 val jlist : t -> t list
 val jfield : string -> t -> t
+val jfield_exn : string -> t -> t
 val jmem : string -> t -> bool

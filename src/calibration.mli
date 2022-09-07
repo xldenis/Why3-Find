@@ -23,5 +23,14 @@
 (* --- Prover Calibration                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-val generate : int -> Why3.Task.task
+type gauge = { prover : string ; size : int ; time : float }
+type profile = gauge list
+
+val of_json : Json.t -> profile
+val to_json : profile -> Json.t
+
+val calibrate_prover : Wenv.env -> Runner.prover -> gauge option Fibers.t
+
 val calibrate : time:int -> string list -> unit
+
+(* -------------------------------------------------------------------------- *)

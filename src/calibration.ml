@@ -126,6 +126,50 @@ let rec lookup q prv rg best =
       lookup q prv (lower n rg) best
 
 (* -------------------------------------------------------------------------- *)
+(* --- Profile                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+type gauge = { prover : string ; size : int ; time : float }
+type profile = gauge list
+
+let of_json (js : Json.t) : profile =
+  let open Json in
+  List.fold_left (fun gs js ->
+      try
+        let prover = jfield_exn "prover" js |> jstring in
+        let size = jfield_exn "size" js |> jint in
+        let time = jfield_exn "time" js |> jfloat in
+        { prover ; size ; time } :: gs
+      with _ -> gs
+    ) [] (jlist js)
+
+let to_json (p : profile) : Json.t =
+  `List (List.map (fun { prover ; size ; time } ->
+      `Assoc [
+        "prover", `String prover ;
+        "size", `Int size ;
+        "time", `Float time ;
+      ]
+    ) p)
+
+(* -------------------------------------------------------------------------- *)
+(* --- On-the-fly Calibration                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let qhash = Hashtbl.create 0
+
+let calibrate_prover env prv : gauge option Fibers.t =
+  try Hashtbl.find qhash (id prv)
+  with Not_found ->
+    let q = qenv env 0.5 in
+    let p =
+      let+ r = lookup q prv (guess prv) None in
+      match r with
+      | None -> None
+      | Some(n,t) -> Some { prover = id prv ; size = n ; time = t }
+    in Hashtbl.add qhash (id prv) p ; p
+
+(* -------------------------------------------------------------------------- *)
 (* --- Calibration Processing                                             --- *)
 (* -------------------------------------------------------------------------- *)
 

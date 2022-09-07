@@ -32,7 +32,6 @@ let process ~env ~provers ~transfs file =
     ignore Stuck ;
     ignore provers ;
     ignore transfs ;
-    ignore Calibration.generate ;
   end
 
 let prove ~pkgs ~provers ~transfs ~files =

@@ -110,15 +110,14 @@ let pp_result fmt = function
 
 let of_json (js : Json.t) =
   let open Json in
-  let status = try jfield "status" js |> jstring with Not_found -> "" in
-  let time = try jfield "time" js |> jfloat with Not_found -> 0.0 in
+  let status = jfield "status" js |> jstring in
+  let time = jfield "time" js |> jfloat in
   match status with
-  | "NoResult" -> NoResult
   | "Failed" -> Failed
   | "Unknown" -> Unknown time
   | "Timeout" -> Timeout time
   | "Valid" -> Valid time
-  | _ -> raise Not_found
+  | _ -> NoResult
 
 let to_json (r : result) : Json.t =
   let status st = `Assoc [ "status", `String st ] in

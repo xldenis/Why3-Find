@@ -57,7 +57,11 @@ let jmem fd = function
   | _ -> false
 
 let jfield fd = function
-  | `Assoc fds -> List.assoc fd fds
+  | `Assoc fds -> (try List.assoc fd fds with Not_found -> `Null)
   | _ -> `Null
+
+let jfield_exn fd = function
+  | `Assoc fds -> List.assoc fd fds
+  | _ -> raise Not_found
 
 (* -------------------------------------------------------------------------- *)
