@@ -50,9 +50,9 @@ let apply f cs =
 let rec to_json (a : crc) : Json.t = match a with
   | Stuck -> `Null
   | Prover(p,t) ->
-      `Assoc [ "prover", `String p ; "time", `Float t]
+    `Assoc [ "prover", `String p ; "time", `Float t]
   | Transf(_,_,f,xs) ->
-      `Assoc [ "transf", `String f; "children", `List (List.map to_json xs)]
+    `Assoc [ "transf", `String f; "children", `List (List.map to_json xs)]
 
 let rec of_json (js : Json.t) : crc =
   try
@@ -78,7 +78,7 @@ let rec merge a b =
     when p0 = p1 && t0 *. 0.5 < t1 && t1 < t0 *. 2.0 -> a
   | Transf(_,_,f,xs), Transf(_,_,g,ys)
     when f = g && List.length xs = List.length ys ->
-      apply f (List.map2 merge xs ys)
+    apply f (List.map2 merge xs ys)
   | _ -> b
 
 (* -------------------------------------------------------------------------- *)

@@ -165,10 +165,10 @@ let of_json (js : Json.t) : profile =
 let to_json (p : profile) : Json.t =
   `List (Hashtbl.fold (fun prv { size ; time } js ->
       (`Assoc [
-        "prover", `String prv ;
-        "size", `Int size ;
-        "time", `Float time ;
-      ]) :: js
+          "prover", `String prv ;
+          "size", `Int size ;
+          "time", `Float time ;
+        ]) :: js
     ) p [])
 
 (* -------------------------------------------------------------------------- *)

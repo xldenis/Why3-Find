@@ -69,10 +69,10 @@ let template ~subst ~src ~tgt =
     match Stdlib.input_line inc with
     | exception End_of_file -> ()
     | line ->
-        let line' = Str.global_substitute var (apply subst) line in
-        Stdlib.output_string out line' ;
-        Stdlib.output_string out "\n" ;
-        walk ()
+      let line' = Str.global_substitute var (apply subst) line in
+      Stdlib.output_string out line' ;
+      Stdlib.output_string out "\n" ;
+      walk ()
   in walk () ;
   close_in inc ;
   close_out out ;
@@ -83,8 +83,8 @@ let find_direcory ~msg fn =
     match dir with
     | "/" | "." -> failwith msg
     | _ ->
-        if fn dir then dir else
-          lookup (Filename.dirname dir)
+      if fn dir then dir else
+        lookup (Filename.dirname dir)
   in lookup @@ Sys.getcwd ()
 
 let find_makefile () =
@@ -115,16 +115,16 @@ let exec
     begin
       match argv.(!p) with
       | "-p" | "--package" ->
-          incr p ;
-          if !p < Array.length argv then
-            pkgs += argv.(!p)
-          else
-            failwith "missing PKG name"
+        incr p ;
+        if !p < Array.length argv then
+          pkgs += argv.(!p)
+        else
+          failwith "missing PKG name"
       | "--drivers" when auto -> drivers := true
       | "--configs" when auto -> configs := true
       | "-v" | "--verbose" -> verbose := true
       | arg ->
-          args += arg
+        args += arg
     end ; incr p
   done ;
   let pkgs = Meta.find_all (Bag.to_list !pkgs) in
@@ -167,17 +167,17 @@ let exec
 let process cmd argv : unit =
   match List.assoc cmd !commands with
   | exception Not_found ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find CMD [ARGS...]\n\n\
-         DESCRIPTION:\n\
-         \n  Execute command \"CMD\" with wrapped arguments.\n\n\
-         OPTIONS:\n\
-         \n  --p|--package PKG : pass --library=<path> for the package\
-         \n  --configs : pass also --extra-config-file=<CFG> options\
-         \n  --drivers : pass also --driver=<DRV> options\
-         \n" ;
-      exec ~cmd ~auto:true argv
+    usage argv
+      "USAGE:\n\
+       \n  why3find CMD [ARGS...]\n\n\
+       DESCRIPTION:\n\
+       \n  Execute command \"CMD\" with wrapped arguments.\n\n\
+       OPTIONS:\n\
+       \n  --p|--package PKG : pass --library=<path> for the package\
+       \n  --configs : pass also --extra-config-file=<CFG> options\
+       \n  --drivers : pass also --driver=<DRV> options\
+       \n" ;
+    exec ~cmd ~auto:true argv
   | _,process -> process argv
 
 let register ~name ?(args="") process =
@@ -454,21 +454,21 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
         match Filename.extension src with
         | "" -> Format.printf "depend %s@." src ; depends := src :: !depends
         | ".mlw" ->
-            if not (String.starts_with ~prefix src) then
-              failwith
-                (Printf.sprintf
-                   "can not install %S from outside of %S"
-                   src prefix) ;
-            Format.printf "install (source) %s@." src ;
-            install ~src ;
+          if not (String.starts_with ~prefix src) then
+            failwith
+              (Printf.sprintf
+                 "can not install %S from outside of %S"
+                 src prefix) ;
+          Format.printf "install (source) %s@." src ;
+          install ~src ;
         | ".cfg" ->
-            Format.printf "install (config) %s@." src ;
-            install ~src ;
-            configs := src :: !configs ;
+          Format.printf "install (config) %s@." src ;
+          install ~src ;
+          configs := src :: !configs ;
         | ".drv" ->
-            Format.printf "install (driver) %s@." src ;
-            install ~src ;
-            drivers := src :: !drivers ;
+          Format.printf "install (driver) %s@." src ;
+          install ~src ;
+          drivers := src :: !drivers ;
         | _ -> failwith (Printf.sprintf "don't know what to do with %S" src)
       done ;
       Format.printf "install (meta)   META.json@." ;

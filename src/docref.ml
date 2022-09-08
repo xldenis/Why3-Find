@@ -279,10 +279,10 @@ let parse ~why3env file =
       (fun theory ->
          let clones = ref [] in
          let locals = iter_theory
-           (fun a b ->
-              if is_cloned b then
-                clones := { id_source = a ; id_target = b } :: !clones
-           ) theory
+             (fun a b ->
+                if is_cloned b then
+                  clones := { id_source = a ; id_target = b } :: !clones
+             ) theory
          in { theory ; locals ; clones = !clones }
       ) thys
   in

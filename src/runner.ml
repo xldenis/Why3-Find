@@ -99,7 +99,7 @@ type result =
 let pp_time fmt t =
   if t < 1e-3 then Format.fprintf fmt "%dns" (int_of_float @@ t *. 1e6) else
   if t < 1.0 then Format.fprintf fmt "%dms" (int_of_float @@ t *. 1e3) else
-  Format.fprintf fmt "%ds" (int_of_float @@ t)
+    Format.fprintf fmt "%ds" (int_of_float @@ t)
 
 let pp_result fmt = function
   | NoResult -> Format.pp_print_string fmt "No Result"

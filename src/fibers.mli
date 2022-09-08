@@ -112,7 +112,7 @@ val any : 'a t list -> 'a t
 val seq : 'a t list -> 'a list t
 
 (** [all ks] waits all continuations in {i parallel} and returns their result one
-   they _all_ have terminated. *)
+    they _all_ have terminated. *)
 val all : 'a t list -> 'a list t
 
 (** {1 Signals} *)
