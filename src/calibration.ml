@@ -126,54 +126,87 @@ let rec lookup q prv rg best =
       lookup q prv (lower n rg) best
 
 (* -------------------------------------------------------------------------- *)
-(* --- Profile                                                            --- *)
-(* -------------------------------------------------------------------------- *)
-
-type gauge = { prover : string ; size : int ; time : float }
-type profile = gauge list
-
-let of_json (js : Json.t) : profile =
-  let open Json in
-  List.fold_left (fun gs js ->
-      try
-        let prover = jfield_exn "prover" js |> jstring in
-        let size = jfield_exn "size" js |> jint in
-        let time = jfield_exn "time" js |> jfloat in
-        { prover ; size ; time } :: gs
-      with _ -> gs
-    ) [] (jlist js)
-
-let to_json (p : profile) : Json.t =
-  `List (List.map (fun { prover ; size ; time } ->
-      `Assoc [
-        "prover", `String prover ;
-        "size", `Int size ;
-        "time", `Float time ;
-      ]
-    ) p)
-
-(* -------------------------------------------------------------------------- *)
 (* --- On-the-fly Calibration                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
 let qhash = Hashtbl.create 0
 
-let calibrate_prover env prv : gauge option Fibers.t =
+let calibrate env prv : (int * float) option Fibers.t =
   try Hashtbl.find qhash (id prv)
   with Not_found ->
     let q = qenv env 0.5 in
-    let p =
-      let+ r = lookup q prv (guess prv) None in
-      match r with
-      | None -> None
-      | Some(n,t) -> Some { prover = id prv ; size = n ; time = t }
-    in Hashtbl.add qhash (id prv) p ; p
+    let p = lookup q prv (guess prv) None in
+    Hashtbl.add qhash (id prv) p ; p
 
 (* -------------------------------------------------------------------------- *)
-(* --- Calibration Processing                                             --- *)
+(* --- Profile                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
-let calibrate ~time provers =
+type gauge = {
+  size : int ;
+  time : float ;
+  mutable alpha : float ;
+}
+
+type profile = (string,gauge) Hashtbl.t
+
+let of_json (js : Json.t) : profile =
+  let open Json in
+  let p = Hashtbl.create 0 in
+  List.iter (fun js ->
+      try
+        let prv = jfield_exn "prover" js |> jstring in
+        let size = jfield_exn "size" js |> jint in
+        let time = jfield_exn "time" js |> jfloat in
+        Hashtbl.replace p prv { size ; time ; alpha = 0.0 }
+      with _ -> ()
+    ) (jlist js) ; p
+
+let to_json (p : profile) : Json.t =
+  `List (Hashtbl.fold (fun prv { size ; time } js ->
+      (`Assoc [
+        "prover", `String prv ;
+        "size", `Int size ;
+        "time", `Float time ;
+      ]) :: js
+    ) p [])
+
+(* -------------------------------------------------------------------------- *)
+(* --- Velocity                                                           --- *)
+(* -------------------------------------------------------------------------- *)
+
+let gauge env profile prv : gauge Fibers.t =
+  let p = id prv in
+  try Fibers.return @@ Hashtbl.find profile p
+  with Not_found ->
+    let+ r = calibrate env prv in
+    match r with
+    | Some (size,time) ->
+      let g = { time ; size ; alpha = 1.0 } in
+      Hashtbl.add profile p g ; g
+    | None ->
+      Format.eprintf "[Error] can not calibrate prover %s@." p ;
+      exit 2
+
+let velocity env profile prv : float Fibers.t =
+  let* g = gauge env profile prv in
+  if g.alpha > 0.0 then Fibers.return g.alpha else
+    let cancel = Fibers.signal () in
+    let timeout = 5.0 *. (max 1.0 g.time) in
+    Format.printf "> %s:%d\x1B[K\r@?" (name prv) g.size ;
+    let* result = Runner.prove env cancel (generate g.size) prv timeout in
+    match result with
+    | Valid t -> let a = t /. g.time in g.alpha <- a ; Fibers.return a
+    | _ ->
+      Format.eprintf "[Error] can not calibrate prover %a (N=%d, %a)@."
+        Runner.pp_prover prv g.size Runner.pp_result result ;
+      exit 2
+
+(* -------------------------------------------------------------------------- *)
+(* --- Testing Calibration                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let calibrate_provers ~time provers =
   Fibers.run @@
   begin
     let env = Wenv.init ~pkgs:[] in

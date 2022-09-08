@@ -631,7 +631,7 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
          DESCRIPTION:\n\
          \n  Calibrate your machine velocity.\n\n\
          OPTIONS:\n" ;
-      Calibration.calibrate ~time:!time (List.rev !prvs) ;
+      Calibration.calibrate_provers ~time:!time (List.rev !prvs) ;
     end
 
 (* -------------------------------------------------------------------------- *)

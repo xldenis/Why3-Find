@@ -27,19 +27,20 @@ open Wenv
 open Why3.Task
 
 type prover
+type result =
+  | NoResult | Failed | Unknown of float | Timeout of float | Valid of float
+
 val id : prover -> string
 val name : prover -> string
-val pp_prover : Format.formatter -> prover -> unit
 
 val default : env -> prover list
 val prover : env -> string -> prover
 val select : env -> string list -> prover list
 
-type result =
-  | NoResult | Failed | Unknown of float | Timeout of float | Valid of float
-
 val pp_time : Format.formatter -> float -> unit
+val pp_prover : Format.formatter -> prover -> unit
 val pp_result : Format.formatter -> result -> unit
+
 val of_json : Json.t -> result
 val to_json : result -> Json.t
 
