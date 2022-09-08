@@ -66,4 +66,8 @@ let progress msg =
          Format.printf "> %s\027[K\r@?" (Buffer.contents buffer)
     ) (Format.formatter_of_buffer buffer) msg
 
+let flush () =
+  if Lazy.force tty then
+    Format.printf "\r\027[K"
+
 (* -------------------------------------------------------------------------- *)

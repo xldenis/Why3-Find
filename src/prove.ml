@@ -54,7 +54,13 @@ let process ~env ~provers ~transfs file =
   begin
     Utils.progress "loading %s" file ;
     let wenv = env.Wenv.env in
-    let theories = Why3.Env.(read_file base_language wenv file) in
+    let theories =
+      try Why3.Env.(read_file base_language wenv file)
+      with error ->
+        Utils.flush () ;
+        Format.printf "%s@." (Printexc.to_string error) ;
+        exit 2
+    in
     let profile, strategy = load_proof file in
     let proved = ref 0 in
     let total = ref 0 in
@@ -79,8 +85,9 @@ let prove ~pkgs ~provers ~transfs ~files =
     let* results =
       Fibers.all @@ List.map (process ~env ~provers ~transfs) files
     in
+    Utils.flush () ;
     List.iter (fun (file,proved,total) ->
-        Format.printf "[ %4d / %4d ] %s@." proved total file
+        Format.printf "%d/%d %s@." proved total (Filename.basename file)
       ) results ;
     Runner.report_stats () ;
     Fibers.return ()

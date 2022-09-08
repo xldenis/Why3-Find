@@ -28,5 +28,6 @@ val cleanup : string -> unit
 val copy : src:string -> tgt:string -> unit
 
 val progress : ('a,Format.formatter,unit) format -> 'a
+val flush : unit -> unit
 
 (* -------------------------------------------------------------------------- *)

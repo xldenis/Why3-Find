@@ -220,6 +220,7 @@ let calibrate_provers ~time provers =
            prv, r
         ) provers
     in
+    Utils.flush () ;
     List.iter
       (fun (prv,res) ->
          match res with
