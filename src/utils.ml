@@ -55,4 +55,15 @@ let copy ~src ~tgt =
       ( Stdlib.output out buffer 0 n ; walk () )
   in walk () ; close_in inc ; close_out out
 
+let tty = lazy (Unix.isatty Unix.stdout)
+
+let progress msg =
+  let buffer = Buffer.create 80 in
+  Format.kfprintf
+    (fun fmt ->
+       Format.pp_print_flush fmt () ;
+       if Lazy.force tty then
+         Format.printf "> %s\027[K\r@?" (Buffer.contents buffer)
+    ) (Format.formatter_of_buffer buffer) msg
+
 (* -------------------------------------------------------------------------- *)

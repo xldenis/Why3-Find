@@ -24,6 +24,7 @@
 (* -------------------------------------------------------------------------- *)
 
 open Crc
+open Fibers.Monad
 
 let process ~env ~provers ~transfs file =
   begin
@@ -32,14 +33,22 @@ let process ~env ~provers ~transfs file =
     ignore Stuck ;
     ignore provers ;
     ignore transfs ;
+    exit 2
   end
 
 let prove ~pkgs ~provers ~transfs ~files =
+  Fibers.run @@
   begin
     let env = Wenv.init ~pkgs in
     let provers = Runner.select env provers in
-    List.iter (process ~env ~provers ~transfs) files ;
-    exit 2 ;
+    let* results =
+      Fibers.all @@ List.map (process ~env ~provers ~transfs) files
+    in
+    List.iter (fun (file,proved,total) ->
+        Format.printf "[ %4d / %4d ] %s@." proved total file
+      ) results ;
+    Runner.report_stats () ;
+    Fibers.return ()
   end
 
 (* -------------------------------------------------------------------------- *)

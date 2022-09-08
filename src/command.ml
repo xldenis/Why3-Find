@@ -580,6 +580,30 @@ let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
     end
 
 (* -------------------------------------------------------------------------- *)
+(* --- CALIBRATE                                                          --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
+    begin fun argv ->
+      let time = ref 500 in
+      let prvs = ref [] in
+      let prover p = prvs := p :: !prvs in
+      Arg.parse_argv argv
+        [
+          "-j", Arg.Set_int Runner.jobs, "JOBS max parallel provers";
+          "-t", Arg.Set_int time, "MS calibration time (default 500ms)";
+          "-P", Arg.String prover, "PRV prover to calibrate";
+        ]
+        prover
+        "USAGE:\n\
+         \n  why3find calibrate [OPTIONS] PROVERS\n\n\
+         DESCRIPTION:\n\
+         \n  Calibrate your machine.\n\n\
+         OPTIONS:\n" ;
+      Calibration.calibrate_provers ~time:!time (List.rev !prvs) ;
+    end
+
+(* -------------------------------------------------------------------------- *)
 (* --- PROVE                                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -608,30 +632,6 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let transfs = List.rev !trfs in
       let files = List.rev !files in
       Prove.prove ~pkgs ~provers ~transfs ~files
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- CONFIG                                                             --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
-    begin fun argv ->
-      let time = ref 500 in
-      let prvs = ref [] in
-      let prover p = prvs := p :: !prvs in
-      Arg.parse_argv argv
-        [
-          "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
-          "-t", Arg.Set_int time, "MS calibration time (default 500ms)";
-          "-P", Arg.String prover, "PRV prover to calibrate";
-        ]
-        prover
-        "USAGE:\n\
-         \n  why3find calibrate [OPTIONS] PROVERS\n\n\
-         DESCRIPTION:\n\
-         \n  Calibrate your machine velocity.\n\n\
-         OPTIONS:\n" ;
-      Calibration.calibrate_provers ~time:!time (List.rev !prvs) ;
     end
 
 (* -------------------------------------------------------------------------- *)
