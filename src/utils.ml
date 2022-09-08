@@ -55,19 +55,46 @@ let copy ~src ~tgt =
       ( Stdlib.output out buffer 0 n ; walk () )
   in walk () ; close_in inc ; close_out out
 
-let tty = lazy (Unix.isatty Unix.stdout)
+(* -------------------------------------------------------------------------- *)
+(* --- Terminal Facilities                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let tty = Unix.isatty Unix.stdout
 
 let progress msg =
   let buffer = Buffer.create 80 in
   Format.kfprintf
     (fun fmt ->
        Format.pp_print_flush fmt () ;
-       if Lazy.force tty then
+       if tty then
          Format.printf "> %s\027[K\r@?" (Buffer.contents buffer)
     ) (Format.formatter_of_buffer buffer) msg
 
-let flush () =
-  if Lazy.force tty then
-    Format.printf "\r\027[K"
+let flush () = if tty then Format.printf "\r\027[K"
+
+open Format
+
+let nop _ = ()
+
+let mark_open_stag = function
+  | String_tag "red" -> "\027[31m"
+  | String_tag "green" -> "\027[32m"
+  | String_tag "orange" -> "\027[33m"
+  | _ -> ""
+
+let mark_close_stag = function
+  | String_tag ("red"|"green"|"orange") -> "\027[39m"
+  | _ -> ""
+
+let () = if tty then
+    begin
+      set_tags true ;
+      set_formatter_stag_functions {
+        mark_open_stag ;
+        mark_close_stag ;
+        print_open_stag = nop ;
+        print_close_stag = nop ;
+      }
+    end
 
 (* -------------------------------------------------------------------------- *)

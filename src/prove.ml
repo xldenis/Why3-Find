@@ -87,7 +87,9 @@ let prove ~pkgs ~provers ~transfs ~files =
     in
     Utils.flush () ;
     List.iter (fun (file,proved,total) ->
-        Format.printf "%d/%d %s@." proved total (Filename.basename file)
+        Format.printf "%d/%d @{<%s>%s@}@." proved total
+          (if total < proved then "red" else "green")
+          (Filename.basename file)
       ) results ;
     Runner.report_stats () ;
     Fibers.return ()
