@@ -64,4 +64,8 @@ let jfield_exn fd = function
   | `Assoc fds -> List.assoc fd fds
   | _ -> raise Not_found
 
+let jiter f = function
+  | `Assoc fds -> List.iter (fun (fd,js) -> f fd js) fds
+  | _ -> ()
+
 (* -------------------------------------------------------------------------- *)

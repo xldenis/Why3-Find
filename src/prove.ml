@@ -23,18 +23,53 @@
 (* --- Proof Manager                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-open Crc
 open Fibers.Monad
+
+type strategy = (string * string,Crc.crc) Hashtbl.t
+
+(* -------------------------------------------------------------------------- *)
+(* --- Proof File                                                         --- *)
+(* -------------------------------------------------------------------------- *)
+
+let load_proof file : Calibration.profile * strategy =
+  let fp = Printf.sprintf "%s/proof.json" (Filename.chop_extension file) in
+  let js = if Sys.file_exists fp then Json.of_file fp else `Null in
+  let profile = Calibration.of_json (Json.jfield "profile" js) in
+  let strategy = Hashtbl.create 0 in
+  begin
+    Json.jfield "theories" js |>
+    Json.jiter (fun thy js ->
+        Json.jiter (fun goal js ->
+            Hashtbl.add strategy (thy,goal) (Crc.of_json js)
+          ) js
+      ) ;
+  end ;
+  profile , strategy
+
+(* -------------------------------------------------------------------------- *)
+(* --- Single File Processing                                             --- *)
+(* -------------------------------------------------------------------------- *)
 
 let process ~env ~provers ~transfs file =
   begin
-    Format.printf "Proving %s...@." file ;
+    Utils.progress "loading %s" file ;
+    let wenv = env.Wenv.env in
+    let theories = Why3.Env.(read_file base_language wenv file) in
+    let profile, strategy = load_proof file in
+    let proved = ref 0 in
+    let total = ref 0 in
     ignore env ;
-    ignore Stuck ;
+    ignore theories ;
+    ignore profile ;
+    ignore strategy ;
     ignore provers ;
     ignore transfs ;
-    exit 2
+    Fibers.return (file,!proved,!total)
   end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Main Prove Command                                                 --- *)
+(* -------------------------------------------------------------------------- *)
 
 let prove ~pkgs ~provers ~transfs ~files =
   Fibers.run @@

@@ -55,17 +55,18 @@ let rec to_json (a : crc) : Json.t = match a with
       `Assoc [ "transf", `String f; "children", `List (List.map to_json xs)]
 
 let rec of_json (js : Json.t) : crc =
-  let open Json in
-  match js with
-  | `Assoc fds when List.mem_assoc "prover" fds ->
-      let p = List.assoc "prover" fds |> jstring in
-      let t = List.assoc "time" fds |> jfloat in
+  try
+    match js with
+    | `Assoc fds when List.mem_assoc "prover" fds ->
+      let p = List.assoc "prover" fds |> Json.jstring in
+      let t = List.assoc "time" fds |> Json.jfloat in
       Prover(p,t)
-  | `Assoc fds when List.mem_assoc "transf" fds ->
-      let f = List.assoc "transf" fds |> jstring in
-      let xs = List.assoc "children" fds |> jlist in
+    | `Assoc fds when List.mem_assoc "transf" fds ->
+      let f = List.assoc "transf" fds |> Json.jstring in
+      let xs = List.assoc "children" fds |> Json.jlist in
       apply f (List.map of_json xs)
-  | _ -> Stuck
+    | _ -> Stuck
+  with _ -> Stuck
 
 (* -------------------------------------------------------------------------- *)
 (* --- Merging                                                            --- *)

@@ -37,3 +37,4 @@ val jlist : t -> t list
 val jfield : string -> t -> t
 val jfield_exn : string -> t -> t
 val jmem : string -> t -> bool
+val jiter : (string -> t -> unit) -> t -> unit
