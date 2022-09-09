@@ -177,6 +177,9 @@ let set e r =
 (* -------------------------------------------------------------------------- *)
 
 let jobs = ref 0
+let runs = ref 0
+
+let running () = !runs
 
 let call_prover (env : Wenv.env) (cancel : unit Fibers.signal)
     (task : task) (prover : prover) (time : float) =
@@ -195,22 +198,34 @@ let call_prover (env : Wenv.env) (cancel : unit Fibers.signal)
   Fibers.hook cancel kill Fibers.async
     begin fun () ->
       let timer = !timeout in
-      if 0.0 < timer && timer < Unix.gettimeofday () then kill () ;
+      let started = timer > 0.0 in
+      if started && timer < Unix.gettimeofday () then kill () ;
       match query_call call with
-      | NoUpdates | ProverInterrupted -> None
-      | ProverStarted ->
-        if timer = 0.0 then timeout := Unix.gettimeofday () +. time ;
+      | NoUpdates
+      | ProverInterrupted ->
         None
-      | InternalFailure _ -> Some Failed
+      | ProverStarted ->
+        if not started then
+          begin
+            incr runs ;
+            timeout := Unix.gettimeofday () +. time ;
+          end ;
+        None
+      | InternalFailure _ ->
+        begin
+          if started then decr runs ;
+          Some Failed
+        end
       | ProverFinished pr ->
-        Some begin
-          match pr.pr_answer with
+        let result = match pr.pr_answer with
           | Valid -> Valid pr.pr_time
           | Timeout -> Timeout time
           | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
             Unknown pr.pr_time
           | HighFailure | Failure _ -> Failed
-        end
+        in
+        if started then decr runs ;
+        Some result
     end
 
 (* -------------------------------------------------------------------------- *)

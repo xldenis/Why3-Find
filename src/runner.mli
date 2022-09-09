@@ -48,6 +48,7 @@ val prove : env -> unit Fibers.signal ->
   task -> prover -> float -> result Fibers.t
 
 val jobs : int ref
+val running : unit -> int
 val report_stats : unit -> unit
 
 (* -------------------------------------------------------------------------- *)
