@@ -24,8 +24,8 @@
 (* -------------------------------------------------------------------------- *)
 
 type env = {
-  config : Why3.Whyconf.config ;
-  env : Why3.Env.env ;
+  wconfig : Why3.Whyconf.config ;
+  wenv : Why3.Env.env ;
 }
 
 let init ~pkgs =
@@ -34,9 +34,9 @@ let init ~pkgs =
     let pkgs = Meta.find_all pkgs in
     let pkg_path = List.map (fun m -> m.Meta.path) pkgs in
     (* Environment config *)
-    let config = Whyconf.init_config None in
-    let main = Whyconf.get_main config in
-    let cfg_path = Whyconf.loadpath main in
-    let env = Why3.Env.create_env ("." :: pkg_path @ cfg_path) in
-    { config ; env }
+    let wconfig = Whyconf.init_config None in
+    let wmain = Whyconf.get_main wconfig in
+    let wpath = Whyconf.loadpath wmain in
+    let wenv = Why3.Env.create_env ("." :: pkg_path @ wpath) in
+    { wconfig ; wenv }
   end

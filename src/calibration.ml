@@ -175,6 +175,8 @@ let to_json (p : profile) : Json.t =
 (* --- Velocity                                                           --- *)
 (* -------------------------------------------------------------------------- *)
 
+let round t = Float.round (t *. 100.0) *. 1e-2
+
 let gauge env profile prv : gauge Fibers.t =
   let p = id prv in
   try Fibers.return @@ Hashtbl.find profile p
@@ -201,6 +203,12 @@ let velocity env profile prv : float Fibers.t =
       Format.eprintf "[Error] can not calibrate prover %a (N=%d, %a)@."
         Runner.pp_prover prv g.size Runner.pp_result result ;
       exit 2
+
+let observed profile prv =
+  try
+    let a = (Hashtbl.find profile (id prv)).alpha in
+    if a > 0.0 then a else 1.0
+  with Not_found -> 1.0
 
 (* -------------------------------------------------------------------------- *)
 (* --- Testing Calibration                                                --- *)

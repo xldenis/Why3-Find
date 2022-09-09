@@ -45,9 +45,9 @@ let pp_prover fmt prv = Format.pp_print_string fmt @@ id prv
 let find_exact (env : Wenv.env) s =
   try
     let filter = parse_filter_prover s in
-    let config = filter_one_prover env.config filter in
+    let config = filter_one_prover env.wconfig filter in
     let driver =
-      try load_driver (get_main env.config) env.env config
+      try load_driver (get_main env.wconfig) env.wenv config
       with _ ->
         Format.eprintf "Failed to load driver for %s@."
           (prover_parseable_format config.prover) ;
@@ -183,7 +183,7 @@ let running () = !runs
 
 let call_prover (env : Wenv.env) (cancel : unit Fibers.signal)
     (task : task) (prover : prover) (time : float) =
-  let main = get_main env.config in
+  let main = get_main env.wconfig in
   let limit = { empty_limit with limit_time = int_of_float (time +. 0.5) } in
   let timeout = ref 0.0 in
   let np = !jobs in

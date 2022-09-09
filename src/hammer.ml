@@ -30,24 +30,59 @@ open Crc
 (* -------------------------------------------------------------------------- *)
 
 type node = {
+  profile : Calibration.profile ;
   task : Why3.Task.task ;
-  certif : crc ;
+  hint : crc ;
   result : crc Fibers.var ;
 }
 
 let q1 : node Queue.t = Queue.create ()
 let q2 : node Queue.t = Queue.create ()
 
-let schedule task certif =
+let schedule profile task hint =
   let result = Fibers.var () in
-  Queue.push { task ; certif ; result } (if certif = Stuck then q1 else q2) ;
+  Queue.push
+    { profile ; task ; hint ; result }
+    (if complete hint then q2 else q1) ;
   Fibers.get result
 
-(*
 let pop () =
   try Some (Queue.pop q1) with Queue.Empty ->
   try Some (Queue.pop q2) with Queue.Empty ->
     None
-*)
+
+(* -------------------------------------------------------------------------- *)
+(* --- Hammer Strategy                                                    --- *)
+(* -------------------------------------------------------------------------- *)
+
+type henv = {
+  env : Wenv.env ;
+  time : float ;
+  provers : Runner.prover list ;
+  transfs : string list ;
+}
+
+let hammer _henv _task _hint = Fibers.return Stuck
+
+(* -------------------------------------------------------------------------- *)
+(* --- Main Loop                                                          --- *)
+(* -------------------------------------------------------------------------- *)
+
+let rec run henv =
+  Fibers.yield () ;
+  let n1 = Queue.length q1 in
+  let n2 = Queue.length q2 in
+  let nr = Runner.running () in
+  Utils.progress "%d/%d/%d" n2 n1 nr ;
+  match pop () with
+  | None ->
+    if Fibers.pending () > 0 then
+      begin
+        Unix.sleepf 0.01 ;
+        run henv
+      end
+  | Some node ->
+    Fibers.await (hammer henv node.task node.hint) (Fibers.set node.result) ;
+    run henv
 
 (* -------------------------------------------------------------------------- *)

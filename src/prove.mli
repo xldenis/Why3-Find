@@ -23,7 +23,8 @@
 (* --- Proof Manager                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-val prove :
+val command :
+  time:int ->
   pkgs:string list ->
   provers:string list ->
   transfs:string list ->

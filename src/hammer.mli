@@ -24,7 +24,18 @@
 (* -------------------------------------------------------------------------- *)
 
 open Crc
+open Calibration
+open Why3.Task
 
-val schedule : Why3.Task.task -> crc -> crc Fibers.t
+val schedule : profile -> task -> crc -> crc Fibers.t
+
+type henv = {
+  env : Wenv.env ;
+  time : float ;
+  provers : Runner.prover list ;
+  transfs : string list ;
+}
+
+val run : henv -> unit
 
 (* -------------------------------------------------------------------------- *)

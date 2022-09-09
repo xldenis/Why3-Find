@@ -24,8 +24,8 @@
 (* -------------------------------------------------------------------------- *)
 
 type env = {
-  config : Why3.Whyconf.config ;
-  env : Why3.Env.env ;
+  wconfig : Why3.Whyconf.config ;
+  wenv : Why3.Env.env ;
 }
 
 val init : pkgs:string list -> env

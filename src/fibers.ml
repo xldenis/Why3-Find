@@ -182,7 +182,19 @@ let async f =
     | Some v -> set x v ; false
   in Queue.push queue yd ; get x
 
-let yield () = Queue.filter queue (fun yd -> yd ())
+let yield =
+  let lock = ref false in
+  fun () ->
+    if not !lock then
+      begin
+        lock := true ;
+        try
+          Queue.filter queue (fun yd -> yd ()) ;
+          lock := false ;
+        with exn ->
+          lock := false ;
+          raise exn
+      end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Mutex                                                              --- *)

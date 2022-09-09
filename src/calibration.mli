@@ -27,6 +27,8 @@ type profile
 val of_json : Json.t -> profile
 val to_json : profile -> Json.t
 
+val round : float -> float
+val observed : profile -> Runner.prover -> float
 val velocity : Wenv.env -> profile -> Runner.prover -> float Fibers.t
 val calibrate_provers : time:int -> string list -> unit
 
