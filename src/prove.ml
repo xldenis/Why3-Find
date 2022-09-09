@@ -24,26 +24,29 @@
 (* -------------------------------------------------------------------------- *)
 
 open Fibers.Monad
+module M = Why3.Wstdlib.Mstr
 
-type strategy = (string * string,Crc.crc) Hashtbl.t
+type strategy = Crc.crc M.t M.t
 
 (* -------------------------------------------------------------------------- *)
 (* --- Proof File                                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-let load_proof file : Calibration.profile * strategy =
-  let fp = Printf.sprintf "%s/proof.json" (Filename.chop_extension file) in
+[@@@ warning "-32"]
+
+let to_jmap cc js =
+  let m = ref M.empty in
+  Json.jiter (fun fd js -> m := M.add fd (cc js) !m) js ; !m
+
+let of_jmap (cc : 'a -> Json.t) (m : 'a M.t) : Json.t =
+  `Assoc (M.fold_left (fun js fd v -> (fd, cc v)::js) [] m)
+
+[@@@ warning "+32"]
+
+let load_proof fp : Calibration.profile * strategy =
   let js = if Sys.file_exists fp then Json.of_file fp else `Null in
-  let profile = Calibration.of_json (Json.jfield "profile" js) in
-  let strategy = Hashtbl.create 0 in
-  begin
-    Json.jfield "theories" js |>
-    Json.jiter (fun thy js ->
-        Json.jiter (fun goal js ->
-            Hashtbl.add strategy (thy,goal) (Crc.of_json js)
-          ) js
-      ) ;
-  end ;
+  let profile = Calibration.of_json @@ Json.jfield "profile" js in
+  let strategy = to_jmap (to_jmap Crc.of_json) @@ Json.jfield "theories" js in
   profile , strategy
 
 (* -------------------------------------------------------------------------- *)
@@ -54,7 +57,7 @@ let process ~env ~provers ~transfs file =
   begin
     Utils.progress "loading %s" file ;
     let wenv = env.Wenv.env in
-    let theories =
+    let theories,_ =
       try Why3.Env.(read_file base_language wenv file)
       with error ->
         Utils.flush () ;
@@ -64,12 +67,19 @@ let process ~env ~provers ~transfs file =
     let profile, strategy = load_proof file in
     let proved = ref 0 in
     let total = ref 0 in
+    M.iter
+      begin fun tname thy ->
+        let tasks = Why3.Task.split_theory thy None None in
+        let proofs = M.find_def M.empty tname strategy in
+        ignore tasks ;
+        ignore proofs ;
+        ()
+      end theories ;
     ignore env ;
-    ignore theories ;
     ignore profile ;
-    ignore strategy ;
     ignore provers ;
     ignore transfs ;
+    ignore Hammer.schedule ;
     Fibers.return (file,!proved,!total)
   end
 
