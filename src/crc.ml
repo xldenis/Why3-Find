@@ -26,22 +26,43 @@
 type crc =
   | Stuck
   | Prover of string * float
-  | Transf of bool * int * string * crc list
+  | Transf of {
+      id : string ;
+      children : crc list ;
+      todo : int ;
+      size : int ;
+    }
+
+let size = function
+  | Stuck | Prover _ -> 1
+  | Transf { size } -> 1 + size
+
+let todo = function
+  | Stuck -> 1
+  | Prover _ -> 0
+  | Transf { todo } -> todo
+
+let proved = function
+  | Stuck -> 0
+  | Prover _ -> 1
+  | Transf { todo ; size } -> 1 + size - todo
 
 let complete = function
   | Stuck -> false
   | Prover _ -> true
-  | Transf(b,_,_,_) -> b
+  | Transf { todo } -> todo = 0
 
-let depth = function
-  | Stuck -> 0
-  | Prover _ -> 1
-  | Transf(_,n,_,_) -> n
+let apply id children =
+  let todo = List.fold_left (fun n c -> n + todo c) 0 children in
+  let size = List.fold_left (fun n c -> n + size c) 1 children in
+  Transf { id ; children ; todo ; size }
 
-let apply f cs =
-  let b = List.for_all complete cs in
-  let n = List.fold_left (fun h c -> max h (depth c)) 0 cs in
-  Transf(b,n,f,cs)
+let pretty fmt crc =
+  let n = size crc in
+  let p = proved crc in
+  if p = 0 then Format.fprintf fmt "@{<red>Unknown@}" else
+  if p = n then Format.fprintf fmt "@{<green>Valid@}" else
+    Format.fprintf fmt "@{<orange>Partial@} (%d/%d)" p n
 
 (* -------------------------------------------------------------------------- *)
 (* --- JSON                                                               --- *)
@@ -51,8 +72,11 @@ let rec to_json (a : crc) : Json.t = match a with
   | Stuck -> `Null
   | Prover(p,t) ->
     `Assoc [ "prover", `String p ; "time", `Float t]
-  | Transf(_,_,f,xs) ->
-    `Assoc [ "transf", `String f; "children", `List (List.map to_json xs)]
+  | Transf { id ; children } ->
+    `Assoc [
+      "transf", `String id;
+      "children", `List (List.map to_json children);
+    ]
 
 let rec of_json (js : Json.t) : crc =
   try
@@ -76,7 +100,8 @@ let rec merge a b =
   match a,b with
   | Prover(p0,t0), Prover(p1,t1)
     when p0 = p1 && t0 *. 0.5 < t1 && t1 < t0 *. 2.0 -> a
-  | Transf(_,_,f,xs), Transf(_,_,g,ys)
+  | Transf { id = f ; children = xs } ,
+    Transf { id = g ; children = ys }
     when f = g && List.length xs = List.length ys ->
     apply f (List.map2 merge xs ys)
   | _ -> b

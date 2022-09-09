@@ -26,10 +26,19 @@
 type crc =
   | Stuck
   | Prover of string * float
-  | Transf of bool * int * string * crc list
+  | Transf of {
+      id : string ;
+      children : crc list ;
+      todo : int ;
+      size : int ;
+    }
 
-val depth : crc -> int
+val size : crc -> int
+val todo : crc -> int
+val proved : crc -> int
 val complete : crc -> bool
+val pretty : Format.formatter -> crc -> unit
+
 val apply : string -> crc list -> crc
 val merge : crc -> crc -> crc
 val of_json : Json.t -> crc

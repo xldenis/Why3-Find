@@ -20,13 +20,17 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Provers                                                       --- *)
+(* --- Why3 Runner                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
 open Why3.Whyconf
 open Why3.Driver
 open Why3.Task
 open Why3.Call_provers
+
+(* -------------------------------------------------------------------------- *)
+(* --- Provers                                                            --- *)
+(* -------------------------------------------------------------------------- *)
 
 type prover = {
   config : config_prover ;
@@ -35,6 +39,7 @@ type prover = {
 
 let id prv = prover_parseable_format prv.config.prover
 let name prv = String.lowercase_ascii @@ prv.config.prover.prover_name
+
 let pp_prover fmt prv = Format.pp_print_string fmt @@ id prv
 
 let find_exact (env : Wenv.env) s =
