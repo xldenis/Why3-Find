@@ -78,7 +78,7 @@ let result goal prv limit result =
     let _ = S.graft_proof_attempt s n prv ~limit in
     S.update_proof_attempt silent s n prv result
 
-let apply env ~transf = function
+let apply env transf = function
   | Task t ->
     begin
       match Why3.Trans.apply_transform transf env t with

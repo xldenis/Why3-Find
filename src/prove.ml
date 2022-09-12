@@ -97,6 +97,8 @@ let process ~env ~mode ~session ~success file =
     let theories, format = load_theories env file in
     let session = Session.create ~session ~dir ~file ~format theories in
     let profile, strategy = load_proofs fp in
+    let total = ref 0 in
+    let proved = ref 0 in
     let driver =
       Fibers.all @@ List.map
         (fun theory ->
@@ -108,6 +110,7 @@ let process ~env ~mode ~session ~success file =
                (fun task ->
                   let goal = Session.goal_name task in
                   let hint = M.find_def Crc.Stuck goal hints in
+                  incr total ;
                   let+ crc =
                     match mode with
                     | `All ->
@@ -117,7 +120,9 @@ let process ~env ~mode ~session ~success file =
                     | `Update ->
                       Crc.merge hint @+ Hammer.schedule profile task hint
                   in
-                  if not (Crc.complete crc) then
+                  if Crc.complete crc then
+                    incr proved
+                  else
                     begin
                       success := false ;
                       Format.printf "%s.%s.%s : %a@." path thy goal
@@ -132,6 +137,14 @@ let process ~env ~mode ~session ~success file =
       begin fun proofs ->
         Session.save session ;
         save_proofs ~mode dir fp profile proofs ;
+        Utils.flush () ;
+        let np = !proved in
+        let nt = !total in
+        let style =
+          if np = nt then "green" else
+          if np = 0 then "red" else "orange"
+        in
+        Format.printf "%d/%d @{<%s>%s@}@." np nt style path
       end
 end
 

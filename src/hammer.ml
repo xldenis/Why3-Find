@@ -63,11 +63,17 @@ let stuck = Fibers.return Stuck
 
 type strategy = node -> crc Fibers.t
 let fail : strategy = fun _ -> stuck
+
 let (>>>) (h1 : strategy) (h2 : strategy) : strategy = fun n ->
   match h1 n with
   | exception Not_found -> h2 n
   | job -> Fibers.bind job
              (fun r -> if r <> Stuck then Fibers.return r else h2 n)
+
+let rec smap (f : 'a -> strategy) (xs : 'a list) : strategy =
+  match xs with
+  | [] -> fail
+  | x::xs -> f x >>> smap f xs
 
 (* -------------------------------------------------------------------------- *)
 (* --- Try Prover on Node                                                 --- *)
@@ -84,13 +90,26 @@ let prove env ?cancel prv timeout : strategy = fun n ->
   | _ -> Stuck
 
 (* -------------------------------------------------------------------------- *)
+(* --- Try Transformation on Node                                         --- *)
+(* -------------------------------------------------------------------------- *)
+
+let rec subgoals profile goals hints =
+  match goals, hints with
+  | [], _ -> []
+  | g::gs, [] -> schedule profile g Stuck :: subgoals profile gs []
+  | g::gs, h::hs -> schedule profile g h :: subgoals profile gs hs
+
+let apply env tr hs : strategy = fun n ->
+  match Session.apply env tr n.goal with
+  | None -> stuck
+  | Some gs -> Crc.apply tr @+ Fibers.all @@ subgoals n.profile gs hs
+
+(* -------------------------------------------------------------------------- *)
 (* --- Hammer Strategy                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let rec hammer0 env prvs time : strategy =
-  match prvs with
-  | [] -> fail
-  | prv::prvs -> prove env prv time >>> hammer0 env prvs time
+let hammer0 env prvs time : strategy =
+  smap (fun prv -> prove env prv time) prvs
 
 let hammer1 env prvs time : strategy = fun n ->
   let cancel = Fibers.signal () in
@@ -100,10 +119,14 @@ let hammer1 env prvs time : strategy = fun n ->
       (fun prv -> watch @+ prove env ~cancel prv time n) prvs
   in List.find (fun r -> r <> Stuck) results
 
+let hammer2 env trfs : strategy =
+  smap (fun tr -> apply env.Wenv.wenv tr []) trfs
+
 let hammer henv =
-  hammer0 henv.env henv.provers 0.1 >>>
-  hammer1 henv.env henv.provers 1.0 >>>
-  hammer1 henv.env henv.provers 5.0
+  hammer0 henv.env henv.provers 0.5 >>>
+  hammer1 henv.env henv.provers 5.0 >>>
+  hammer2 henv.env henv.transfs >>>
+  hammer1 henv.env henv.provers 10.0
 
 (* -------------------------------------------------------------------------- *)
 (* --- Node Processing                                                    --- *)
@@ -115,7 +138,7 @@ let hint henv : strategy = fun n ->
   match n.hint with
   | Stuck -> stuck
   | Prover(p,time) -> prove henv.env (select p henv.provers) time n
-  | Transf _ -> stuck
+  | Transf { id ; children } -> apply henv.env.Wenv.wenv id children n
 
 let process henv : strategy = hint henv >>> hammer henv
 
@@ -123,7 +146,7 @@ let process henv : strategy = hint henv >>> hammer henv
 (* --- Main Loop                                                          --- *)
 (* -------------------------------------------------------------------------- *)
 
-let rec run henv =
+let rec exec (s : strategy) =
   Fibers.yield () ;
   let n1 = Queue.length q1 in
   let n2 = Queue.length q2 in
@@ -131,13 +154,10 @@ let rec run henv =
   Utils.progress "%d/%d/%d" n2 n1 nr ;
   match pop () with
   | None ->
-    if Fibers.pending () > 0 then
-      begin
-        Unix.sleepf 0.01 ;
-        run henv
-      end
+    if Fibers.pending () > 0 then ( Unix.sleepf 0.01 ; exec s )
   | Some node ->
-    Fibers.await (process henv node) (Fibers.set node.result) ;
-    run henv
+    Fibers.await (s node) (Fibers.set node.result) ; exec s
+
+let run henv = exec (process henv)
 
 (* -------------------------------------------------------------------------- *)
