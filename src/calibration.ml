@@ -132,9 +132,11 @@ let qhash = Hashtbl.create 0
 let calibrate env prv : (int * float) option Fibers.t =
   try Hashtbl.find qhash (id prv)
   with Not_found ->
+    let v = Fibers.var () in
+    let c = Fibers.get v in
+    Hashtbl.add qhash (id prv) c ;
     let q = qenv env 0.5 in
-    let p = lookup q prv (guess prv) None in
-    Hashtbl.add qhash (id prv) p ; p
+    Fibers.await (lookup q prv (guess prv) None) (Fibers.set v) ; c
 
 (* -------------------------------------------------------------------------- *)
 (* --- Profile                                                            --- *)
