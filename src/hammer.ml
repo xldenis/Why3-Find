@@ -87,13 +87,23 @@ let prove env ?cancel prv timeout : strategy = fun n ->
 (* --- Hammer Strategy                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let rec hammer0 env prvs : strategy =
+let rec hammer0 env prvs time : strategy =
   match prvs with
   | [] -> fail
-  | prv::prvs -> prove env prv 0.1 >>> hammer0 env prvs
+  | prv::prvs -> prove env prv time >>> hammer0 env prvs time
+
+let hammer1 env prvs time : strategy = fun n ->
+  let cancel = Fibers.signal () in
+  let watch r = if r <> Stuck then Fibers.emit cancel () ; r in
+  let+ results =
+    Fibers.all @@ List.map
+      (fun prv -> watch @+ prove env ~cancel prv time n) prvs
+  in List.find (fun r -> r <> Stuck) results
 
 let hammer henv =
-  hammer0 henv.env henv.provers >>> fail
+  hammer0 henv.env henv.provers 0.1 >>>
+  hammer1 henv.env henv.provers 1.0 >>>
+  hammer1 henv.env henv.provers 5.0
 
 (* -------------------------------------------------------------------------- *)
 (* --- Node Processing                                                    --- *)
