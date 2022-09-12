@@ -181,14 +181,19 @@ let runs = ref 0
 
 let running () = !runs
 
-let call_prover (env : Wenv.env) (cancel : unit Fibers.signal)
+let limit t = { empty_limit with limit_time = int_of_float (t +. 0.5) }
+
+let call_prover (env : Wenv.env)
+    ?(cancel : unit Fibers.signal option)
+    ?(callback : (resource_limit -> prover_result -> unit) option)
     (task : task) (prover : prover) (time : float) =
   let main = get_main env.wconfig in
-  let limit = { empty_limit with limit_time = int_of_float (time +. 0.5) } in
+  let limit = limit time in
   let timeout = ref 0.0 in
   let np = !jobs in
   if np > 0 then
     (jobs := 0 ; Why3.Prove_client.set_max_running_provers np) ;
+  let cancel = match cancel with None -> Fibers.signal () | Some s -> s in
   let call = prove_task
       ~command:prover.config.command
       ~libdir:(libdir main)
@@ -225,6 +230,7 @@ let call_prover (env : Wenv.env) (cancel : unit Fibers.signal)
           | HighFailure | Failure _ -> Failed
         in
         if started then decr runs ;
+        (match callback with None -> () | Some f -> f limit pr) ;
         Some result
     end
 
@@ -235,23 +241,46 @@ let call_prover (env : Wenv.env) (cancel : unit Fibers.signal)
 let hits = ref 0
 let miss = ref 0
 
-let prove env cancel task prover time =
-  let e = task,prover in
-  let r = get e in
-  let cached = match r with
+let presult ~status ?(time = 0.0) ans =
+  Why3.Call_provers.{
+    pr_answer = ans ;
+    pr_status = Unix.WEXITED status ;
+    pr_time = time ;
+    pr_steps = 0 ;
+    pr_output = "Cached" ;
+    pr_models = [] ;
+  }
+
+let notify callback cached =
+  match callback with
+  | None -> ()
+  | Some f ->
+    match cached with
+    | NoResult -> ()
+    | Valid t -> f (limit t) (presult ~status:0  ~time:t Valid)
+    | Timeout t -> f (limit t) (presult ~status:1  ~time:t Timeout)
+    | Unknown t -> f (limit t) (presult ~status:1  ~time:t (Unknown "cached"))
+    | Failed -> f (limit 1.0) (presult ~status:2 (Failure "cached"))
+
+let prove env ?cancel ?callback task prover time =
+  let entry = task,prover in
+  let cached = get entry in
+  let promote = match cached with
     | NoResult -> false
     | Failed -> true
     | Unknown _ -> true
     | Valid t -> t <= time
     | Timeout t -> time <= t
   in
-  if cached then
-    (incr hits ; Fibers.return r)
+  if promote then
+    (incr hits ;
+     notify callback cached ;
+     Fibers.return cached)
   else
     (incr miss ;
      Fibers.map
-       (fun r -> set e r ; r)
-       (call_prover env cancel task prover time))
+       (fun result -> set entry result ; result)
+       (call_prover env ?cancel ?callback task prover time))
 
 let report_stats () =
   let h = !hits in

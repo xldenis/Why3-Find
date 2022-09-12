@@ -96,7 +96,6 @@ let pp_range fmt = function
 
 type qenv = {
   env : Wenv.env ;
-  cancel : unit Fibers.signal ;
   time : float ;
   time_lo : float ;
   time_up : float ;
@@ -105,7 +104,6 @@ type qenv = {
 
 let qenv env time = {
   env ; time ;
-  cancel = Fibers.signal () ;
   time_lo = time *. 0.9 ;
   time_up = time *. 1.1 ;
   time_out = time *. 2.0
@@ -115,7 +113,7 @@ let rec lookup q prv rg best =
   if singleton rg then Fibers.return best else
     let n = select rg in
     Format.printf "> %s:%d\x1B[K\r@?" (name prv) n ;
-    let* result = Runner.prove q.env q.cancel (generate n) prv q.time_out in
+    let* result = Runner.prove q.env (generate n) prv q.time_out in
     match result with
     | Valid t ->
       let best = choose q.time best (Some (n,t)) in
@@ -193,10 +191,9 @@ let gauge env profile prv : gauge Fibers.t =
 let velocity env profile prv : float Fibers.t =
   let* g = gauge env profile prv in
   if g.alpha > 0.0 then Fibers.return g.alpha else
-    let cancel = Fibers.signal () in
     let timeout = 5.0 *. (max 1.0 g.time) in
     Utils.progress "%s:%d" (name prv) g.size ;
-    let* result = Runner.prove env cancel (generate g.size) prv timeout in
+    let* result = Runner.prove env (generate g.size) prv timeout in
     match result with
     | Valid t -> let a = t /. g.time in g.alpha <- a ; Fibers.return a
     | _ ->

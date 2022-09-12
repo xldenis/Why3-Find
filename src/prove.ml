@@ -71,11 +71,15 @@ let load_proofs file : profile * theories =
   let strategy = jmap (jmap Crc.of_json) @@ Json.jfield "proofs" js in
   profile , strategy
 
-let save_proofs file profile (prfs : proofs) =
-  Json.to_file file @@ `Assoc [
-    "profile", Calibration.to_json profile ;
-    "proofs", jproofs prfs ;
-  ]
+let save_proofs ~mode dir file profile (prfs : proofs) =
+  match mode with
+  | `Replay -> ()
+  | `Update | `All ->
+    Utils.mkdirs dir ;
+    Json.to_file file @@ `Assoc [
+      "profile", Calibration.to_json profile ;
+      "proofs", jproofs prfs ;
+    ]
 
 (* -------------------------------------------------------------------------- *)
 (* --- Single File Processing                                             --- *)
@@ -127,15 +131,12 @@ let process ~env ~mode ~session ~success file =
     Fibers.await driver
       begin fun proofs ->
         Session.save session ;
-        match mode with
-        | `Update | `All ->
-          Utils.mkdirs dir ; save_proofs fp profile proofs
-        | `Replay -> ()
+        save_proofs ~mode dir fp profile proofs ;
       end
 end
 
 (* -------------------------------------------------------------------------- *)
-(* --- Main Prove Command                                                 --- *)
+(* --- Prove Command                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
 let command ~time ~mode ~session ~pkgs ~provers ~transfs ~files =
@@ -150,6 +151,5 @@ let command ~time ~mode ~session ~pkgs ~provers ~transfs ~files =
     Runner.report_stats () ;
     if not !success then exit 1
   end
-
 
 (* -------------------------------------------------------------------------- *)

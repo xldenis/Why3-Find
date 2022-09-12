@@ -23,6 +23,8 @@
 (* --- Session Management                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
+open Why3
+
 type session
 
 val create :
@@ -44,4 +46,14 @@ type goal
 
 val split : theory -> goal list
 val goal_name : goal -> string
-val goal_task : goal -> Why3.Task.task
+val goal_task : goal -> Task.task
+
+val result : goal ->
+  Whyconf.prover ->
+  Call_provers.resource_limit ->
+  Call_provers.prover_result ->
+  unit
+
+val apply : Env.env -> transf:string -> goal -> goal list option
+
+(* -------------------------------------------------------------------------- *)

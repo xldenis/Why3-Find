@@ -59,13 +59,42 @@ type goal =
   | Task of T.task
   | Snode of S.session * S.proofNodeID * T.task
 
+let tasks = List.map (fun t -> Task t)
+let nodes s = List.map (fun n -> Snode(s,n,S.get_task s n))
+
 let split = function
-  | Thy th ->
-    List.map (fun t -> Task t) @@ T.split_theory th None None
-  | Sth(s,th) ->
-    List.map (fun n -> Snode(s,n,S.get_task s n)) @@ S.theory_goals th
+  | Thy th -> tasks @@ T.split_theory th None None
+  | Sth(s,th) -> nodes s @@ S.theory_goals th
 
 let goal_task = function Task t | Snode(_,_,t) -> t
 let goal_name g = (T.task_goal (goal_task g)).pr_name.id_string
+
+let silent : S.notifier = fun _ -> ()
+
+let result goal prv limit result =
+  match goal with
+  | Task _ -> ()
+  | Snode(s,n,_) ->
+    let _ = S.graft_proof_attempt s n prv ~limit in
+    S.update_proof_attempt silent s n prv result
+
+let apply env ~transf = function
+  | Task t ->
+    begin
+      match Why3.Trans.apply_transform transf env t with
+      | [ t' ] when Why3.Task.task_equal t t' -> None
+      | ts -> Some (tasks ts)
+    end
+  | Snode(s,n,_) ->
+    begin
+      try
+        let allow_no_effect = false in
+        let ts = S.apply_trans_to_goal s env ~allow_no_effect transf [] n in
+        let tid = S.graft_transf s n transf [] ts in
+        let ns = S.get_sub_tasks s tid in
+        Some (nodes s ns)
+      with _ ->
+        None
+    end
 
 (* -------------------------------------------------------------------------- *)
