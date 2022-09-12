@@ -25,9 +25,9 @@
 
 open Crc
 open Calibration
-open Why3.Task
+open Session
 
-val schedule : profile -> task -> crc -> crc Fibers.t
+val schedule : profile -> goal -> crc -> crc Fibers.t
 
 type henv = {
   env : Wenv.env ;

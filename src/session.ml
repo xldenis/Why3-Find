@@ -20,17 +20,52 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Manager                                                      --- *)
+(* --- Session Management                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-type mode = [ `Update | `All | `Replay ]
+module Th = Why3.Theory
+module T = Why3.Task
+module S = Why3.Session_itp
 
-val command :
-  time:int ->
-  mode:mode ->
-  session:bool ->
-  pkgs:string list ->
-  provers:string list ->
-  transfs:string list ->
-  files:string list ->
-  unit
+type session =
+  | Ths of Th.theory list
+  | Sfile of S.file * S.session
+
+let create ~session ~dir ~file ~format ths =
+  if session then
+    let s = S.empty_session dir in
+    let f = S.add_file_section s file ~file_is_detached:false ths format in
+    Sfile (f,s)
+  else
+    Ths ths
+
+let save = function
+  | Ths _ -> ()
+  | Sfile(_,s) -> S.save_session s
+
+type theory =
+  | Thy of Th.theory
+  | Sth of S.session * S.theory
+
+let theories = function
+  | Ths ths -> List.map (fun t -> Thy t) ths
+  | Sfile(f,s) -> List.map (fun t -> Sth(s,t)) (S.file_theories f)
+
+let name = function
+  | Thy th -> th.th_name.id_string
+  | Sth(_,th) -> (S.theory_name th).id_string
+
+type goal =
+  | Task of T.task
+  | Snode of S.session * S.proofNodeID * T.task
+
+let split = function
+  | Thy th ->
+    List.map (fun t -> Task t) @@ T.split_theory th None None
+  | Sth(s,th) ->
+    List.map (fun n -> Snode(s,n,S.get_task s n)) @@ S.theory_goals th
+
+let goal_task = function Task t | Snode(_,_,t) -> t
+let goal_name g = (T.task_goal (goal_task g)).pr_name.id_string
+
+(* -------------------------------------------------------------------------- *)

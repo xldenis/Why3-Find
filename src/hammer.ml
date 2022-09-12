@@ -31,7 +31,7 @@ open Crc
 
 type node = {
   profile : Calibration.profile ;
-  task : Why3.Task.task ;
+  goal : Session.goal ;
   hint : crc ;
   result : crc Fibers.var ;
 }
@@ -39,10 +39,10 @@ type node = {
 let q1 : node Queue.t = Queue.create ()
 let q2 : node Queue.t = Queue.create ()
 
-let schedule profile task hint =
+let schedule profile goal hint =
   let result = Fibers.var () in
   Queue.push
-    { profile ; task ; hint ; result }
+    { profile ; goal ; hint ; result }
     (if complete hint then q2 else q1) ;
   Fibers.get result
 
@@ -82,7 +82,7 @@ let rec run henv =
         run henv
       end
   | Some node ->
-    Fibers.await (hammer henv node.task node.hint) (Fibers.set node.result) ;
+    Fibers.await (hammer henv node.goal node.hint) (Fibers.set node.result) ;
     run henv
 
 (* -------------------------------------------------------------------------- *)

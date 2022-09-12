@@ -24,19 +24,18 @@
 (* -------------------------------------------------------------------------- *)
 
 module M = Why3.Wstdlib.Mstr
-module S = Why3.Session_itp
 module Th = Why3.Theory
 open Fibers.Monad
 
 type profile = Calibration.profile
 type theories = Crc.crc M.t M.t
-type session = (Th.theory * (string * Crc.crc) list) list
+type proofs = (Session.theory * (string * Crc.crc) list) list
 
 (* -------------------------------------------------------------------------- *)
 (* --- Theories                                                           --- *)
 (* -------------------------------------------------------------------------- *)
 
-let load_theories (env : Wenv.env) file : Th.theory list =
+let load_theories (env : Wenv.env) file =
   let byloc a b =
     match a.Th.th_name.id_loc , b.Th.th_name.id_loc with
     | None,None -> 0
@@ -45,15 +44,12 @@ let load_theories (env : Wenv.env) file : Th.theory list =
     | Some la, Some lb -> Why3.Loc.compare la lb
   in
   try
-    fst Why3.Env.(read_file base_language env.wenv file) |>
-    M.bindings |> List.map snd |> List.sort byloc
+    let tmap,format = Why3.Env.(read_file base_language env.wenv file) in
+    M.bindings tmap |> List.map snd |> List.sort byloc , format
   with error ->
     Utils.flush () ;
     Format.printf "%s@." (Printexc.to_string error) ;
     exit 2
-
-let thy_name t = t.Th.th_name.id_string
-let goal_name t = Why3.Task.(task_goal t).pr_name.id_string
 
 (* -------------------------------------------------------------------------- *)
 (* --- Proof Files                                                        --- *)
@@ -63,22 +59,22 @@ let jmap cc js =
   let m = ref M.empty in
   Json.jiter (fun fd js -> m := M.add fd (cc js) !m) js ; !m
 
-let jsession (trs : session) : Json.t =
+let jproofs (prfs : proofs) : Json.t =
   `Assoc (List.map (fun (th,rs) ->
-      thy_name th,
+      Session.name th,
       `Assoc (List.map (fun (g,r) -> g, Crc.to_json r) rs)
-    ) trs)
+    ) prfs)
 
 let load_proofs file : profile * theories =
   let js = if Sys.file_exists file then Json.of_file file else `Null in
   let profile = Calibration.of_json @@ Json.jfield "profile" js in
-  let strategy = jmap (jmap Crc.of_json) @@ Json.jfield "theories" js in
+  let strategy = jmap (jmap Crc.of_json) @@ Json.jfield "proofs" js in
   profile , strategy
 
-let save_proofs file profile (trs : session) =
+let save_proofs file profile (prfs : proofs) =
   Json.to_file file @@ `Assoc [
     "profile", Calibration.to_json profile ;
-    "theories", jsession trs ;
+    "proofs", jproofs prfs ;
   ]
 
 (* -------------------------------------------------------------------------- *)
@@ -87,26 +83,26 @@ let save_proofs file profile (trs : session) =
 
 type mode = [ `Update | `All | `Replay ]
 
-let process ~env ~mode ~success file =
+let process ~env ~mode ~session ~success file =
   begin
     let dir = Filename.chop_extension file in
     let path =
       String.concat "." @@ String.split_on_char '/' @@
       if Filename.is_relative file then dir else Filename.basename dir in
     let fp = Printf.sprintf "%s/proof.json" @@ dir in
-    let theories = load_theories env file in
+    let theories, format = load_theories env file in
+    let session = Session.create ~session ~dir ~file ~format theories in
     let profile, strategy = load_proofs fp in
-    Utils.mkdirs dir ;
     let driver =
       Fibers.all @@ List.map
         (fun theory ->
-           let thy = thy_name theory in
-           let tasks = Why3.Task.split_theory theory None None in
+           let thy = Session.name theory in
+           let tasks = Session.split theory in
            let hints = M.find_def M.empty thy strategy in
            let+ proofs =
              Fibers.all @@ List.map
                (fun task ->
-                  let goal = goal_name task in
+                  let goal = Session.goal_name task in
                   let hint = M.find_def Crc.Stuck goal hints in
                   let+ crc =
                     match mode with
@@ -126,12 +122,14 @@ let process ~env ~mode ~success file =
                   goal, crc
                ) tasks
            in theory, proofs
-        ) theories
+        ) (Session.theories session)
     in
     Fibers.await driver
       begin fun proofs ->
+        Session.save session ;
         match mode with
-        | `Update | `All -> save_proofs fp profile proofs
+        | `Update | `All ->
+          Utils.mkdirs dir ; save_proofs fp profile proofs
         | `Replay -> ()
       end
 end
@@ -140,14 +138,14 @@ end
 (* --- Main Prove Command                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let command ~time ~mode ~pkgs ~provers ~transfs ~files =
+let command ~time ~mode ~session ~pkgs ~provers ~transfs ~files =
   begin
     let time = float time in
     let env = Wenv.init ~pkgs in
     let provers = Runner.select env provers in
     let transfs = [ "split_vc" ; "inline_goal" ] @ transfs in
     let success = ref true in
-    List.iter (process ~env ~mode ~success) files ;
+    List.iter (process ~env ~mode ~session ~success) files ;
     Hammer.run { env ; time ; provers ; transfs } ;
     Runner.report_stats () ;
     if not !success then exit 1

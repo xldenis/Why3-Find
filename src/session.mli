@@ -20,17 +20,28 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Manager                                                      --- *)
+(* --- Session Management                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-type mode = [ `Update | `All | `Replay ]
+type session
 
-val command :
-  time:int ->
-  mode:mode ->
+val create :
   session:bool ->
-  pkgs:string list ->
-  provers:string list ->
-  transfs:string list ->
-  files:string list ->
-  unit
+  dir:string ->
+  file:string ->
+  format:string ->
+  Why3.Theory.theory list ->
+  session
+
+val save : session -> unit
+
+type theory
+
+val name : theory -> string
+val theories : session -> theory list
+
+type goal
+
+val split : theory -> goal list
+val goal_name : goal -> string
+val goal_task : goal -> Why3.Task.task
