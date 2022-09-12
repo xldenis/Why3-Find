@@ -25,7 +25,6 @@
 
 open Wenv
 open Why3.Task
-open Why3.Call_provers
 
 type prover
 type result =
@@ -45,9 +44,15 @@ val pp_result : Format.formatter -> result -> unit
 val of_json : Json.t -> result
 val to_json : result -> Json.t
 
+type callback =
+  Why3.Whyconf.prover ->
+  Why3.Call_provers.resource_limit ->
+  Why3.Call_provers.prover_result ->
+  unit
+
 val prove : env ->
   ?cancel:unit Fibers.signal ->
-  ?callback:(resource_limit -> prover_result -> unit) ->
+  ?callback:callback ->
   task -> prover -> float -> result Fibers.t
 
 val jobs : int ref

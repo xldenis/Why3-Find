@@ -24,10 +24,14 @@
 (* -------------------------------------------------------------------------- *)
 
 open Crc
+open Fibers.Monad
 
-(* -------------------------------------------------------------------------- *)
-(* --- Queue Management                                                   --- *)
-(* -------------------------------------------------------------------------- *)
+type henv = {
+  env : Wenv.env ;
+  time : float ;
+  provers : Runner.prover list ;
+  transfs : string list ;
+}
 
 type node = {
   profile : Calibration.profile ;
@@ -35,6 +39,10 @@ type node = {
   hint : crc ;
   result : crc Fibers.var ;
 }
+
+(* -------------------------------------------------------------------------- *)
+(* --- Queue Management                                                   --- *)
+(* -------------------------------------------------------------------------- *)
 
 let q1 : node Queue.t = Queue.create ()
 let q2 : node Queue.t = Queue.create ()
@@ -51,18 +59,55 @@ let pop () =
   try Some (Queue.pop q2) with Queue.Empty ->
     None
 
+let stuck = Fibers.return Stuck
+
+type strategy = node -> crc Fibers.t
+let fail : strategy = fun _ -> stuck
+let (>>>) (h1 : strategy) (h2 : strategy) : strategy = fun n ->
+  match h1 n with
+  | exception Not_found -> h2 n
+  | job -> Fibers.bind job
+             (fun r -> if r <> Stuck then Fibers.return r else h2 n)
+
+(* -------------------------------------------------------------------------- *)
+(* --- Try Prover on Node                                                 --- *)
+(* -------------------------------------------------------------------------- *)
+
+let prove env ?cancel prv timeout : strategy = fun n ->
+  let* alpha = Calibration.velocity env n.profile prv in
+  let time = timeout *. alpha in
+  let task = Session.goal_task n.goal in
+  let+ result =
+    Runner.prove env ?cancel ~callback:(Session.result n.goal) task prv time
+  in match result with
+  | Valid t -> Prover( Runner.name prv, t /. alpha )
+  | _ -> Stuck
+
 (* -------------------------------------------------------------------------- *)
 (* --- Hammer Strategy                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-type henv = {
-  env : Wenv.env ;
-  time : float ;
-  provers : Runner.prover list ;
-  transfs : string list ;
-}
+let rec hammer0 env prvs : strategy =
+  match prvs with
+  | [] -> fail
+  | prv::prvs -> prove env prv 0.1 >>> hammer0 env prvs
 
-let hammer _henv _task _hint = Fibers.return Stuck
+let hammer henv =
+  hammer0 henv.env henv.provers >>> fail
+
+(* -------------------------------------------------------------------------- *)
+(* --- Node Processing                                                    --- *)
+(* -------------------------------------------------------------------------- *)
+
+let select p prvs = List.find (fun prv -> Runner.name prv = p) prvs
+
+let hint henv : strategy = fun n ->
+  match n.hint with
+  | Stuck -> stuck
+  | Prover(p,time) -> prove henv.env (select p henv.provers) time n
+  | Transf _ -> stuck
+
+let process henv : strategy = hint henv >>> hammer henv
 
 (* -------------------------------------------------------------------------- *)
 (* --- Main Loop                                                          --- *)
@@ -82,7 +127,7 @@ let rec run henv =
         run henv
       end
   | Some node ->
-    Fibers.await (hammer henv node.goal node.hint) (Fibers.set node.result) ;
+    Fibers.await (process henv node) (Fibers.set node.result) ;
     run henv
 
 (* -------------------------------------------------------------------------- *)

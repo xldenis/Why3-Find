@@ -37,6 +37,12 @@ type prover = {
   driver : driver ;
 }
 
+type callback =
+  Why3.Whyconf.prover ->
+  Why3.Call_provers.resource_limit ->
+  Why3.Call_provers.prover_result ->
+  unit
+
 let id prv = prover_parseable_format prv.config.prover
 let name prv = String.lowercase_ascii @@ prv.config.prover.prover_name
 
@@ -181,11 +187,12 @@ let runs = ref 0
 
 let running () = !runs
 
+let p prover = prover.config.prover
 let limit t = { empty_limit with limit_time = int_of_float (t +. 0.5) }
 
 let call_prover (env : Wenv.env)
     ?(cancel : unit Fibers.signal option)
-    ?(callback : (resource_limit -> prover_result -> unit) option)
+    ?(callback : callback option)
     (task : task) (prover : prover) (time : float) =
   let main = get_main env.wconfig in
   let limit = limit time in
@@ -230,7 +237,7 @@ let call_prover (env : Wenv.env)
           | HighFailure | Failure _ -> Failed
         in
         if started then decr runs ;
-        (match callback with None -> () | Some f -> f limit pr) ;
+        (match callback with None -> () | Some f -> f (p prover) limit pr) ;
         Some result
     end
 
@@ -241,26 +248,26 @@ let call_prover (env : Wenv.env)
 let hits = ref 0
 let miss = ref 0
 
-let presult ~status ?(time = 0.0) ans =
+let pr ~s ?(t = 0.0) ans =
   Why3.Call_provers.{
     pr_answer = ans ;
-    pr_status = Unix.WEXITED status ;
-    pr_time = time ;
+    pr_status = Unix.WEXITED s ;
+    pr_time = t ;
     pr_steps = 0 ;
     pr_output = "Cached" ;
     pr_models = [] ;
   }
 
-let notify callback cached =
+let notify prover (callback : callback option) cached =
   match callback with
   | None -> ()
   | Some f ->
     match cached with
     | NoResult -> ()
-    | Valid t -> f (limit t) (presult ~status:0  ~time:t Valid)
-    | Timeout t -> f (limit t) (presult ~status:1  ~time:t Timeout)
-    | Unknown t -> f (limit t) (presult ~status:1  ~time:t (Unknown "cached"))
-    | Failed -> f (limit 1.0) (presult ~status:2 (Failure "cached"))
+    | Valid t -> f (p prover) (limit t) (pr ~s:0  ~t Valid)
+    | Timeout t -> f (p prover) (limit t) (pr ~s:1  ~t Timeout)
+    | Unknown t -> f (p prover) (limit t) (pr ~s:1  ~t (Unknown "cached"))
+    | Failed -> f (p prover) (limit 1.0) (pr ~s:2 (Failure "cached"))
 
 let prove env ?cancel ?callback task prover time =
   let entry = task,prover in
@@ -274,7 +281,7 @@ let prove env ?cancel ?callback task prover time =
   in
   if promote then
     (incr hits ;
-     notify callback cached ;
+     notify prover callback cached ;
      Fibers.return cached)
   else
     (incr miss ;
