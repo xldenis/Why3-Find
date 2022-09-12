@@ -133,6 +133,7 @@ and 'a state = Done of 'a | Wait of 'a signal
 let var () = ref @@ Wait (Queue.create ())
 let get v k = match !v with Done r -> k r | Wait q -> Queue.push q k
 let set v r = match !v with Done _ -> () | Wait q -> v := Done r ; emit q r
+let peek v = match !v with Done r -> Some r | Wait _ -> None
 
 (* -------------------------------------------------------------------------- *)
 (* --- List Combinators                                                   --- *)
@@ -143,21 +144,23 @@ let any ts =
   List.iter (fun t -> t (set x)) ts ;
   get x
 
-let all ts =
-  let xs = ref [] in
-  let n = ref (List.length ts) in
-  let rs = var () in
-  let recv i v =
-    xs := (i,v) :: !xs ;
-    decr n ;
-    if !n <= 0 then
-      let ys = List.sort (fun (i,_) (j,_) -> Stdlib.compare i j) !xs in
-      set rs (List.map snd ys)
-  in
-  let rec schedule i = function
-    | [] -> ()
-    | t::ts -> t (recv i) ; schedule (succ i) ts
-  in schedule 0 ts ; get rs
+let all = function
+  | [] -> return []
+  | ts ->
+    let xs = ref [] in
+    let n = ref (List.length ts) in
+    let rs = var () in
+    let recv i v =
+      xs := (i,v) :: !xs ;
+      decr n ;
+      if !n <= 0 then
+        let ys = List.sort (fun (i,_) (j,_) -> Stdlib.compare i j) !xs in
+        set rs (List.map snd ys)
+    in
+    let rec schedule i = function
+      | [] -> ()
+      | t::ts -> t (recv i) ; schedule (succ i) ts
+    in schedule 0 ts ; get rs
 
 let rec seq ts =
   match ts with

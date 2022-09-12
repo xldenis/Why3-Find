@@ -206,7 +206,12 @@ let call_prover (env : Wenv.env)
       ~libdir:(libdir main)
       ~datadir:(datadir main)
       ~limit prover.driver task in
-  let kill () = timeout := 0.0 ; interrupt_call ~libdir:(libdir main) call in
+  let kill () =
+    begin
+      if !timeout > 0.0 then decr runs ;
+      timeout := 0.0 ;
+      interrupt_call ~libdir:(libdir main) call
+    end in
   Fibers.hook cancel kill Fibers.async
     begin fun () ->
       let timer = !timeout in
@@ -221,7 +226,7 @@ let call_prover (env : Wenv.env)
           begin
             incr runs ;
             timeout := Unix.gettimeofday () +. time ;
-          end ;
+         end ;
         None
       | InternalFailure _ ->
         begin

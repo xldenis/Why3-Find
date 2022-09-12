@@ -183,7 +183,7 @@ let gauge env profile prv : gauge Fibers.t =
     match r with
     | Some (size,time) ->
       let g = { time ; size ; alpha = 1.0 } in
-      Hashtbl.add profile p g ; g
+      Hashtbl.replace profile p g ; g
     | None ->
       Format.eprintf "[Error] can not calibrate prover %s@." p ;
       exit 2

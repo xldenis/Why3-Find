@@ -162,6 +162,9 @@ val get : 'a var -> 'a t
     Successive calls to [set x _] will be ignored. *)
 val set : 'a var -> 'a -> unit
 
+(** [peek x] returns the value assigned to variable [x], if any. *)
+val peek : 'a var -> 'a option
+
 (** {1 Mutual Exclusion} *)
 
 (** A limited set of resources to be shared on different tasks. *)
