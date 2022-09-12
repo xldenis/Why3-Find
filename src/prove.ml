@@ -85,7 +85,9 @@ let save_proofs file profile (trs : session) =
 (* --- Single File Processing                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process ~env ~success file =
+type mode = [ `Update | `All | `Replay ]
+
+let process ~env ~mode ~success file =
   begin
     let dir = Filename.chop_extension file in
     let path =
@@ -106,7 +108,15 @@ let process ~env ~success file =
                (fun task ->
                   let goal = goal_name task in
                   let hint = M.find_def Crc.Stuck goal hints in
-                  let+ crc = Hammer.schedule profile task hint in
+                  let+ crc =
+                    match mode with
+                    | `All ->
+                      Hammer.schedule profile task Stuck
+                    | `Replay ->
+                      Hammer.schedule profile task hint
+                    | `Update ->
+                      Crc.merge hint @+ Hammer.schedule profile task hint
+                  in
                   if not (Crc.complete crc) then
                     begin
                       success := false ;
@@ -118,21 +128,26 @@ let process ~env ~success file =
            in theory, proofs
         ) theories
     in
-    Fibers.await driver (save_proofs fp profile)
+    Fibers.await driver
+      begin fun proofs ->
+        match mode with
+        | `Update | `All -> save_proofs fp profile proofs
+        | `Replay -> ()
+      end
 end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Main Prove Command                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let command ~time ~pkgs ~provers ~transfs ~files =
+let command ~time ~mode ~pkgs ~provers ~transfs ~files =
   begin
     let time = float time in
     let env = Wenv.init ~pkgs in
     let provers = Runner.select env provers in
     let transfs = [ "split_vc" ; "inline_goal" ] @ transfs in
     let success = ref true in
-    List.iter (process ~env ~success) files ;
+    List.iter (process ~env ~mode ~success) files ;
     Hammer.run { env ; time ; provers ; transfs } ;
     Runner.report_stats () ;
     if not !success then exit 1

@@ -77,6 +77,9 @@ sig
   (** Applicative map operator, same as {!apply}. *)
   val (let+) : 'a t -> ('a -> 'b) -> 'b t
 
+  (** Map operator, same as {!map}. *)
+  val (@+) : ('a -> 'b) -> 'a t -> 'b t
+
   (** Monoidal product operator, same as {!pair}. *)
   val (and*) : 'a t -> 'b t -> ('a * 'b) t
 

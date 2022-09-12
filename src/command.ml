@@ -614,11 +614,16 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let trfs = ref [] in
       let time = ref 1 in
       let files = ref [] in
+      let mode = ref `Update in
+      let set m () = mode := m in
       let add r p = r := p :: !r in
       Arg.parse_argv argv
         [
           "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
           "-t", Arg.Set_int time, "S acceptable prover timeout (default 1s)";
+          "-a", Arg.Unit (set `All), "rebuild all proofs";
+          "-u", Arg.Unit (set `Update), "update proofs";
+          "-r", Arg.Unit (set `Replay), "replay proof certificates";
           "-p", Arg.String (add pkgs), "PKG package dependency";
           "-P", Arg.String (add prvs), "PRV use prover";
           "-T", Arg.String (add trfs), "TRANS use transformation ";
@@ -630,11 +635,12 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
          \n  Prove why3 files.\n\n\
          OPTIONS:\n" ;
       let time = !time in
+      let mode = !mode in
       let pkgs = List.rev !pkgs in
       let provers = List.rev !prvs in
       let transfs = List.rev !trfs in
       let files = List.rev !files in
-      Prove.command ~pkgs ~time ~provers ~transfs ~files
+      Prove.command ~pkgs ~time ~mode ~provers ~transfs ~files
     end
 
 (* -------------------------------------------------------------------------- *)

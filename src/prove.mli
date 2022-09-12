@@ -23,8 +23,11 @@
 (* --- Proof Manager                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
+type mode = [ `Update | `All | `Replay ]
+
 val command :
   time:int ->
+  mode:mode ->
   pkgs:string list ->
   provers:string list ->
   transfs:string list ->

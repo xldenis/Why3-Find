@@ -38,6 +38,7 @@ struct
   let (let+) = apply
   let (and*) = pair
   let (and+) = pair
+  let (@+) = map
 end
 open Monad
 
