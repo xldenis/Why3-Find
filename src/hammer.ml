@@ -139,10 +139,12 @@ let hammer henv =
 
 let select p prvs = List.find (fun prv -> Runner.name prv = p) prvs
 
+let overhead t = max (t *. 2.0) 1.0
+
 let hint henv : strategy = fun n ->
   match n.hint with
   | Stuck -> stuck
-  | Prover(p,time) -> prove henv.env (select p henv.provers) time n
+  | Prover(p,t) -> prove henv.env (select p henv.provers) (overhead t) n
   | Transf { id ; children } -> apply henv.env.Wenv.wenv id children n
 
 let process henv : strategy = hint henv >>> hammer henv
@@ -153,7 +155,7 @@ let process henv : strategy = hint henv >>> hammer henv
 
 let rec exec (s : strategy) =
   Fibers.yield () ;
-  let n1 = Queue.length q1 in
+  let n1 = Queue.length q1 + Runner.pending () in
   let n2 = Queue.length q2 in
   let nr = Runner.running () in
   Utils.progress "%d/%d/%d%t" n2 n1 nr Runner.pp_goals ;

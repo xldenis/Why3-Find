@@ -178,7 +178,7 @@ let command ~time ~mode ~session ~verbose ~pkgs ~provers ~transfs ~files =
     let success = ref true in
     List.iter (process ~env ~mode ~session ~verbose ~success) files ;
     Hammer.run { env ; time ; provers ; transfs } ;
-    Runner.report_stats () ;
+    if verbose then Runner.report_stats () ;
     if not !success then exit 1
   end
 

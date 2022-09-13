@@ -109,19 +109,23 @@ let qenv env time = {
   time_out = time *. 2.0
 }
 
-let rec lookup q prv rg best =
+let rec lookup ~progress q prv rg best =
   if singleton rg then Fibers.return best else
     let n = select rg in
-    Format.printf "> %s:%d\x1B[K\r@?" (name prv) n ;
-    let* result = Runner.prove q.env (generate n) prv q.time_out in
+    let name =
+      if progress then
+        ( Utils.progress "%s (%d)" (name prv) n ; None )
+      else Some (name prv)
+    in
+    let* result = Runner.prove q.env ?name (generate n) prv q.time_out in
     match result with
     | Valid t ->
       let best = choose q.time best (Some (n,t)) in
-      if t < q.time_lo then lookup q prv (upper n rg) best else
-      if q.time_up < t then lookup q prv (lower n rg) best else
+      if t < q.time_lo then lookup ~progress q prv (upper n rg) best else
+      if q.time_up < t then lookup ~progress q prv (lower n rg) best else
         Fibers.return best
     | _ ->
-      lookup q prv (lower n rg) best
+      lookup ~progress q prv (lower n rg) best
 
 (* -------------------------------------------------------------------------- *)
 (* --- On-the-fly Calibration                                             --- *)
@@ -129,14 +133,14 @@ let rec lookup q prv rg best =
 
 let qhash = Hashtbl.create 0
 
-let calibrate env prv : (int * float) option Fibers.t =
+let calibrate ?(progress=false) env prv : (int * float) option Fibers.t =
   try Hashtbl.find qhash (id prv)
   with Not_found ->
     let v = Fibers.var () in
     let c = Fibers.get v in
     Hashtbl.add qhash (id prv) c ;
     let q = qenv env 0.5 in
-    Fibers.await (lookup q prv (guess prv) None) (Fibers.set v) ; c
+    Fibers.await (lookup ~progress q prv (guess prv) None) (Fibers.set v) ; c
 
 (* -------------------------------------------------------------------------- *)
 (* --- Profile                                                            --- *)
@@ -194,7 +198,6 @@ let velocity env profile prv : float Fibers.t =
   let* g = gauge env profile prv in
   if g.alpha > 0.0 then Fibers.return g.alpha else
     let timeout = 5.0 *. (max 1.0 g.time) in
-    Utils.progress "%s:%d" (name prv) g.size ;
     let* result = Runner.prove env
         ~name:(Runner.name prv)
         (generate g.size) prv timeout in
@@ -225,7 +228,7 @@ let calibrate_provers ~time provers =
     let* results =
       Fibers.all @@ List.map
         (fun prv ->
-           let+ r = lookup q prv (guess prv) None in
+           let+ r = lookup ~progress:true q prv (guess prv) None in
            prv, r
         ) provers
     in
@@ -238,7 +241,6 @@ let calibrate_provers ~time provers =
          | Some(n,t) ->
            Format.printf "%-16s n=%d %a@." (id prv) n Utils.pp_time t
       ) results ;
-    Runner.report_stats () ;
     Fibers.return () ;
   end
 

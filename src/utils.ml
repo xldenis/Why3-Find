@@ -60,6 +60,7 @@ let copy ~src ~tgt =
 (* -------------------------------------------------------------------------- *)
 
 let pp_time fmt t =
+  let t = if t < 0.0 then (Format.pp_print_char fmt '-' ; -. t) else t in
   if t < 1e-3 then Format.fprintf fmt "%dns" (int_of_float @@ t *. 1e6) else
   if t < 1.0 then Format.fprintf fmt "%dms" (int_of_float @@ t *. 1e3) else
   if t < 20.0 then Format.fprintf fmt "%.1fs" t else

@@ -56,13 +56,13 @@ let unknown = function
 let apply id children =
   let stuck = List.fold_left (fun n c -> n + stuck c) 0 children in
   let proved = List.fold_left (fun n c -> n + proved c) 0 children in
-  (*if stuck > 0 && proved = 0 then Stuck else*)
-  Transf { id ; children ; stuck ; proved }
+  if stuck > 0 && proved = 0 then Stuck else
+    Transf { id ; children ; stuck ; proved }
 
 let pretty fmt crc =
   let s = stuck crc in
   let p = proved crc in
-  if s = 0 then Format.fprintf fmt "@{<green>Valid@}" else
+  if s = 0 then Format.fprintf fmt "@{<green>Valid@} (%d)" p else
   if p = 0 then Format.fprintf fmt "@{<red>Unknown@}" else
     Format.fprintf fmt "@{<orange>Partial@} (%d/%d)" p (s+p)
 

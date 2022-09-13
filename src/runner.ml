@@ -178,6 +178,7 @@ let set e r =
 (* -------------------------------------------------------------------------- *)
 
 let jobs = ref 0
+let pending = ref 0
 let running = ref 0
 let goals = ref []
 
@@ -193,7 +194,11 @@ let rec gdec a = function
       if n > 1 then (a0,n-1)::tl else tl
     else hd :: gdec a tl
 
+let schedule () = incr pending
+let unschedule () = decr pending
+
 let start ?name () =
+  decr pending ;
   incr running ;
   match name with
   | None -> ()
@@ -205,6 +210,7 @@ let stop ?name () =
   | None -> ()
   | Some a -> goals := gdec a !goals
 
+let pending () = !pending
 let running () = !running
 
 let pp_goals fmt =
@@ -235,9 +241,11 @@ let call_prover (env : Wenv.env)
   let timeout = ref 0.0 in
   let started = ref false in
   let killed = ref false in
+  let canceled = ref false in
   let np = !jobs in
   if np > 0 then
     (jobs := 0 ; Why3.Prove_client.set_max_running_provers np) ;
+  schedule () ;
   let cancel = match cancel with None -> Fibers.signal () | Some s -> s in
   let call = prove_task
       ~command:(get_complete_command prover.config ~with_steps:false)
@@ -247,13 +255,20 @@ let call_prover (env : Wenv.env)
   let kill () =
     if not !killed then
       begin
-        killed := true ;
-        (try interrupt_call ~libdir:(libdir main) call
-         with  _ -> ()) ;
+        try
+          interrupt_call ~libdir:(libdir main) call ;
+          killed := true ;
+        with exn -> Format.printf "INTERRUPTION FAILED! (%s)" (Printexc.to_string exn) ;
       end in
-  Fibers.hook cancel kill Fibers.async
+  let interrupt () =
+    begin
+      canceled := true ;
+      if !started then kill () ;
+    end in
+  Fibers.hook cancel interrupt Fibers.async
     begin fun () ->
-      if !started && !timeout < Unix.gettimeofday () then kill () ;
+      let t0 = Unix.gettimeofday () in
+      if !started && (!canceled || !timeout < t0) then kill () ;
       let query = try query_call call with e -> InternalFailure e in
       match query with
       | NoUpdates
@@ -284,7 +299,7 @@ let call_prover (env : Wenv.env)
               Unknown pr.pr_time
             | HighFailure | Failure _ -> Failed
         in
-        if !started then stop ?name () ;
+        if !started then stop ?name () else unschedule () ;
         (match callback with None -> () | Some f -> f (p prover) limit pr) ;
         Some result
     end
