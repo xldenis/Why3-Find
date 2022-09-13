@@ -78,7 +78,12 @@ let progress msg =
     (fun fmt ->
        Format.pp_print_flush fmt () ;
        if tty then
-         Format.printf "> %s\027[K\r@?" (Buffer.contents buffer)
+         let msg = Buffer.contents buffer in
+         let len = String.length msg in
+         if len <= 80 then
+           Format.printf "> %s\027[K\r@?" msg
+         else
+           Format.printf "> %s…\027[K\r@?" (String.sub msg 0 80)
     ) (Format.formatter_of_buffer buffer) msg
 
 let flush () = if tty then Format.printf "\r\027[K"

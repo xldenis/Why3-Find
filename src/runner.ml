@@ -355,6 +355,6 @@ let prove env ?name ?cancel ?callback task prover time =
 let report_stats () =
   let h = !hits in
   let m = !miss in
-  Format.printf "%d/%d cached@." h (h+m)
+  Format.printf "Cache %d/%d@." h (h+m)
 
 (* -------------------------------------------------------------------------- *)

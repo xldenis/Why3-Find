@@ -161,7 +161,7 @@ let process ~env ~mode ~session ~verbose ~success file =
           let style =
             if np = nt then "green" else
             if np = 0 then "red" else "orange"
-          in Format.printf "%d/%d @{<%s>%s@}@." np nt style path
+          in Format.printf "Module @{<%s>%s@} (%d/%d)@." style path np nt
       end
 end
 
