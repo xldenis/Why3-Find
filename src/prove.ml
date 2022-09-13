@@ -67,7 +67,8 @@ let jproofs (prfs : proofs) : Json.t =
 
 let load_proofs file : profile * theories =
   let js = if Sys.file_exists file then Json.of_file file else `Null in
-  let profile = Calibration.of_json @@ Json.jfield "profile" js in
+  let default = Calibration.default () in
+  let profile = Calibration.of_json ~default @@ Json.jfield "profile" js in
   let strategy = jmap (jmap Crc.of_json) @@ Json.jfield "proofs" js in
   profile , strategy
 
@@ -97,7 +98,7 @@ let process ~env ~mode ~session ~verbose ~success file =
     let theories, format = load_theories env file in
     let session = Session.create ~session ~dir ~file ~format theories in
     let profile, strategy = load_proofs fp in
-    let total = ref 0 in
+    let stuck = ref 0 in
     let proved = ref 0 in
     let driver =
       Fibers.all @@ List.map
@@ -110,7 +111,6 @@ let process ~env ~mode ~session ~verbose ~success file =
                (fun task ->
                   let goal = Session.goal_name task in
                   let hint = M.find_def Crc.Stuck goal hints in
-                  incr total ;
                   let+ crc =
                     match mode with
                     | `All ->
@@ -120,13 +120,21 @@ let process ~env ~mode ~session ~verbose ~success file =
                     | `Update ->
                       Crc.merge hint @+ Hammer.schedule profile task hint
                   in
-                  if Crc.complete crc then
-                    incr proved
-                  else
+                  stuck := !stuck + Crc.stuck crc ;
+                  proved := !proved + Crc.proved crc ;
+                  if not (Crc.complete crc) then
                     begin
                       success := false ;
-                      Format.printf "> %s.%s.%s : %a@." path thy goal
-                        Crc.pretty crc ;
+                      Utils.flush () ;
+                      begin
+                        match Session.goal_loc task with
+                        | Some loc ->
+                          Format.printf "%a: proof failed@."
+                            Why3.Loc.gen_report_position loc
+                        | None -> ()
+                      end ;
+                      Format.printf "Goal @{<red>%s@}: %a@."
+                        goal Crc.pretty crc
                     end ;
                   goal, crc
                ) tasks
@@ -156,12 +164,8 @@ let process ~env ~mode ~session ~verbose ~success file =
                  end
             ) proofs
         else
-          let np = !proved in
-          let nt = !total in
-          let style =
-            if np = nt then "green" else
-            if np = 0 then "red" else "orange"
-          in Format.printf "Module @{<%s>%s@} (%d/%d)@." style path np nt
+          Format.printf "Module %s: %t@."
+            path (Crc.pp_result ~stuck:!stuck ~proved:!proved)
       end
 end
 
@@ -178,7 +182,7 @@ let command ~time ~mode ~session ~verbose ~pkgs ~provers ~transfs ~files =
     let success = ref true in
     List.iter (process ~env ~mode ~session ~verbose ~success) files ;
     Hammer.run { env ; time ; provers ; transfs } ;
-    if verbose then Runner.report_stats () ;
+    if Utils.tty then Runner.report_stats () ;
     if not !success then exit 1
   end
 

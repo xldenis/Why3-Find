@@ -141,13 +141,14 @@ let select p prvs = List.find (fun prv -> Runner.name prv = p) prvs
 
 let overhead t = max (t *. 2.0) 1.0
 
-let hint henv : strategy = fun n ->
-  match n.hint with
-  | Stuck -> stuck
-  | Prover(p,t) -> prove henv.env (select p henv.provers) (overhead t) n
-  | Transf { id ; children } -> apply henv.env.Wenv.wenv id children n
+let check h p t =
+  prove h.env (select p h.provers) (overhead t) >>> hammer h
 
-let process henv : strategy = hint henv >>> hammer henv
+let process henv : strategy = fun n ->
+  match n.hint with
+  | Stuck -> hammer henv n
+  | Prover(p,t) -> check henv p t n
+  | Transf { id ; children } -> apply henv.env.Wenv.wenv id children n
 
 (* -------------------------------------------------------------------------- *)
 (* --- Main Loop                                                          --- *)

@@ -29,7 +29,8 @@ val copy : src:string -> tgt:string -> unit
 
 val pp_time : Format.formatter -> float -> unit
 
-val progress : ('a,Format.formatter,unit) format -> 'a
+val tty : bool
 val flush : unit -> unit
+val progress : ('a,Format.formatter,unit) format -> 'a
 
 (* -------------------------------------------------------------------------- *)

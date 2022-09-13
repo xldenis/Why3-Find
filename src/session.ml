@@ -69,6 +69,7 @@ let split = function
 let names = Hashtbl.create 0
 
 let goal_task = function Task t | Snode(_,_,t) -> t
+let goal_loc g = (T.task_goal (goal_task g)).pr_name.id_loc
 let goal_name g =
   let a0 = (T.task_goal (goal_task g)).pr_name.id_string in
   try Hashtbl.find names a0 with Not_found ->

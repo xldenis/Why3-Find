@@ -154,9 +154,11 @@ type gauge = {
 
 type profile = (string,gauge) Hashtbl.t
 
-let of_json (js : Json.t) : profile =
+let empty () = Hashtbl.create 0
+
+let of_json ?default (js : Json.t) : profile =
   let open Json in
-  let p = Hashtbl.create 0 in
+  let p = match default with Some p -> p | None -> empty () in
   List.iter (fun js ->
       try
         let prv = jfield_exn "prover" js |> jstring in
@@ -218,6 +220,13 @@ let observed profile prv =
 (* --- Testing Calibration                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
+let default_file = "why3find.json"
+
+let default () =
+  if Sys.file_exists default_file then
+    Json.of_file default_file |> of_json
+  else empty ()
+
 let calibrate_provers ~time provers =
   Fibers.run @@
   begin
@@ -233,14 +242,17 @@ let calibrate_provers ~time provers =
         ) provers
     in
     Utils.flush () ;
+    let profile = empty () in
     List.iter
       (fun (prv,res) ->
          match res with
          | None ->
            Format.printf "%-16s no result@." (id prv)
          | Some(n,t) ->
+           Hashtbl.add profile (id prv) { size = n ; time = t ; alpha = 1.0 } ;
            Format.printf "%-16s n=%d %a@." (id prv) n Utils.pp_time t
       ) results ;
+    Json.to_file default_file (to_json profile) ;
     Fibers.return () ;
   end
 

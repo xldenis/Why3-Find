@@ -33,9 +33,12 @@ type crc =
       proved : int ;
     }
 
+val stuck : crc -> int
+val proved : crc -> int
 val unknown : crc -> bool
 val complete : crc -> bool
 val pretty : Format.formatter -> crc -> unit
+val pp_result : Format.formatter -> stuck:int -> proved:int -> unit
 val dump : Format.formatter -> crc -> unit
 val shortname : string -> string (* prover short name *)
 

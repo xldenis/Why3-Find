@@ -46,6 +46,7 @@ type goal
 
 val split : theory -> goal list
 val goal_name : goal -> string
+val goal_loc : goal -> Loc.position option
 val goal_task : goal -> Task.task
 
 val result : goal ->
