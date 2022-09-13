@@ -615,6 +615,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let time = ref 1 in
       let files = ref [] in
       let session = ref false in
+      let verbose = ref false in
       let mode = ref `Update in
       let set m () = mode := m in
       let add r p = r := p :: !r in
@@ -626,6 +627,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
           "-u", Arg.Unit (set `Update), "update proofs";
           "-r", Arg.Unit (set `Replay), "replay proof certificates";
           "-s", Arg.Set session, "save why3 session";
+          "-v", Arg.Set verbose, "dump theory results";
           "-p", Arg.String (add pkgs), "PKG package dependency";
           "-P", Arg.String (add prvs), "PRV use prover";
           "-T", Arg.String (add trfs), "TRANS use transformation ";
@@ -639,11 +641,12 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let time = !time in
       let mode = !mode in
       let session = !session in
+      let verbose = !verbose in
       let pkgs = List.rev !pkgs in
       let provers = List.rev !prvs in
       let transfs = List.rev !trfs in
       let files = List.rev !files in
-      Prove.command ~pkgs ~time ~mode ~session ~provers ~transfs ~files
+      Prove.command ~pkgs ~time ~mode ~session ~verbose ~provers ~transfs ~files
     end
 
 (* -------------------------------------------------------------------------- *)

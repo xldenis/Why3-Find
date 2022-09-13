@@ -87,7 +87,7 @@ let save_proofs ~mode dir file profile (prfs : proofs) =
 
 type mode = [ `Update | `All | `Replay ]
 
-let process ~env ~mode ~session ~success file =
+let process ~env ~mode ~session ~verbose ~success file =
   begin
     let dir = Filename.chop_extension file in
     let path =
@@ -144,7 +144,18 @@ let process ~env ~mode ~session ~success file =
           if np = nt then "green" else
           if np = 0 then "red" else "orange"
         in
-        Format.printf "%d/%d @{<%s>%s@}@." np nt style path
+        if verbose then
+          List.iter
+            (fun (th,goals) ->
+               Format.printf "theory %s.%s@." path (Session.name th) ;
+               List.iter
+                 (fun (g,p) ->
+                    Format.printf "  goal %s : %a@."
+                      g Crc.pretty p
+                 ) goals
+            ) proofs
+        else
+          Format.printf "%d/%d @{<%s>%s@}@." np nt style path
       end
 end
 
@@ -152,14 +163,14 @@ end
 (* --- Prove Command                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-let command ~time ~mode ~session ~pkgs ~provers ~transfs ~files =
+let command ~time ~mode ~session ~verbose ~pkgs ~provers ~transfs ~files =
   begin
     let time = float time in
     let env = Wenv.init ~pkgs in
     let provers = Runner.select env provers in
     let transfs = [ "split_vc" ; "inline_goal" ] @ transfs in
     let success = ref true in
-    List.iter (process ~env ~mode ~session ~success) files ;
+    List.iter (process ~env ~mode ~session ~verbose ~success) files ;
     Hammer.run { env ; time ; provers ; transfs } ;
     Runner.report_stats () ;
     if not !success then exit 1

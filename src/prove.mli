@@ -29,6 +29,7 @@ val command :
   time:int ->
   mode:mode ->
   session:bool ->
+  verbose:bool ->
   pkgs:string list ->
   provers:string list ->
   transfs:string list ->
