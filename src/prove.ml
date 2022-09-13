@@ -125,12 +125,13 @@ let process ~env ~mode ~session ~verbose ~success file =
                   else
                     begin
                       success := false ;
-                      Format.printf "%s.%s.%s : %a@." path thy goal
+                      Format.printf "> %s.%s.%s : %a@." path thy goal
                         Crc.pretty crc ;
                     end ;
                   goal, crc
                ) tasks
-           in theory, proofs
+           in
+           theory, proofs
         ) (Session.theories session)
     in
     Fibers.await driver
@@ -138,24 +139,29 @@ let process ~env ~mode ~session ~verbose ~success file =
         Session.save session ;
         save_proofs ~mode dir fp profile proofs ;
         Utils.flush () ;
-        let np = !proved in
-        let nt = !total in
-        let style =
-          if np = nt then "green" else
-          if np = 0 then "red" else "orange"
-        in
         if verbose then
           List.iter
             (fun (th,goals) ->
-               Format.printf "theory %s.%s@." path (Session.name th) ;
-               List.iter
-                 (fun (g,p) ->
-                    Format.printf "  goal %s : %a@."
-                      g Crc.pretty p
-                 ) goals
+               let tn = Session.name th in
+               if goals = [] then
+                 Format.printf "Theory %s.%s: no goal@." path tn
+               else
+                 begin
+                   Format.printf "Theory %s.%s:@." path tn ;
+                   List.iter
+                     (fun (g,p) ->
+                        Format.printf "  Goal %s: %a@."
+                          g Crc.pretty p
+                     ) goals
+                 end
             ) proofs
         else
-          Format.printf "%d/%d @{<%s>%s@}@." np nt style path
+          let np = !proved in
+          let nt = !total in
+          let style =
+            if np = nt then "green" else
+            if np = 0 then "red" else "orange"
+          in Format.printf "%d/%d @{<%s>%s@}@." np nt style path
       end
 end
 

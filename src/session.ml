@@ -66,8 +66,16 @@ let split = function
   | Thy th -> tasks @@ T.split_theory th None None
   | Sth(s,th) -> nodes s @@ S.theory_goals th
 
+let names = Hashtbl.create 0
+
 let goal_task = function Task t | Snode(_,_,t) -> t
-let goal_name g = (T.task_goal (goal_task g)).pr_name.id_string
+let goal_name g =
+  let a0 = (T.task_goal (goal_task g)).pr_name.id_string in
+  try Hashtbl.find names a0 with Not_found ->
+    let a =
+      if String.ends_with ~suffix:"'vc" a0
+      then String.sub a0 0 (String.length a0 - 3) else a0
+    in Hashtbl.add names a0 a ; a
 
 let silent : S.notifier = fun _ -> ()
 
@@ -81,9 +89,11 @@ let result goal prv limit result =
 let apply env transf = function
   | Task t ->
     begin
-      match Why3.Trans.apply_transform transf env t with
-      | [ t' ] when Why3.Task.task_equal t t' -> None
-      | ts -> Some (tasks ts)
+      try
+        match Why3.Trans.apply_transform transf env t with
+        | [ t' ] when Why3.Task.task_equal t t' -> None
+        | ts -> Some (tasks ts)
+      with _ -> None
     end
   | Snode(s,n,_) ->
     begin
@@ -93,8 +103,7 @@ let apply env transf = function
         let tid = S.graft_transf s n transf [] ts in
         let ns = S.get_sub_tasks s tid in
         Some (nodes s ns)
-      with _ ->
-        None
+      with _ -> None
     end
 
 (* -------------------------------------------------------------------------- *)

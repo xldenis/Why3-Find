@@ -37,7 +37,6 @@ val default : env -> prover list
 val prover : env -> string -> prover
 val select : env -> string list -> prover list
 
-val pp_time : Format.formatter -> float -> unit
 val pp_prover : Format.formatter -> prover -> unit
 val pp_result : Format.formatter -> result -> unit
 
@@ -51,12 +50,14 @@ type callback =
   unit
 
 val prove : env ->
+  ?name:string ->
   ?cancel:unit Fibers.signal ->
   ?callback:callback ->
   task -> prover -> float -> result Fibers.t
 
 val jobs : int ref
 val running : unit -> int
+val pp_goals : Format.formatter -> unit
 val report_stats : unit -> unit
 
 (* -------------------------------------------------------------------------- *)

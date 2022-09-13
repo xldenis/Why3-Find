@@ -29,15 +29,15 @@ type crc =
   | Transf of {
       id : string ;
       children : crc list ;
-      todo : int ;
-      size : int ;
+      stuck : int ;
+      proved : int ;
     }
 
-val size : crc -> int
-val todo : crc -> int
-val proved : crc -> int
+val unknown : crc -> bool
 val complete : crc -> bool
 val pretty : Format.formatter -> crc -> unit
+val dump : Format.formatter -> crc -> unit
+val shortname : string -> string (* prover short name *)
 
 val apply : string -> crc list -> crc
 val merge : crc -> crc -> crc

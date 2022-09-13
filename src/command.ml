@@ -612,7 +612,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let pkgs = ref [] in
       let prvs = ref [] in
       let trfs = ref [] in
-      let time = ref 1 in
+      let time = ref 5 in
       let files = ref [] in
       let session = ref false in
       let verbose = ref false in
@@ -622,7 +622,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       Arg.parse_argv argv
         [
           "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
-          "-t", Arg.Set_int time, "S acceptable prover timeout (default 1s)";
+          "-t", Arg.Set_int time, "S acceptable prover timeout (default 5s)";
           "-a", Arg.Unit (set `All), "rebuild all proofs";
           "-u", Arg.Unit (set `Update), "update proofs";
           "-r", Arg.Unit (set `Replay), "replay proof certificates";

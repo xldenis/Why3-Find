@@ -64,11 +64,12 @@ let stuck = Fibers.return Stuck
 type strategy = node -> crc Fibers.t
 let fail : strategy = fun _ -> stuck
 
+let (@>) (h : strategy) (n : node) : crc Fibers.t =
+  try h n with Not_found -> stuck
+
 let (>>>) (h1 : strategy) (h2 : strategy) : strategy = fun n ->
-  match h1 n with
-  | exception Not_found -> h2 n
-  | job -> Fibers.bind job
-             (fun r -> if r <> Stuck then Fibers.return r else h2 n)
+  let* r = h1 @> n in
+  if r <> Stuck then Fibers.return r else h2 @> n
 
 let rec smap (f : 'a -> strategy) (xs : 'a list) : strategy =
   match xs with
@@ -83,9 +84,12 @@ let prove env ?cancel prv timeout : strategy = fun n ->
   let* alpha = Calibration.velocity env n.profile prv in
   let time = timeout *. alpha in
   let task = Session.goal_task n.goal in
-  let+ result =
-    Runner.prove env ?cancel ~callback:(Session.result n.goal) task prv time
-  in match result with
+  let name = Session.goal_name n.goal in
+  let+ result = Runner.prove env
+      ?cancel ~name ~callback:(Session.result n.goal)
+      task prv time
+  in
+  match result with
   | Valid t -> Prover( Runner.name prv, t /. alpha )
   | _ -> Stuck
 
@@ -117,16 +121,17 @@ let hammer1 env prvs time : strategy = fun n ->
   let+ results =
     Fibers.all @@ List.map
       (fun prv -> watch @+ prove env ~cancel prv time n) prvs
-  in List.find (fun r -> r <> Stuck) results
+  in try List.find (fun r -> r <> Stuck) results with Not_found -> Stuck
 
 let hammer2 env trfs : strategy =
   smap (fun tr -> apply env.Wenv.wenv tr []) trfs
 
 let hammer henv =
-  hammer0 henv.env henv.provers 0.5 >>>
-  hammer1 henv.env henv.provers 5.0 >>>
+  hammer0 henv.env henv.provers 0.2 >>>
+  hammer1 henv.env henv.provers henv.time >>>
   hammer2 henv.env henv.transfs >>>
-  hammer1 henv.env henv.provers 10.0
+  hammer1 henv.env henv.provers (henv.time *. 2.0) >>>
+  fail
 
 (* -------------------------------------------------------------------------- *)
 (* --- Node Processing                                                    --- *)
@@ -151,12 +156,12 @@ let rec exec (s : strategy) =
   let n1 = Queue.length q1 in
   let n2 = Queue.length q2 in
   let nr = Runner.running () in
-  Utils.progress "%d/%d/%d" n2 n1 nr ;
+  Utils.progress "%d/%d/%d%t" n2 n1 nr Runner.pp_goals ;
   match pop () with
   | None ->
-    if Fibers.pending () > 0 then ( Unix.sleepf 0.01 ; exec s )
+    if Fibers.pending () > 0 then (Unix.sleepf 0.01 ; exec s)
   | Some node ->
-    Fibers.await (s node) (Fibers.set node.result) ; exec s
+    Fibers.await (s @> node) (Fibers.set node.result) ; exec s
 
 let run henv = exec (process henv)
 

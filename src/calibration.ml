@@ -195,7 +195,9 @@ let velocity env profile prv : float Fibers.t =
   if g.alpha > 0.0 then Fibers.return g.alpha else
     let timeout = 5.0 *. (max 1.0 g.time) in
     Utils.progress "%s:%d" (name prv) g.size ;
-    let* result = Runner.prove env (generate g.size) prv timeout in
+    let* result = Runner.prove env
+        ~name:(Runner.name prv)
+        (generate g.size) prv timeout in
     match result with
     | Valid t -> let a = t /. g.time in g.alpha <- a ; Fibers.return a
     | _ ->
@@ -234,7 +236,7 @@ let calibrate_provers ~time provers =
          | None ->
            Format.printf "%-16s no result@." (id prv)
          | Some(n,t) ->
-           Format.printf "%-16s n=%d %a@." (id prv) n pp_time t
+           Format.printf "%-16s n=%d %a@." (id prv) n Utils.pp_time t
       ) results ;
     Runner.report_stats () ;
     Fibers.return () ;

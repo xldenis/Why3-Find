@@ -29,40 +29,42 @@ type crc =
   | Transf of {
       id : string ;
       children : crc list ;
-      todo : int ;
-      size : int ;
+      stuck : int ;
+      proved : int ;
     }
 
-let size = function
-  | Stuck | Prover _ -> 1
-  | Transf { size } -> 1 + size
-
-let todo = function
+let stuck = function
   | Stuck -> 1
   | Prover _ -> 0
-  | Transf { todo } -> todo
+  | Transf { stuck } -> stuck
 
 let proved = function
   | Stuck -> 0
   | Prover _ -> 1
-  | Transf { todo ; size } -> 1 + size - todo
+  | Transf { proved } -> proved
 
 let complete = function
   | Stuck -> false
   | Prover _ -> true
-  | Transf { todo } -> todo = 0
+  | Transf { stuck } -> stuck = 0
+
+let unknown = function
+  | Stuck -> true
+  | Prover _ -> false
+  | Transf { stuck ; proved } -> stuck > 0 && proved = 0
 
 let apply id children =
-  let todo = List.fold_left (fun n c -> n + todo c) 0 children in
-  let size = List.fold_left (fun n c -> n + size c) 1 children in
-  Transf { id ; children ; todo ; size }
+  let stuck = List.fold_left (fun n c -> n + stuck c) 0 children in
+  let proved = List.fold_left (fun n c -> n + proved c) 0 children in
+  (*if stuck > 0 && proved = 0 then Stuck else*)
+  Transf { id ; children ; stuck ; proved }
 
 let pretty fmt crc =
-  let n = size crc in
+  let s = stuck crc in
   let p = proved crc in
+  if s = 0 then Format.fprintf fmt "@{<green>Valid@}" else
   if p = 0 then Format.fprintf fmt "@{<red>Unknown@}" else
-  if p = n then Format.fprintf fmt "@{<green>Valid@}" else
-    Format.fprintf fmt "@{<orange>Partial@} (%d/%d)" p n
+    Format.fprintf fmt "@{<orange>Partial@} (%d/%d)" p (s+p)
 
 (* -------------------------------------------------------------------------- *)
 (* --- JSON                                                               --- *)
@@ -97,7 +99,7 @@ let rec of_json (js : Json.t) : crc =
 (* -------------------------------------------------------------------------- *)
 
 let rec merge a b =
-  match a,b with
+  match a, b with
   | Prover(p0,t0), Prover(p1,t1)
     when p0 = p1 && t0 *. 0.5 < t1 && t1 < t0 *. 2.0 -> a
   | Transf { id = f ; children = xs } ,
@@ -105,5 +107,24 @@ let rec merge a b =
     when f = g && List.length xs = List.length ys ->
     apply f (List.map2 merge xs ys)
   | _ -> b
+
+(* -------------------------------------------------------------------------- *)
+(* --- Dump                                                               --- *)
+(* -------------------------------------------------------------------------- *)
+
+let pname = Hashtbl.create 0
+let shortname p =
+  try Hashtbl.find pname p
+  with Not_found ->
+    let s = String.lowercase_ascii @@ List.hd @@ String.split_on_char ',' p in
+    Hashtbl.add pname p s ; s
+
+let rec dump fmt = function
+  | Stuck -> Format.fprintf fmt "@ @{<orange>Unknown@}"
+  | Prover(p,t) -> Format.fprintf fmt "@ %s (%a)" (shortname p) Utils.pp_time t
+  | Transf { id ; children } ->
+    Format.fprintf fmt "@ @[<hov 2>+ %s" id ;
+    List.iter (dump fmt) children ;
+    Format.fprintf fmt "@]"
 
 (* -------------------------------------------------------------------------- *)
