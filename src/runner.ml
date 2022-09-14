@@ -258,7 +258,7 @@ let call_prover (env : Wenv.env)
         try
           interrupt_call ~libdir:(libdir main) call ;
           killed := true ;
-        with exn -> Format.printf "INTERRUPTION FAILED! (%s)" (Printexc.to_string exn) ;
+        with _ -> ()
       end in
   let interrupt () =
     begin
@@ -289,15 +289,15 @@ let call_prover (env : Wenv.env)
         end
       | ProverFinished pr ->
         let result =
-          if !killed then
-            NoResult
-          else
-            match pr.pr_answer with
-            | Valid -> Valid pr.pr_time
-            | Timeout -> Timeout time
-            | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
-              Unknown pr.pr_time
-            | HighFailure | Failure _ -> Failed
+          match pr.pr_answer with
+          | Valid -> Valid pr.pr_time
+          | Timeout -> Timeout pr.pr_time
+          | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
+            Unknown pr.pr_time
+          | Failure _ ->
+            if !killed then NoResult else Failed
+          | HighFailure ->
+            if !killed then Timeout pr.pr_time else Failed
         in
         if !started then stop ?name () else unschedule () ;
         (match callback with None -> () | Some f -> f (p prover) limit pr) ;
