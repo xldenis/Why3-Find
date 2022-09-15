@@ -35,4 +35,4 @@ val command :
   provers:string list ->
   transfs:string list ->
   files:string list ->
-  unit
+  string list

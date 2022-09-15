@@ -90,7 +90,7 @@ type mode = [ `Update | `All | `Replay ]
 type log0 = [ `Modules | `Theories | `Goals | `Proofs ]
 type log = [ `Default | log0 ]
 
-let process ~env ~mode ~session ~(log : log0) ~success file =
+let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
   begin
     if not @@ String.ends_with ~suffix:".mlw" file then
       begin
@@ -131,7 +131,7 @@ let process ~env ~mode ~session ~(log : log0) ~success file =
                   proved := !proved + Crc.proved crc ;
                   if not (Crc.complete crc) then
                     begin
-                      success := false ;
+                      unsuccess := file :: !unsuccess ;
                       Utils.flush () ;
                       begin
                         match Session.goal_loc task with
@@ -194,14 +194,14 @@ let command ~time ~mode ~session ~log ~pkgs ~provers ~transfs ~files =
     let env = Wenv.init ~pkgs in
     let provers = Runner.select env provers in
     let transfs = [ "split_vc" ; "inline_goal" ] @ transfs in
-    let success = ref true in
+    let unsuccess = ref [] in
     let log : log0 = match log with
       | `Default -> if List.length files > 1 then `Modules else `Theories
       | #log0 as l -> l in
-    List.iter (process ~env ~mode ~session ~log ~success) files ;
+    List.iter (process ~env ~mode ~session ~log ~unsuccess) files ;
     Hammer.run { env ; time ; provers ; transfs } ;
     if Utils.tty then Runner.report_stats () ;
-    if not !success then exit 1
+    List.rev !unsuccess ;
   end
 
 (* -------------------------------------------------------------------------- *)

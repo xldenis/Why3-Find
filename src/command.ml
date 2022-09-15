@@ -91,13 +91,14 @@ let exec
     ?(drivers=false)
     ?(prefix=[])
     ?(pkgs=[])
+    ?(skip=1)
     argv =
   let open Bag in
   let args = ref empty in
   let pkgs = ref (Bag.of_list pkgs) in
   let drivers = ref drivers in
   let configs = ref configs in
-  let p = ref 1 in
+  let p = ref skip in
   while !p < Array.length argv do
     begin
       match argv.(!p) with
@@ -558,7 +559,7 @@ let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
         "USAGE:\n\
          \n  why3find extract [OPTIONS] MODULE...\n\n\
          DESCRIPTION:\n\
-         \n  Executes why3 ide with the specified arguments.\n\n\
+         \n  Executes why3 extract with the specified arguments.\n\n\
          OPTIONS:\n\
          \n  -v|--verbose print why3 command\
          \n  -p|--package PKG package dependency\
@@ -606,6 +607,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let trfs = ref [] in
       let time = ref 5 in
       let files = ref [] in
+      let ide = ref false in
       let session = ref false in
       let log = ref `Default in
       let mode = ref `Update in
@@ -619,6 +621,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
           "-a", Arg.Unit (set mode `All), "rebuild all proofs";
           "-u", Arg.Unit (set mode `Update), "update proofs (default)";
           "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
+          "-i", Arg.Set ide, "run why-3 IDE on error (implies -s)";
           "-s", Arg.Set session, "save why3 session";
           "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
           "-t", Arg.Set_int time, "TIME acceptable prover timeout (default 5s)";
@@ -645,10 +648,22 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let pkgs = List.rev !pkgs in
       let provers = List.rev !prvs in
       let transfs = List.rev !trfs in
+      let session = !session || !ide in
       let files = List.map (Filename.concat prefix) @@ List.rev !files in
-      Prove.command
-        ~mode:!mode ~session:!session ~log:!log
+      let tofix = Prove.command
+        ~mode:!mode ~session ~log:!log
         ~time:!time ~provers ~transfs ~pkgs ~files
+      in match tofix with
+      | [] -> ()
+      | f::_ ->
+        if not !ide then
+          exit 1
+        else
+          begin
+            Format.printf "proof failed: running why3 ide %s@." f ;
+            let hammer = Meta.shared "hammer.cfg" in
+            exec ~prefix:["ide";"--extra-config";hammer] ~pkgs ~skip:0 [| f |]
+          end
     end
 
 (* -------------------------------------------------------------------------- *)
