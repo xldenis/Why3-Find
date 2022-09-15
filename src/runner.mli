@@ -56,6 +56,7 @@ val prove : env ->
   task -> prover -> float -> result Fibers.t
 
 val jobs : int ref
+val cache : bool ref
 val pending : unit -> int
 val running : unit -> int
 val pp_goals : Format.formatter -> unit

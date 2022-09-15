@@ -163,10 +163,12 @@ let write e r =
   Json.to_file f (to_json r)
 
 let hash = Cache.create 0
+let cache = ref true
 
 let get e =
   try Cache.find hash e with Not_found ->
-    let r = read e in Cache.add hash e r ; r
+    let r = if !cache then read e else NoResult in
+    Cache.add hash e r ; r
 
 let set e r =
   match r with

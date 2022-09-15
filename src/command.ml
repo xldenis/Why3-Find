@@ -615,6 +615,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
         [
           "-C", Arg.Set_string chdir, "DIR change to directory";
           "-p", Arg.String (add pkgs), "PKG package dependency";
+          "-c", Arg.Clear Runner.cache, "force cache update";
           "-a", Arg.Unit (set mode `All), "rebuild all proofs";
           "-u", Arg.Unit (set mode `Update), "update proofs (default)";
           "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
