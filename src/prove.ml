@@ -87,8 +87,10 @@ let save_proofs ~mode dir file profile (prfs : proofs) =
 (* -------------------------------------------------------------------------- *)
 
 type mode = [ `Update | `All | `Replay ]
+type log0 = [ `Modules | `Theories | `Proofs ]
+type log = [ `Default | log0 ]
 
-let process ~env ~mode ~session ~verbose ~success file =
+let process ~env ~mode ~session ~(log : log0) ~success file =
   begin
     let dir = Filename.chop_extension file in
     let path =
@@ -147,7 +149,11 @@ let process ~env ~mode ~session ~verbose ~success file =
         Session.save session ;
         save_proofs ~mode dir fp profile proofs ;
         Utils.flush () ;
-        if verbose then
+        match log with
+        | `Modules ->
+          Format.printf "Module %s: %t@."
+            path (Crc.pp_result ~stuck:!stuck ~proved:!proved)
+        | `Theories | `Proofs ->
           List.iter
             (fun (th,goals) ->
                let tn = Session.name th in
@@ -156,16 +162,13 @@ let process ~env ~mode ~session ~verbose ~success file =
                else
                  begin
                    Format.printf "Theory %s.%s:@." path tn ;
+                   let pp = if log = `Proofs then Crc.dump else Crc.pretty in
                    List.iter
                      (fun (g,p) ->
-                        Format.printf "  Goal %s: %a@."
-                          g Crc.pretty p
+                        Format.printf "  @[<hv 2>Goal %s: %a@]@." g pp p
                      ) goals
                  end
             ) proofs
-        else
-          Format.printf "Module %s: %t@."
-            path (Crc.pp_result ~stuck:!stuck ~proved:!proved)
       end
 end
 
@@ -173,14 +176,17 @@ end
 (* --- Prove Command                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-let command ~time ~mode ~session ~verbose ~pkgs ~provers ~transfs ~files =
+let command ~time ~mode ~session ~log ~pkgs ~provers ~transfs ~files =
   begin
     let time = float time in
     let env = Wenv.init ~pkgs in
     let provers = Runner.select env provers in
     let transfs = [ "split_vc" ; "inline_goal" ] @ transfs in
     let success = ref true in
-    List.iter (process ~env ~mode ~session ~verbose ~success) files ;
+    let log : log0 = match log with
+      | `Default -> if List.length files > 1 then `Modules else `Theories
+      | #log0 as l -> l in
+    List.iter (process ~env ~mode ~session ~log ~success) files ;
     Hammer.run { env ; time ; provers ; transfs } ;
     if Utils.tty then Runner.report_stats () ;
     if not !success then exit 1

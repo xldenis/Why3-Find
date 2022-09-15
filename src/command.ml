@@ -617,22 +617,24 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let time = ref 5 in
       let files = ref [] in
       let session = ref false in
-      let verbose = ref false in
+      let log = ref `Default in
       let mode = ref `Update in
-      let set m () = mode := m in
+      let set m v () = m := v in
       let add r p = r := p :: !r in
       Arg.parse_argv argv
         [
-          "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
-          "-t", Arg.Set_int time, "S acceptable prover timeout (default 5s)";
-          "-a", Arg.Unit (set `All), "rebuild all proofs";
-          "-u", Arg.Unit (set `Update), "update proofs";
-          "-r", Arg.Unit (set `Replay), "replay proof certificates";
-          "-s", Arg.Set session, "save why3 session";
-          "-v", Arg.Set verbose, "dump theory results";
           "-p", Arg.String (add pkgs), "PKG package dependency";
+          "-a", Arg.Unit (set mode `All), "rebuild all proofs";
+          "-u", Arg.Unit (set mode `Update), "update proofs (default)";
+          "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
+          "-s", Arg.Set session, "save why3 session";
+          "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
+          "-t", Arg.Set_int time, "TIME acceptable prover timeout (default 5s)";
           "-P", Arg.String (add prvs), "PRV use prover";
           "-T", Arg.String (add trfs), "TRANS use transformation ";
+          "--modules",  Arg.Unit (set log `Modules), "list results by module";
+          "--theories", Arg.Unit (set log `Theories), "list results by theory";
+          "--proofs",   Arg.Unit (set log `Proofs), "list proofs by goals";
         ]
         (add files)
         "USAGE:\n\
@@ -645,7 +647,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let transfs = List.rev !trfs in
       let files = List.rev !files in
       Prove.command
-        ~mode:!mode ~session:!session ~verbose:!verbose
+        ~mode:!mode ~session:!session ~log:!log
         ~time:!time ~provers ~transfs ~pkgs ~files
     end
 

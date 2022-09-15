@@ -24,12 +24,14 @@
 (* -------------------------------------------------------------------------- *)
 
 type mode = [ `Update | `All | `Replay ]
+type log = [ `Default | `Modules | `Theories | `Proofs ]
+
 
 val command :
   time:int ->
   mode:mode ->
   session:bool ->
-  verbose:bool ->
+  log:log ->
   pkgs:string list ->
   provers:string list ->
   transfs:string list ->
