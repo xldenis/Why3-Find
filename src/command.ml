@@ -585,6 +585,7 @@ let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
 
 let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
+      let save = ref false in
       let time = ref 500 in
       let prvs = ref [] in
       let prover p = prvs := p :: !prvs in
@@ -593,6 +594,7 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
           "-j", Arg.Set_int Runner.jobs, "JOBS max parallel provers";
           "-t", Arg.Set_int time, "MS calibration time (default 500ms)";
           "-P", Arg.String prover, "PRV prover to calibrate";
+          "-s", Arg.Set save, "save calibration profile";
         ]
         prover
         "USAGE:\n\
@@ -600,7 +602,7 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
          DESCRIPTION:\n\
          \n  Calibrate your machine.\n\n\
          OPTIONS:\n" ;
-      Calibration.calibrate_provers ~time:!time (List.rev !prvs) ;
+      Calibration.calibrate_provers ~save:!save ~time:!time (List.rev !prvs) ;
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -638,15 +640,13 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
          DESCRIPTION:\n\
          \n  Prove why3 files.\n\n\
          OPTIONS:\n" ;
-      let time = !time in
-      let mode = !mode in
-      let session = !session in
-      let verbose = !verbose in
       let pkgs = List.rev !pkgs in
       let provers = List.rev !prvs in
       let transfs = List.rev !trfs in
       let files = List.rev !files in
-      Prove.command ~pkgs ~time ~mode ~session ~verbose ~provers ~transfs ~files
+      Prove.command
+        ~mode:!mode ~session:!session ~verbose:!verbose
+        ~time:!time ~provers ~transfs ~pkgs ~files
     end
 
 (* -------------------------------------------------------------------------- *)

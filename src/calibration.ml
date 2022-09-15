@@ -220,14 +220,14 @@ let observed profile prv =
 (* --- Testing Calibration                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let default_file = "why3find.json"
+let default_file = "./why3find.json"
 
 let default () =
   if Sys.file_exists default_file then
     Json.of_file default_file |> of_json
   else empty ()
 
-let calibrate_provers ~time provers =
+let calibrate_provers ~save ~time provers =
   Fibers.run @@
   begin
     let env = Wenv.init ~pkgs:[] in
@@ -252,6 +252,8 @@ let calibrate_provers ~time provers =
            Hashtbl.add profile (id prv) { size = n ; time = t ; alpha = 1.0 } ;
            Format.printf "%-16s n=%d %a@." (id prv) n Utils.pp_time t
       ) results ;
+    if save then
+      Format.printf "Saved to %s@." default_file ;
     Json.to_file default_file (to_json profile) ;
     Fibers.return () ;
   end

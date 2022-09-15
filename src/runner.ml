@@ -147,8 +147,9 @@ module Cache = Hashtbl.Make
     end)
 
 let file (t,p) =
-  Printf.sprintf ".why3find/%s/%s.json"
-    (id p) Why3.Termcode.(task_checksum t |> string_of_checksum)
+  let hash = Why3.Termcode.(task_checksum t |> string_of_checksum) in
+  let h2 = String.sub hash 0 2 in
+  Printf.sprintf ".why3find/%s/%s/%s.json" h2 hash (id p)
 
 let read e =
   let f = file e in
