@@ -652,25 +652,6 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- HAMMER                                                             --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"hammer" ~args:"[-p PKG] FILE"
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find hammer [OPTIONS] FILE\n\n\
-         DESCRIPTION:\n\
-         \n  Run why3 hammer on the given file.\n\n\
-         OPTIONS:\n\
-         \n  -v|--verbose print why3 command\
-         \n  -p|--package PKG package dependency\
-         \n  --extra-config FILE additional configuration file\
-         \n";
-      exec ~cmd:"hammer" ~configs:true argv
-    end
-
-(* -------------------------------------------------------------------------- *)
 (* --- DOC                                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
