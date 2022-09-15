@@ -582,6 +582,8 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
       Arg.parse_argv argv
         [
           "-j", Arg.Set_int Runner.jobs, "JOBS max parallel provers";
+          "-c", Arg.Clear Runner.cache, "force cache update";
+          "-q", Arg.Clear Calibration.parallel, "sequential calibration";
           "-t", Arg.Set_int time, "MS calibration time (default 500ms)";
           "-P", Arg.String prover, "PRV prover to calibrate";
           "-s", Arg.Set save, "save calibration profile";
@@ -615,9 +617,10 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let add r p = r := p :: !r in
       Arg.parse_argv argv
         [
-          "-C", Arg.Set_string chdir, "DIR change to directory";
+          "--root", Arg.Set_string chdir, "DIR change to directory";
           "-p", Arg.String (add pkgs), "PKG package dependency";
           "-c", Arg.Clear Runner.cache, "force cache update";
+          "-q", Arg.Clear Calibration.parallel, "sequential calibration";
           "-a", Arg.Unit (set mode `All), "rebuild all proofs";
           "-u", Arg.Unit (set mode `Update), "update proofs (default)";
           "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";

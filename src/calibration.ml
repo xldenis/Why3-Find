@@ -109,7 +109,7 @@ let qenv env time = {
   time_out = time *. 2.0
 }
 
-let rec lookup ~progress q prv rg best =
+let rec seqlookup ~progress q prv rg best =
   if singleton rg then Fibers.return best else
     let n = select rg in
     let name =
@@ -121,11 +121,104 @@ let rec lookup ~progress q prv rg best =
     match result with
     | Valid t ->
       let best = choose q.time best (Some (n,t)) in
-      if t < q.time_lo then lookup ~progress q prv (upper n rg) best else
-      if q.time_up < t then lookup ~progress q prv (lower n rg) best else
+      if t < q.time_lo then seqlookup ~progress q prv (upper n rg) best else
+      if q.time_up < t then seqlookup ~progress q prv (lower n rg) best else
         Fibers.return best
     | _ ->
-      lookup ~progress q prv (lower n rg) best
+      seqlookup ~progress q prv (lower n rg) best
+
+(* -------------------------------------------------------------------------- *)
+(* --- Velocity Parallel Lookup                                           --- *)
+(* -------------------------------------------------------------------------- *)
+
+type cenv = {
+  qenv : qenv ;
+  prover : prover ;
+  progress : bool ;
+  ca : unit Fibers.signal ;
+  cg : unit Fibers.signal ;
+  cb : unit Fibers.signal ;
+  mutable inf : int ;
+  mutable sup : int ;
+  mutable guess : int ;
+  mutable best : (int * float) option ;
+}
+
+let fire cs = List.iter (fun s -> Fibers.emit s ()) cs
+
+let pguess ~progress q prv =
+  let g = try List.assoc (name prv) guesses with Not_found -> 20 in
+  { progress ; prover = prv ; qenv = q ;
+    ca = Fibers.signal () ;
+    cg = Fibers.signal () ;
+    cb = Fibers.signal () ;
+    inf = 1 ; sup = max_int ; guess = g ; best = None }
+
+let ptry c ~cancel ?(upper=[]) ?(lower=[]) n =
+  if n = 0 then Fibers.return false
+  else
+    let prv = c.prover in
+    let name =
+      if c.progress then
+        ( Utils.progress "%s (%d)" (name prv) n ; None )
+      else Some (name prv)
+    in
+    let q = c.qenv in
+    let+ r = Runner.prove q.env ?name ~cancel (generate n) prv q.time_out in
+    match r with
+    | Valid t ->
+      c.best <- choose q.time c.best (Some (n,t)) ;
+      if t < q.time_lo then (fire lower ; c.inf <- max c.inf n ; false) else
+      if q.time_up < t then (fire upper ; c.sup <- min c.sup n ; false) else
+        true
+    | Timeout t | Unknown t ->
+      if q.time_up < t then ( fire upper ; c.sup <- min c.sup n ) ;
+      false
+    | Failed | NoResult -> false
+
+let middle a b = (a+b)/2
+
+let rec parlookup p =
+  let { inf = a ; sup = b ; guess = g } = p in
+  match b - a with
+  | 0 | 1 -> Fibers.return p.best
+  | 2 -> spawn p 0 g 0
+  | 3 -> spawn p 0 g (g+1)
+  | 4 -> spawn p (g-1) g (g+1)
+  | _ ->
+    let a = middle a g in
+    let b = if b = max_int then g * 2 else (middle g b) in
+    spawn p a g b
+
+and spawn p na ng nb =
+  let { inf = a0 ; sup = b0 ; ca ; cg ; cb } = p in
+  let pa = ptry p ~cancel:ca ~upper:[cg;cb] na in
+  let pg = ptry p ~cancel:cg ~lower:[ca] ~upper:[cb] ng in
+  let pb = ptry p ~cancel:cb ~lower:[cg;ca] nb in
+  let* found = Fibers.all [ pg ; pb ; pa ] in
+  if List.exists Fun.id found then
+    Fibers.return p.best
+  else
+    let { inf = a ; sup = b } = p in
+    if b-a < b0-a0 then
+      begin
+        p.guess <- if b < max_int then (a+b)/2 else max a (p.guess * 2) ;
+        parlookup p
+      end
+    else
+      Fibers.return p.best
+
+(* -------------------------------------------------------------------------- *)
+(* --- Problem Lookup                                                     --- *)
+(* -------------------------------------------------------------------------- *)
+
+let parallel = ref true
+
+let lookup ~progress q prv =
+  if !parallel then
+    parlookup (pguess ~progress q prv)
+  else
+    seqlookup ~progress q prv (guess prv) None
 
 (* -------------------------------------------------------------------------- *)
 (* --- On-the-fly Calibration                                             --- *)
@@ -140,7 +233,8 @@ let calibrate ?(progress=false) env prv : (int * float) option Fibers.t =
     let c = Fibers.get v in
     Hashtbl.add qhash (id prv) c ;
     let q = qenv env 0.5 in
-    Fibers.await (lookup ~progress q prv (guess prv) None) (Fibers.set v) ; c
+    let job = lookup ~progress q prv in
+    Fibers.await job (Fibers.set v) ; c
 
 (* -------------------------------------------------------------------------- *)
 (* --- Profile                                                            --- *)
@@ -236,8 +330,7 @@ let calibrate_provers ~save ~time provers =
     let* results =
       Fibers.all @@ List.map
         (fun prv ->
-           let+ r = lookup ~progress:true q prv (guess prv) None in
-           prv, r
+           let+ r = lookup ~progress:true q prv in prv, r
         ) provers
     in
     Utils.flush () ;
@@ -252,8 +345,12 @@ let calibrate_provers ~save ~time provers =
            Format.printf "%-16s n=%d %a@." (id prv) n Utils.pp_time t
       ) results ;
     if save then
-      Format.printf "Saved to %s@." config ;
-    Json.to_file config (to_json profile) ;
+      begin
+        Format.printf "Saved to %s@." config ;
+        Json.to_file config (to_json profile) ;
+      end
+    else
+      Format.printf "Use -s to save profile@." ;
     Fibers.return () ;
   end
 

@@ -33,6 +33,7 @@ val to_json : profile -> Json.t
 val round : float -> float
 val observed : profile -> Runner.prover -> float
 val velocity : Wenv.env -> profile -> Runner.prover -> float Fibers.t
+val parallel : bool ref
 val calibrate_provers : save:bool -> time:int -> string list -> unit
 
 (* -------------------------------------------------------------------------- *)
