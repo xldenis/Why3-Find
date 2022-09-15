@@ -29,6 +29,10 @@ val copy : src:string -> tgt:string -> unit
 val locate : string list -> (string * string) option
 val chdir : string -> unit
 
+val pp_ok : Format.formatter -> unit
+val pp_ko : Format.formatter -> unit
+val pp_weak : Format.formatter -> unit
+val pp_mark : Format.formatter -> bool -> unit
 val pp_time : Format.formatter -> float -> unit
 
 val tty : bool

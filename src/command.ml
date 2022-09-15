@@ -625,6 +625,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
           "-T", Arg.String (add trfs), "TRANS use transformation ";
           "--modules",  Arg.Unit (set log `Modules), "list results by module";
           "--theories", Arg.Unit (set log `Theories), "list results by theory";
+          "--goals", Arg.Unit (set log `Goals), "list results by goals";
           "--proofs",   Arg.Unit (set log `Proofs), "list proofs by goals";
         ]
         (add files)

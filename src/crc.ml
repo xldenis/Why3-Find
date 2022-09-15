@@ -60,9 +60,12 @@ let apply id children =
     Transf { id ; children ; stuck ; proved }
 
 let pp_result fmt ~stuck:s ~proved:p =
-  if s = 0 then Format.fprintf fmt "@{<green>Valid@} (%d)" p else
-  if p = 0 then Format.fprintf fmt "@{<red>Unknown@}" else
-    Format.fprintf fmt "@{<orange>Partial@} (%d/%d)" p (s+p)
+  if s = 0 then
+    if p <= 1 then Utils.pp_ok fmt
+    else Format.fprintf fmt "%t (%d)" Utils.pp_ok p
+  else
+  if p = 0 then Utils.pp_ko fmt
+  else Format.fprintf fmt "%t (%d/%d)" Utils.pp_weak p (s+p)
 
 let pretty fmt crc =
   let s = stuck crc in

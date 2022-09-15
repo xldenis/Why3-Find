@@ -24,8 +24,7 @@
 (* -------------------------------------------------------------------------- *)
 
 type mode = [ `Update | `All | `Replay ]
-type log = [ `Default | `Modules | `Theories | `Proofs ]
-
+type log = [ `Default | `Modules | `Theories | `Goals | `Proofs ]
 
 val command :
   time:int ->

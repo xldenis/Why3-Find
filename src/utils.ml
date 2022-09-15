@@ -84,6 +84,11 @@ let pp_time fmt t =
   if t < 20.0 then Format.fprintf fmt "%.1fs" t else
     Format.fprintf fmt "%ds" (int_of_float t)
 
+let pp_ok fmt = Format.fprintf fmt "@{<green>\u{2714}@}"
+let pp_ko fmt = Format.fprintf fmt "@{<red>\u{2718}@}"
+let pp_weak fmt = Format.fprintf fmt "@{<orange>\u{2718}@}"
+let pp_mark fmt b = if b then pp_ok fmt else pp_ko fmt
+
 (* -------------------------------------------------------------------------- *)
 (* --- Terminal Facilities                                                --- *)
 (* -------------------------------------------------------------------------- *)

@@ -87,11 +87,16 @@ let save_proofs ~mode dir file profile (prfs : proofs) =
 (* -------------------------------------------------------------------------- *)
 
 type mode = [ `Update | `All | `Replay ]
-type log0 = [ `Modules | `Theories | `Proofs ]
+type log0 = [ `Modules | `Theories | `Goals | `Proofs ]
 type log = [ `Default | log0 ]
 
 let process ~env ~mode ~session ~(log : log0) ~success file =
   begin
+    if not @@ String.ends_with ~suffix:".mlw" file then
+      begin
+        Format.eprintf "Invalid file name: %S@." file ;
+        exit 2
+      end ;
     let dir = Filename.chop_extension file in
     let path =
       String.concat "." @@ String.split_on_char '/' @@
@@ -153,24 +158,31 @@ let process ~env ~mode ~session ~(log : log0) ~success file =
         | `Modules ->
           Format.printf "Module %s: %t@."
             path (Crc.pp_result ~stuck:!stuck ~proved:!proved)
-        | `Theories | `Proofs ->
+        | `Theories | `Goals | `Proofs ->
           List.iter
             (fun (th,goals) ->
                let tn = Session.name th in
-               if goals = [] then
-                 Format.printf "Theory %s.%s: no goal@." path tn
-               else
-                 begin
-                   Format.printf "Theory %s.%s:@." path tn ;
-                   let pp = if log = `Proofs then Crc.dump else Crc.pretty in
-                   List.iter
-                     (fun (g,p) ->
-                        Format.printf "  @[<hv 2>Goal %s: %a@]@." g pp p
-                     ) goals
-                 end
+               let (s,p) = List.fold_left
+                   (fun (s,p) (_,c) -> s + Crc.stuck c, p + Crc.proved c)
+                   (0,0) goals in
+               Format.printf "Theory %s.%s: %t@." path tn
+                 (Crc.pp_result ~stuck:s ~proved:p) ;
+               match log with
+               | `Modules | `Theories -> ()
+               | `Goals ->
+                 List.iter
+                   (fun (g,c) ->
+                      Format.printf "  Goal %s: %a@." g Crc.pretty c
+                   ) goals
+               | `Proofs ->
+                 List.iter
+                   (fun (g,c) ->
+                      Format.printf "  @[<hv 2>Goal %s %a%a@]@." g
+                        Utils.pp_mark (Crc.complete c) Crc.dump c
+                   ) goals
             ) proofs
       end
-end
+  end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Prove Command                                                      --- *)
