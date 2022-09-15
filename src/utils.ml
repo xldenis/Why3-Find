@@ -23,12 +23,14 @@
 (* --- System Utils                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
+module F = Filename
+
 let rec cleanup path =
   if Sys.file_exists path then
     if Sys.is_directory path then
       begin
         Array.iter
-          (fun d -> cleanup (Filename.concat path d))
+          (fun d -> cleanup (F.concat path d))
           (Sys.readdir path) ;
         Sys.rmdir path
       end
@@ -40,12 +42,12 @@ let rec mkdirs = function
   | path ->
     if not (Sys.file_exists path) then
       begin
-        mkdirs (Filename.dirname path) ;
+        mkdirs (F.dirname path) ;
         Sys.mkdir path 0o755 ;
       end
 
 let copy ~src ~tgt =
-  mkdirs (Filename.dirname tgt) ;
+  mkdirs (F.dirname tgt) ;
   let buffer = Bytes.create 2048 in
   let inc = open_in src in
   let out = open_out tgt in
@@ -54,6 +56,22 @@ let copy ~src ~tgt =
     if n > 0 then
       ( Stdlib.output out buffer 0 n ; walk () )
   in walk () ; close_in inc ; close_out out
+
+let locate files =
+  let rec lookup dir prefix =
+    match dir with
+    | "/" | "." -> None
+    | _ ->
+      if List.exists
+          (fun f -> Sys.file_exists (F.concat dir f))
+          files
+      then Some (dir,prefix)
+      else lookup (F.dirname dir) (F.concat (F.basename dir) prefix)
+  in lookup (Sys.getcwd ()) ""
+
+let chdir dir =
+  Format.printf "Entering directory '%s'@." dir ;
+  Sys.chdir dir
 
 (* -------------------------------------------------------------------------- *)
 (* --- Time Printing                                                      --- *)

@@ -78,19 +78,6 @@ let template ~subst ~src ~tgt =
   close_out out ;
   Format.printf "Initialized %s@." tgt
 
-let find_direcory ~msg fn =
-  let rec lookup dir =
-    match dir with
-    | "/" | "." -> failwith msg
-    | _ ->
-      if fn dir then dir else
-        lookup (Filename.dirname dir)
-  in lookup @@ Sys.getcwd ()
-
-let find_makefile () =
-  find_direcory ~msg:"Makefile not found"
-    (fun dir -> Sys.file_exists (Filename.concat dir "Makefile"))
-
 (* -------------------------------------------------------------------------- *)
 (* --- Wrapper Command                                                    --- *)
 (* -------------------------------------------------------------------------- *)
@@ -302,10 +289,12 @@ let () = register ~name:"make"
          \n  run make -C DIR ARGS... from the closest\
          \n  directory DIR that contains a Makefile.\
          \n" ;
-      let dir = find_makefile () in
+      let dir =
+        match Utils.locate ["Makefile"] with
+        | None -> failwith "Makefile not found"
+        | Some(dir,_) -> Utils.chdir dir ; dir in
       let args = Array.sub argv 1 (Array.length argv - 1) in
       let argv = Array.append [| "make" ; "-C" ; dir |] args in
-      Format.printf "Entering directory '%s'@." dir ;
       Unix.execvp "make" argv
     end
 
@@ -611,6 +600,7 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
 
 let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
     begin fun argv ->
+      let chdir = ref "" in
       let pkgs = ref [] in
       let prvs = ref [] in
       let trfs = ref [] in
@@ -623,6 +613,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let add r p = r := p :: !r in
       Arg.parse_argv argv
         [
+          "-C", Arg.Set_string chdir, "DIR change to directory";
           "-p", Arg.String (add pkgs), "PKG package dependency";
           "-a", Arg.Unit (set mode `All), "rebuild all proofs";
           "-u", Arg.Unit (set mode `Update), "update proofs (default)";
@@ -642,10 +633,17 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
          DESCRIPTION:\n\
          \n  Prove why3 files.\n\n\
          OPTIONS:\n" ;
+      let prefix =
+        if !chdir <> "" then (Utils.chdir !chdir ; "") else
+          match Utils.locate [Calibration.config;"Makefile";".git"] with
+          | Some(dir,prefix) ->
+            if prefix <> "" then Utils.chdir dir ; prefix
+          | None -> ""
+      in
       let pkgs = List.rev !pkgs in
       let provers = List.rev !prvs in
       let transfs = List.rev !trfs in
-      let files = List.rev !files in
+      let files = List.map (Filename.concat prefix) @@ List.rev !files in
       Prove.command
         ~mode:!mode ~session:!session ~log:!log
         ~time:!time ~provers ~transfs ~pkgs ~files

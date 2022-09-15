@@ -220,11 +220,10 @@ let observed profile prv =
 (* --- Testing Calibration                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let default_file = "./why3find.json"
-
+let config = "./why3find.json"
 let default () =
-  if Sys.file_exists default_file then
-    Json.of_file default_file |> of_json
+  if Sys.file_exists config then
+    Json.of_file config |> of_json
   else empty ()
 
 let calibrate_provers ~save ~time provers =
@@ -253,8 +252,8 @@ let calibrate_provers ~save ~time provers =
            Format.printf "%-16s n=%d %a@." (id prv) n Utils.pp_time t
       ) results ;
     if save then
-      Format.printf "Saved to %s@." default_file ;
-    Json.to_file default_file (to_json profile) ;
+      Format.printf "Saved to %s@." config ;
+    Json.to_file config (to_json profile) ;
     Fibers.return () ;
   end
 

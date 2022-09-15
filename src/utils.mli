@@ -26,6 +26,8 @@
 val mkdirs : string -> unit
 val cleanup : string -> unit
 val copy : src:string -> tgt:string -> unit
+val locate : string list -> (string * string) option
+val chdir : string -> unit
 
 val pp_time : Format.formatter -> float -> unit
 
