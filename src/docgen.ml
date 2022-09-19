@@ -125,8 +125,7 @@ let rec close env =
   | Body -> ()
   | Emph -> Token.error env.input "unclosed emphasis style"
   | Bold -> Token.error env.input "unclosed bold style"
-  | Head _ -> Token.error env.input "unclose headings"
-  | Div | Par | List _ | Item _ | Pre -> pop env ; close env
+  | Div | Par | List _ | Item _ | Pre | Head _ -> pop env ; close env
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
