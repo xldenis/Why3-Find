@@ -177,7 +177,7 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
                | `Proofs ->
                  List.iter
                    (fun (g,c) ->
-                      Format.printf "  @[<hv 2>Goal %s %a%a@]@." g
+                      Format.printf "  @[<hv 2>Goal %s %a@ %a@]@." g
                         Utils.pp_mark (Crc.complete c) Crc.dump c
                    ) goals
             ) proofs

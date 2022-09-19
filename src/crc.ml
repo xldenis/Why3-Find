@@ -126,11 +126,13 @@ let shortname p =
     Hashtbl.add pname p s ; s
 
 let rec dump fmt = function
-  | Stuck -> Format.fprintf fmt "@ @{<orange>Unknown@}"
-  | Prover(p,t) -> Format.fprintf fmt "@ %s (%a)" (shortname p) Utils.pp_time t
+  | Stuck -> Format.fprintf fmt "@{<orange>Unknown@}"
+  | Prover(p,t) -> Format.fprintf fmt "%s (%a)" (shortname p) Utils.pp_time t
   | Transf { id ; children } ->
-    Format.fprintf fmt "@ @[<hv 2> %s" id ;
-    List.iter (dump fmt) children ;
+    Format.fprintf fmt "@[<hv 2>%s" id ;
+    List.iter (dumpchild fmt) children ;
     Format.fprintf fmt "@]"
+
+and dumpchild fmt c = Format.pp_print_space fmt () ; dump fmt c
 
 (* -------------------------------------------------------------------------- *)
