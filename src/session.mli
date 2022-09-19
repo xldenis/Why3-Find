@@ -49,6 +49,9 @@ val goal_name : goal -> string
 val goal_loc : goal -> Loc.position option
 val goal_task : goal -> Task.task
 
+val thy_name : Theory.theory -> string
+val task_name : Task.task -> string
+
 val result : goal ->
   Whyconf.prover ->
   Call_provers.resource_limit ->

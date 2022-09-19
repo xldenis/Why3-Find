@@ -5,17 +5,15 @@
     { "prover": "Z3,4.8.6", "size": 33, "time": 0.57 }
   ],
   "proofs": {
-    "Seq": {
+    "S": {
       "mixfix []": { "prover": "alt-ergo", "time": 0.0091 },
-      "head": { "prover": "alt-ergo", "time": 0.0045 },
-      "tail": { "prover": "alt-ergo", "time": 0.0048 },
-      "reflexivity": { "prover": "alt-ergo", "time": 0.0022 },
+      "reflexivity": { "prover": "alt-ergo", "time": 0.0029 },
       "extensivity": {
         "transf": "split_vc",
         "children": [
-          { "prover": "alt-ergo", "time": 0.0052 },
-          { "prover": "cvc4", "time": 2.33 },
-          { "prover": "cvc4", "time": 0.09 }
+          { "prover": "alt-ergo", "time": 0.0048 },
+          { "prover": "cvc4", "time": 2.53 },
+          { "prover": "cvc4", "time": 0.14 }
         ]
       }
     }

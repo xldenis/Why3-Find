@@ -56,6 +56,7 @@ let of_infix s =
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
+module Thy = Why3.Theory
 module Mstr = Why3.Wstdlib.Mstr
 module Sid = Why3.Ident.Sid
 
@@ -72,11 +73,13 @@ type theory = {
   theory: Why3.Theory.theory;
   locals: Sid.t ;
   clones: clone list ;
+  proofs: Crc.crc Mstr.t ;
 }
 
 type source = {
   name: string;
   url: string;
+  profile: Calibration.profile ;
   theories: theory Mstr.t;
 }
 
@@ -139,7 +142,7 @@ let anchor ~kind id =
 
 type href =
   | NoRef
-  | Def of string
+  | Def of { name: string ; proof: Crc.crc option }
   | Ref of { path: string ; href: string }
 
 let declaration id =
@@ -158,7 +161,17 @@ let resolve ~src ~scope ~infix pos =
   try
     let loc = extract ~infix pos in
     match Why3.Glob.find loc with
-    | (id, Why3.Glob.Def, kind) -> Def(anchor ~kind id)
+    | (id, Why3.Glob.Def, kind) ->
+      let name = anchor ~kind id in
+      let proof =
+        match scope with
+        | None -> None
+        | Some thy ->
+          match Mstr.find_opt thy src.theories with
+          | None -> None
+          | Some { proofs } -> Mstr.find_opt name proofs
+      in
+      Def { name ; proof }
     | (id, Why3.Glob.Use, kind) ->
       let id = definition id in
       let path = id_path ~src ~scope id in
@@ -174,29 +187,8 @@ let id_href ~src ~scope id =
   Printf.sprintf "%s#%s" (baseurl ~src ~scope id) (anchor ~kind:"" id)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Environment                                                        --- *)
+(* --- Theory Iterators                                                   --- *)
 (* -------------------------------------------------------------------------- *)
-
-let init ~pkgs =
-  begin
-    (* Parser config *)
-    Why3.Debug.set_flag Why3.Glob.flag ;
-    List.iter (fun k -> Hashtbl.add keywords k ()) Why3.Keywords.keywords ;
-    (* Package config *)
-    Wenv.init ~pkgs
-  end
-
-(* -------------------------------------------------------------------------- *)
-(* --- Parsing                                                            --- *)
-(* -------------------------------------------------------------------------- *)
-
-let library_path file =
-  let rec scan r p =
-    let d = Filename.dirname p in
-    if d = "." || d = "" || d = p
-    then p::r
-    else scan (Filename.basename p :: r) d
-  in scan [] (Filename.chop_extension file)
 
 let is_cloned id =
   try ignore @@ Why3.Glob.find (id_loc id) ; false
@@ -240,7 +232,7 @@ let iter_sm f (sm : Why3.Theory.symbol_map) =
     Mpr.iter (fun a b -> f a.pr_name b.pr_name) sm.sm_pr ;
   end
 
-let iter_module f (thy : Why3.Theory.theory) =
+let iter_cloned_module f (thy : Why3.Theory.theory) =
   try
     let open Why3.Pmodule in
     let m = restore_module thy in
@@ -254,8 +246,8 @@ let iter_module f (thy : Why3.Theory.theory) =
   with Not_found ->
     Sid.empty
 
-let iter_theory f thy =
-  let m = iter_module f thy in
+let iter_cloned_theory f thy =
+  let m = iter_cloned_module f thy in
   List.iter
     (fun d ->
        match d.Why3.Theory.td_node with
@@ -265,7 +257,62 @@ let iter_theory f thy =
     ) thy.th_decls ;
   Sid.union m (Sid.filter declaration thy.th_local)
 
+(* -------------------------------------------------------------------------- *)
+(* --- Environment                                                        --- *)
+(* -------------------------------------------------------------------------- *)
+
+let init ~pkgs =
+  begin
+    (* Parser config *)
+    Why3.Debug.set_flag Why3.Glob.flag ;
+    List.iter (fun k -> Hashtbl.add keywords k ()) Why3.Keywords.keywords ;
+    (* Package config *)
+    Wenv.init ~pkgs
+  end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Proofs                                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let jmap cc js =
+  let m = ref Mstr.empty in
+  Json.jiter (fun fd js -> m := Mstr.add fd (cc js) !m) js ; !m
+
+let load_proofs file =
+  let js = if Sys.file_exists file then Json.of_file file else `Null in
+  let profile = Calibration.of_json @@ Json.jfield "profile" js in
+  let strategy = jmap (jmap Crc.of_json) @@ Json.jfield "proofs" js in
+  profile , strategy
+
+let zip_goals theory proofs =
+  let proofs = Mstr.find_def Mstr.empty (Session.thy_name theory) proofs in
+  List.fold_left
+    (fun cmap task ->
+       let a = Session.task_name task in
+       Mstr.add a (Mstr.find_def Crc.Stuck a proofs) cmap
+    )
+    Mstr.empty
+    (Why3.Task.split_theory theory None None)
+
+(* -------------------------------------------------------------------------- *)
+(* --- Parsing                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let library_path file =
+  let rec scan r p =
+    let d = Filename.dirname p in
+    if d = "." || d = "" || d = p
+    then p::r
+    else scan (Filename.basename p :: r) d
+  in scan [] (Filename.chop_extension file)
+
 let parse ~why3env file =
+  if not @@ String.ends_with ~suffix:".mlw" file then
+    begin
+      Format.eprintf "Invalid file name: %S@." file ;
+      exit 2
+    end ;
+  let dir = Filename.chop_extension file in
   let lib = library_path file in
   let name = String.concat "." lib in
   let thys =
@@ -274,20 +321,22 @@ let parse ~why3env file =
       Format.eprintf "%s@." (Printexc.to_string exn) ;
       exit 1
   in
+  let profile, proofs = load_proofs (Filename.concat dir "proof.json") in
   let theories =
     Mstr.map
       (fun theory ->
          let clones = ref [] in
-         let locals = iter_theory
+         let locals = iter_cloned_theory
              (fun a b ->
                 if is_cloned b then
                   clones := { id_source = a ; id_target = b } :: !clones
-             ) theory
-         in { theory ; locals ; clones = !clones }
+             ) theory in
+         let proofs = zip_goals theory proofs in
+         { theory ; locals ; clones = !clones ; proofs }
       ) thys
   in
   let url = Printf.sprintf "%s.html" name in
-  { name ; url ; theories }
+  { name ; url ; profile ; theories }
 
 let derived src id =
   Printf.sprintf "%s.%s.html" src.name id

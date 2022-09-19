@@ -39,11 +39,13 @@ type theory = {
   theory: Why3.Theory.theory;
   locals: Sid.t ;
   clones: clone list ;
+  proofs: Crc.crc Mstr.t ;
 }
 
 type source = {
   name: string;
   url: string;
+  profile: Calibration.profile;
   theories: theory Mstr.t;
 }
 
@@ -60,7 +62,7 @@ val id_href : src:source -> scope:string option -> ident -> string
 
 type href =
   | NoRef
-  | Def of string
+  | Def of { name: string ; proof: Crc.crc option }
   | Ref of { path: string ; href: string }
 
 type position = Lexing.position * Lexing.position

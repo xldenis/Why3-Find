@@ -51,8 +51,10 @@ let theories = function
   | Ths ths -> List.map (fun t -> Thy t) ths
   | Sfile(f,s) -> List.map (fun t -> Sth(s,t)) (S.file_theories f)
 
+let thy_name th = th.Th.th_name.id_string
+
 let name = function
-  | Thy th -> th.th_name.id_string
+  | Thy th -> thy_name th
   | Sth(_,th) -> (S.theory_name th).id_string
 
 type goal =
@@ -67,16 +69,17 @@ let split = function
   | Sth(s,th) -> nodes s @@ S.theory_goals th
 
 let names = Hashtbl.create 0
-
-let goal_task = function Task t | Snode(_,_,t) -> t
-let goal_loc g = (T.task_goal (goal_task g)).pr_name.id_loc
-let goal_name g =
-  let a0 = (T.task_goal (goal_task g)).pr_name.id_string in
+let task_name t =
+  let a0 = (T.task_goal t).pr_name.id_string in
   try Hashtbl.find names a0 with Not_found ->
     let a =
       if String.ends_with ~suffix:"'vc" a0
       then String.sub a0 0 (String.length a0 - 3) else a0
     in Hashtbl.add names a0 a ; a
+
+let goal_task = function Task t | Snode(_,_,t) -> t
+let goal_loc g = (T.task_goal (goal_task g)).pr_name.id_loc
+let goal_name g = task_name @@ goal_task g
 
 let silent : S.notifier = fun _ -> ()
 

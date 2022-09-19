@@ -101,7 +101,7 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
     let path =
       String.concat "." @@ String.split_on_char '/' @@
       if Filename.is_relative file then dir else Filename.basename dir in
-    let fp = Printf.sprintf "%s/proof.json" @@ dir in
+    let fp = Filename.concat dir "proof.json" in
     let theories, format = load_theories env file in
     let session = Session.create ~session ~dir ~file ~format theories in
     let profile, strategy = load_proofs fp in

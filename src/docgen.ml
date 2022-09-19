@@ -141,7 +141,7 @@ let resolve env ?(infix=false) () =
 
 let process_href env (href : Docref.href) s =
   match href with
-  | Docref.Def name ->
+  | Docref.Def { name } ->
     Pdoc.printf env.out "<a name=\"%s\">%a</a>" name Pdoc.pp_html s
   | Docref.Ref { path = p ; href = h } ->
     Pdoc.printf env.out "<a title=\"%s\" href=\"%s\">%a</a>" p h Pdoc.pp_html s
@@ -220,7 +220,9 @@ let decl id env (d : Why3.Decl.decl) =
            symbol env ls
       ) ds
   | Dind _ -> declare env "inductive" id
-  | Dprop _ -> ()
+  | Dprop(Plemma,_,_) -> declare env "lemma" id
+  | Dprop(Paxiom,_,_) -> declare env "axiom" id
+  | Dprop(Pgoal,_,_) -> ()
 
 let signature env (rs : Why3.Expr.rsymbol) =
   begin
