@@ -3,6 +3,7 @@ module A
   type t
   val constant neutral : t
   val op t t : t
+  let square (x : t) : t = op x x
   let rec assoc (xs : list t) : t =
     variant { xs }
     match xs with

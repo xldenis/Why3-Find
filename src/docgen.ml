@@ -284,12 +284,20 @@ let on_theory env f =
   | None -> ()
   | Some s -> f (Docref.Mstr.find s env.src.theories)
 
+let by_source_line a b =
+  let la = Docref.id_line a.Docref.id_source in
+  let lb = Docref.id_line b.Docref.id_source in
+  Int.compare la lb
+
+let is_cloned_at env line c =
+  let l = Docref.id_line c.Docref.id_target in
+  env.declared <= l && l < line
+
 let process_declarations env (th : Docref.theory) line =
-  let cloned = List.filter
-      (fun clone ->
-         let l = Docref.id_line clone.Docref.id_target in
-         env.declared <= l && l < line
-      ) th.clones in
+  let cloned =
+    List.sort by_source_line @@
+    List.filter (is_cloned_at env line) th.clones
+  in
   if cloned <> [] then
     begin
       text env ;

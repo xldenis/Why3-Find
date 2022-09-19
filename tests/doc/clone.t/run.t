@@ -22,7 +22,8 @@
     <span class="keyword">type</span> <a name="t_3">t</a>
     <span class="keyword">val</span> <span class="keyword">constant</span> <a name="neutral_4">neutral</a> : <a title="A.t" href="#t_3">t</a>
     <span class="keyword">val</span> <a name="op_5">op</a> <a title="A.t" href="#t_3">t</a> <a title="A.t" href="#t_3">t</a> : <a title="A.t" href="#t_3">t</a>
-    <span class="keyword">let</span> <span class="keyword">rec</span> <a name="assoc_6">assoc</a> (xs : <a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> <a title="A.t" href="#t_3">t</a>) : <a title="A.t" href="#t_3">t</a> =
+    <span class="keyword">let</span> <a name="square_6">square</a> (x : <a title="A.t" href="#t_3">t</a>) : <a title="A.t" href="#t_3">t</a> = <a title="A.op" href="#op_5">op</a> x x
+    <span class="keyword">let</span> <span class="keyword">rec</span> <a name="assoc_7">assoc</a> (xs : <a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> <a title="A.t" href="#t_3">t</a>) : <a title="A.t" href="#t_3">t</a> =
       <span class="keyword">variant</span> { xs }
       <span class="keyword">match</span> xs <span class="keyword">with</span>
       | <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.html#Nil_8">Nil</a> -&gt; <a title="A.neutral" href="#neutral_4">neutral</a>
@@ -51,12 +52,13 @@
   <span class="keyword">module</span> <a name="B_">B</a>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
-    <span class="keyword">let</span> <span class="keyword">constant</span> <a name="zero_17">zero</a> = 0
-    <span class="keyword">clone</span> <span class="keyword">export</span> <a title="a.A" href="a.A.html#A_">A</a> <span class="keyword">with</span> <span class="keyword">type</span> <a title="a.A.t" href="a.A.html#t_3">t</a> = int, <span class="keyword">val</span> <a title="a.A.neutral" href="a.A.html#neutral_4">neutral</a> = <a title="B.zero" href="#zero_17">zero</a>, <span class="keyword">val</span> <a title="a.A.op" href="a.A.html#op_5">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix +_19">+</a>)
+    <span class="keyword">let</span> <span class="keyword">constant</span> <a name="zero_18">zero</a> = 0
+    <span class="keyword">clone</span> <span class="keyword">export</span> <a title="a.A" href="a.A.html#A_">A</a> <span class="keyword">with</span> <span class="keyword">type</span> <a title="a.A.t" href="a.A.html#t_3">t</a> = int, <span class="keyword">val</span> <a title="a.A.neutral" href="a.A.html#neutral_4">neutral</a> = <a title="B.zero" href="#zero_18">zero</a>, <span class="keyword">val</span> <a title="a.A.op" href="a.A.html#op_5">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix +_19">+</a>)
     <span class="clone section">{<span class="attribute section-toggle">cloned</span><span class="section-text active">…</span>}<span class="section-text">
-    <span class="keyword">let</span> <a name="assoc_18">assoc</a> (<a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> int) : int = {<a  class="attribute"title="a.A.assoc" href="a.A.html#assoc_6">cloned</a>}
+    <span class="keyword">let</span> <a name="square_19">square</a> int : int = {<a  class="attribute"title="a.A.square" href="a.A.html#square_6">cloned</a>}
+    <span class="keyword">let</span> <a name="assoc_19">assoc</a> (<a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> int) : int = {<a  class="attribute"title="a.A.assoc" href="a.A.html#assoc_7">cloned</a>}
   {<span class="attribute section-toggle">end</span>}</span></span>
-    <span class="keyword">let</span> <a name="twice_19">twice</a> (x : int) : int = <a title="B.assoc" href="#assoc_18">assoc</a> (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> x (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> x <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.html#Nil_8">Nil</a>))
+    <span class="keyword">let</span> <a name="twice_20">twice</a> (x : int) : int = <a title="B.assoc" href="#assoc_19">assoc</a> (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> x (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> x <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.html#Nil_8">Nil</a>))
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
@@ -80,7 +82,7 @@
   <span class="keyword">module</span> <a name="E_">E</a>
     <span class="keyword">use</span> <a title="a.B" href="a.B.html#B_">B</a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
-    <span class="keyword">let</span> <a name="single_25">single</a> (x : int) : int = <a title="a.B.assoc" href="a.B.html#assoc_18">assoc</a> (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> x <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.html#Nil_8">Nil</a>)
+    <span class="keyword">let</span> <a name="single_26">single</a> (x : int) : int = <a title="a.B.assoc" href="a.B.html#assoc_19">assoc</a> (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> x <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.html#Nil_8">Nil</a>)
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
@@ -104,7 +106,7 @@
   <span class="keyword">module</span> <a name="C_">C</a>
     <span class="keyword">use</span> a.<a title="a.B" href="a.B.html#B_">B</a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
-    <span class="keyword">let</span> <a name="single_4">single</a> (x : int) : int = <a title="a.B.assoc" href="a.B.html#assoc_18">assoc</a> (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> x <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.html#Nil_8">Nil</a>)
+    <span class="keyword">let</span> <a name="single_4">single</a> (x : int) : int = <a title="a.B.assoc" href="a.B.html#assoc_19">assoc</a> (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> x <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.html#Nil_8">Nil</a>)
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
