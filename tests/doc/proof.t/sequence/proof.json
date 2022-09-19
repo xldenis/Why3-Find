@@ -1,0 +1,23 @@
+{
+  "profile": [
+    { "prover": "Alt-Ergo,2.2.0", "size": 16, "time": 0.1697 },
+    { "prover": "CVC4,1.8", "size": 42, "time": 0.55 },
+    { "prover": "Z3,4.8.6", "size": 33, "time": 0.57 }
+  ],
+  "proofs": {
+    "Seq": {
+      "mixfix []": { "prover": "alt-ergo", "time": 0.0091 },
+      "head": { "prover": "alt-ergo", "time": 0.0045 },
+      "tail": { "prover": "alt-ergo", "time": 0.0048 },
+      "reflexivity": { "prover": "alt-ergo", "time": 0.0022 },
+      "extensivity": {
+        "transf": "split_vc",
+        "children": [
+          { "prover": "alt-ergo", "time": 0.0052 },
+          { "prover": "cvc4", "time": 2.33 },
+          { "prover": "cvc4", "time": 0.09 }
+        ]
+      }
+    }
+  }
+}

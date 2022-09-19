@@ -1,0 +1,32 @@
+module Seq
+
+  use int.Int
+  use int.MinMax
+  use option.Option
+  use list.ListRich as L
+
+  type seq 'a = L.list 'a
+
+  let rec function ([]) (u : seq 'a) (k : int) : 'a
+    requires { 0 <= k < L.length u }
+    ensures { L.nth k u = Some result }
+    variant { u }
+    = match u with L.Cons x w -> if k = 0 then x else w[k-1] end
+
+  predicate (==) (u v : seq 'a) =
+    L.length u = L.length v /\ forall k. 0 <= k < L.length u -> u[k] = v[k]
+
+  lemma reflexivity : forall u : seq 'a. u == u
+
+  let rec lemma extensivity (a b : seq 'a)
+    requires { a == b }
+    ensures { a = b }
+    (*proof*)
+    variant { a, b }
+    = match a, b with
+      | L.Cons _ a' , L.Cons _ b' -> extensivity a' b'
+      | _ -> ()
+      end
+    (*qed*)
+
+end
