@@ -13,7 +13,7 @@
   <pre class="src">
   <span class="keyword">module</span> <a name="B_">B</a>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
-    <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#A_">A</a> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.A.t" href="clones.A.html#t_3">t</a> = int, <span class="keyword">function</span> <a title="clones.A.op" href="clones.A.html#op_5">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix +_19">+</a>), <span class="keyword">axiom</span> <a title="clones.A.neutral" href="clones.A.html#neutral_6">neutral</a>
+     <a title="clones.A" href="clones.A.html#A_">A</a> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.A.t" href="clones.A.html#t_3">t</a> = int, <span class="keyword">function</span> <a title="clones.A.op" href="clones.A.html#op_5">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix +_19">+</a>), <span class="keyword">axiom</span> <a title="clones.A.neutral" href="clones.A.html#neutral_6">neutral</a>
     <span class="comment">(* End *)</span>
   <span class="keyword">end</span>
   </pre>

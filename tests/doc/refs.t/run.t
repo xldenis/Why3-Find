@@ -27,7 +27,7 @@
   <p>Infix reference: <code class="src"><a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix +_19">int.Int.(+)</a></code></p>
   <p>Prefix reference: <code class="src"><a title="int.Int.(-)" href="https://why3.lri.fr/stdlib/int.html#prefix -_18">int.Int.(-_)</a></code></p>
   <p>Value reference: <code class="src"><a title="int.MinMax.max" href="https://why3.lri.fr/stdlib/int.html#max_65">int.MinMax.max</a></code></p>
-  <p>Logic reference: <code class="src"><a title="relations.MinMax.max" href="https://why3.lri.fr/stdlib/relations.html#max_148">int.MinMax.max</a></code></p>
+  <p>Logic reference: <code class="src"><a title="int.MinMax.max" href="https://why3.lri.fr/stdlib/int.html#max_148">int.MinMax.max</a></code></p>
   <p>Local references <code class="src"><a title="A.t" href="a.A.html#t_14">A.t</a></code>, <code class="src"><a title="B.binop" href="a.B.html#binop_20">binop</a></code></p>
   </div>
   <pre class="src theory"><span class="keyword">theory</span> <a title="a.A" href="a.A.html">A</a></div>

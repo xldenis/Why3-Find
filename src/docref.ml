@@ -64,14 +64,19 @@ type position = Lexing.position * Lexing.position
 
 type ident = Why3.Ident.ident
 
+type section = {
+  cloned_path : string ;
+  cloned_order : int ;
+}
+
 type clone = {
+  id_section : section ;
   id_source : Why3.Ident.ident ;
   id_target : Why3.Ident.ident ;
 }
 
 type theory = {
   theory: Why3.Theory.theory;
-  locals: Sid.t ;
   clones: clone list ;
   proofs: Crc.crc Mstr.t ;
 }
@@ -142,20 +147,11 @@ let anchor ~kind id =
 
 type href =
   | NoRef
-  | Def of { name: string ; proof: Crc.crc option }
-  | Ref of { path: string ; href: string }
+  | Def of { name: string ; id: Why3.Ident.ident ; proof: Crc.crc option }
+  | Ref of { kind: string ; path: string ; href: string }
 
-let declaration id =
-  match Why3.Glob.find (id_loc id) with
-  | exception Not_found -> false
-  | ({ Why3.Ident.id_loc = Some _ }, Why3.Glob.Def, _) -> true
-  | _ -> false
-
-let definition id =
-  match Why3.Glob.find (id_loc id) with
-  | exception Not_found -> id
-  | ({ Why3.Ident.id_loc = Some _ } as id0, Why3.Glob.Def, _) -> id0
-  | _ -> id
+let pp_ident fmt (id : Why3.Ident.ident) =
+  Format.fprintf fmt "%s<%d>" id.id_string (Why3.Weakhtbl.tag_hash id.id_tag)
 
 let resolve ~src ~scope ~infix pos =
   try
@@ -171,28 +167,22 @@ let resolve ~src ~scope ~infix pos =
           | None -> None
           | Some { proofs } -> Mstr.find_opt name proofs
       in
-      Def { name ; proof }
+      Def { name ; id ; proof }
     | (id, Why3.Glob.Use, kind) ->
-      let id = definition id in
       let path = id_path ~src ~scope id in
       let base = baseurl ~src ~scope id in
       let name = anchor ~kind id in
-      Ref { path ; href = Printf.sprintf "%s#%s" base name }
+      Ref { kind ; path ; href = Printf.sprintf "%s#%s" base name }
   with Not_found -> NoRef
 
 let id_name id = id.Why3.Ident.id_string
 let id_anchor id = anchor ~kind:"" id
 let id_href ~src ~scope id =
-  let id = definition id in
   Printf.sprintf "%s#%s" (baseurl ~src ~scope id) (anchor ~kind:"" id)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Theory Iterators                                                   --- *)
 (* -------------------------------------------------------------------------- *)
-
-let is_cloned id =
-  try ignore @@ Why3.Glob.find (id_loc id) ; false
-  with Not_found -> true
 
 let iter_mi f (mi : Why3.Pmodule.mod_inst) =
   begin
@@ -232,30 +222,41 @@ let iter_sm f (sm : Why3.Theory.symbol_map) =
     Mpr.iter (fun a b -> f a.pr_name b.pr_name) sm.sm_pr ;
   end
 
-let iter_cloned_module f (thy : Why3.Theory.theory) =
-  try
-    let open Why3.Pmodule in
-    let m = restore_module thy in
-    List.iter
-      (function
-        | Uclone mi ->
-          iter_mi (fun a b -> if Sid.mem b m.mod_local then f a b) mi
-        | _ -> ()
-      ) m.mod_units ;
-    Sid.filter declaration m.mod_local
-  with Not_found ->
-    Sid.empty
+let section ~order ~path th =
+  let id = th.Why3.Theory.th_name in
+  let cat = String.concat "." in
+  let ld,md,qd = restore_path id in
+  let k = incr order ; !order in
+  let p =
+    if ld = [] && qd = [] then
+      cat [path;md]
+    else
+      cat (ld @ md :: qd)
+  in { cloned_path = p ; cloned_order = k }
 
-let iter_cloned_theory f thy =
-  let m = iter_cloned_module f thy in
-  List.iter
-    (fun d ->
-       match d.Why3.Theory.td_node with
-       | Clone(_,sm) ->
-         iter_sm (fun a b -> if Sid.mem b thy.th_local then f a b) sm
-       | _ -> ()
-    ) thy.th_decls ;
-  Sid.union m (Sid.filter declaration thy.th_local)
+let iter_cloned_module ~order ~path f (m : Why3.Pmodule.pmodule) =
+  let open Why3.Pmodule in
+  let rec walk = function
+    | Uscope(_,mus) -> List.iter walk mus
+    | Uclone mi ->
+      let s = section ~order ~path mi.mi_mod.mod_theory in
+      iter_mi (fun a b -> if Sid.mem b m.mod_local then f s a b) mi
+    | _ -> ()
+  in List.iter walk m.mod_units
+
+let iter_cloned_theory ~order ~path f thy =
+  try
+    let m = Why3.Pmodule.restore_module thy in
+    iter_cloned_module ~order ~path f m
+  with Not_found ->
+    List.iter
+      (fun d ->
+         match d.Why3.Theory.td_node with
+         | Clone(th,sm) ->
+           let s = section ~order ~path th in
+           iter_sm (fun a b -> if Sid.mem b thy.th_local then f s a b) sm
+         | _ -> ()
+      ) thy.th_decls
 
 (* -------------------------------------------------------------------------- *)
 (* --- Environment                                                        --- *)
@@ -321,18 +322,22 @@ let parse ~why3env file =
       Format.eprintf "%s@." (Printexc.to_string exn) ;
       exit 1
   in
+  let order = ref 0 in
   let profile, proofs = load_proofs (Filename.concat dir "proof.json") in
   let theories =
     Mstr.map
-      (fun theory ->
+      (fun (theory : Why3.Theory.theory) ->
          let clones = ref [] in
-         let locals = iter_cloned_theory
-             (fun a b ->
-                if is_cloned b then
-                  clones := { id_source = a ; id_target = b } :: !clones
-             ) theory in
+         iter_cloned_theory ~order ~path:name
+           (fun s a b ->
+              clones := {
+                id_section = s ;
+                id_source = a ;
+                id_target = b ;
+              } :: !clones
+           ) theory ;
          let proofs = zip_goals theory proofs in
-         { theory ; locals ; clones = !clones ; proofs }
+         { theory ; clones = !clones ; proofs }
       ) thys
   in
   let url = Printf.sprintf "%s.html" name in
@@ -421,7 +426,6 @@ let lookup ~scope ~theories kind m qid =
     List.concat @@ List.map (find_theory kind qid) (Mstr.values theories)
 
 let select ~name ids =
-  let ids = List.map definition ids in
   let ids = List.sort_uniq Why3.Ident.id_compare ids in
   match ids with
   | [id] -> id

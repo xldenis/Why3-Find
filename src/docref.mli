@@ -26,18 +26,23 @@
 val init : pkgs:string list -> Wenv.env
 
 module Mstr = Why3.Wstdlib.Mstr
-module Sid = Why3.Ident.Sid
 
 type ident = Why3.Ident.ident
+val pp_ident : Format.formatter -> ident -> unit
+
+type section = {
+  cloned_path : string ;
+  cloned_order : int ;
+}
 
 type clone = {
-  id_source : ident ;
-  id_target : ident ;
+  id_section : section ;
+  id_source : Why3.Ident.ident ;
+  id_target : Why3.Ident.ident ;
 }
 
 type theory = {
   theory: Why3.Theory.theory;
-  locals: Sid.t ;
   clones: clone list ;
   proofs: Crc.crc Mstr.t ;
 }
@@ -62,8 +67,8 @@ val id_href : src:source -> scope:string option -> ident -> string
 
 type href =
   | NoRef
-  | Def of { name: string ; proof: Crc.crc option }
-  | Ref of { path: string ; href: string }
+  | Def of { name: string ; id: Why3.Ident.ident ; proof: Crc.crc option }
+  | Ref of { kind: string ; path: string ; href: string }
 
 type position = Lexing.position * Lexing.position
 

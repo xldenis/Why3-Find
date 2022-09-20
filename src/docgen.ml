@@ -26,6 +26,7 @@
 module T = Token
 module L = Lexer
 module P = Pdoc
+module Sid = Why3.Ident.Sid
 
 (* -------------------------------------------------------------------------- *)
 (* --- HTML Mode                                                          --- *)
@@ -59,7 +60,10 @@ type env = {
   src : Docref.source ; (* source file infos *)
   input : Token.input ; (* input lexer *)
   out : Pdoc.output ; (* output buffer *)
-  mutable declared : int ; (* last line for declarations *)
+  mutable clone_decl : bool ; (* clone declaration *)
+  mutable clone_path : string ; (* clone path *)
+  mutable clone_order : int ; (* clone ranking *)
+  mutable declared : Sid.t ; (* locally declared *)
   mutable scope : string option ; (* current module name *)
   mutable space : bool ; (* leading space in Par mode *)
   mutable mode : mode ; (* current output mode *)
@@ -141,9 +145,16 @@ let resolve env ?(infix=false) () =
 
 let process_href env (href : Docref.href) s =
   match href with
-  | Docref.Def { name } ->
+  | Docref.Def { id ; name } ->
+    env.declared <- Sid.add id env.declared ;
     Pdoc.printf env.out "<a name=\"%s\">%a</a>" name Pdoc.pp_html s
-  | Docref.Ref { path = p ; href = h } ->
+  | Docref.Ref { kind ; path = p ; href = h } ->
+    if env.clone_decl && kind = "theory" then
+      begin
+        env.clone_order <- succ env.clone_order ;
+        env.clone_path <- p ;
+        env.clone_decl <- false ;
+      end ;
     Pdoc.printf env.out "<a title=\"%s\" href=\"%s\">%a</a>" p h Pdoc.pp_html s
   | Docref.NoRef ->
     Pdoc.pp_html_s env.out s
@@ -279,24 +290,28 @@ let declaration id env (th : Why3.Theory.theory) =
 (* --- Flushing Declarations                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
+(*
 let on_theory env f =
   match env.scope with
   | None -> ()
   | Some s -> f (Docref.Mstr.find s env.src.theories)
+*)
 
 let by_source_line a b =
   let la = Docref.id_line a.Docref.id_source in
   let lb = Docref.id_line b.Docref.id_source in
   Int.compare la lb
 
-let is_cloned_at env line c =
-  let l = Docref.id_line c.Docref.id_target in
-  env.declared <= l && l < line
+let in_section env (c : Docref.clone) =
+  let s = c.id_section in
+  s.cloned_path = env.clone_path &&
+  s.cloned_order = env.clone_order &&
+  not @@ Sid.mem c.id_target env.declared
 
-let process_declarations env (th : Docref.theory) line =
+let process_section env (th : Docref.theory) =
   let cloned =
     List.sort by_source_line @@
-    List.filter (is_cloned_at env line) th.clones
+    List.filter (in_section env) th.clones
   in
   if cloned <> [] then
     begin
@@ -318,8 +333,14 @@ let process_declarations env (th : Docref.theory) line =
       Pdoc.printf env.out
         "{<span class=\"attribute section-toggle\">end</span>}\
          </span></span>@\n" ;
-    end ;
-  env.declared <- line
+    end
+
+let _process_clones env (th : Docref.theory) =
+  if env.clone_path <> "" then
+    begin
+      process_section env th ;
+      env.clone_path <- "" ;
+    end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Foldable Sections                                                  --- *)
@@ -376,7 +397,7 @@ let process_module env key =
     push env Pre ;
     env.file <- Pre ;
     env.scope <- Some id ;
-    env.declared <- Token.line env.input ;
+    env.declared <- Sid.empty ;
     Pdoc.pp env.out Pdoc.pp_keyword key ;
     Pdoc.pp_print_char env.out ' ' ;
     process_href env href id
@@ -384,11 +405,6 @@ let process_module env key =
 
 let process_close env key =
   begin
-    on_theory env
-      begin fun th ->
-        let line = Token.line env.input in
-        process_declarations env th line
-      end ;
     Pdoc.printf env.out "%a@\n</pre>@\n" Pdoc.pp_keyword key ;
     env.mode <- Body ;
     env.file <- Body ;
@@ -402,17 +418,14 @@ let process_close env key =
 
 let process_ident env s =
   if Docref.is_keyword s then
-    begin
-      if s = "module" || s = "theory" then
-        process_module env s
-      else if s = "end" && env.opened = 0 then
-        process_close env s
-      else
-        begin
-          if is_opening s then env.opened <- succ env.opened ;
-          if is_closing s then env.opened <- pred env.opened ;
-          Pdoc.pp env.out Pdoc.pp_keyword s ;
-        end
+    begin match s with
+      | "clone" -> env.clone_decl <- true
+      | "module" | "theory" -> process_module env s
+      | "end" when env.opened = 0 -> process_close env s
+      | _ ->
+        if is_opening s then env.opened <- succ env.opened ;
+        if is_closing s then env.opened <- pred env.opened ;
+        Pdoc.pp env.out Pdoc.pp_keyword s
     end
   else
     let href = resolve env () in
@@ -488,19 +501,7 @@ let process_newline env =
     Pdoc.header env.out ~level ~title () ;
     pop env
   | Pre ->
-    if Token.emptyline env.input then
-      on_theory env
-        begin fun th ->
-          let line = Token.line env.input in
-          process_declarations env th line
-        end;
     Pdoc.pp_print_char env.out '\n' ;
-    on_theory env
-      begin fun th ->
-        let next = succ @@ Token.line env.input in
-        if Docref.Sid.exists (fun id -> Docref.id_line id = next) th.locals
-        then process_declarations env th next
-      end ;
     Pdoc.flush env.out
 
 (* -------------------------------------------------------------------------- *)
@@ -533,8 +534,11 @@ let process_file ~why3env ~out:dir file =
   let input = Token.input file in
   let env = {
     dir ; src ; input ; out ; space = false ;
-    scope = None ; declared = 0 ;
-    mode = Body ; file = Body ; stack = [] ;
+    scope = None ; mode = Body ; file = Body ; stack = [] ;
+    clone_decl = false ;
+    clone_path = "" ;
+    clone_order = 0 ;
+    declared = Sid.empty ;
     opened = 0 ; section = 0 ;
   } in
   begin
