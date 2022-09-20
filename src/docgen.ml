@@ -418,12 +418,12 @@ let process_close env key =
 let process_ident env s =
   if Docref.is_keyword s then
     begin match s with
-      | "clone" -> env.clone_decl <- true
       | "module" | "theory" -> process_module env s
       | "end" when env.opened = 0 -> process_close env s
       | _ ->
         if is_opening s then env.opened <- succ env.opened ;
         if is_closing s then env.opened <- pred env.opened ;
+        if s = "clone" then env.clone_decl <- true ;
         Pdoc.pp env.out Pdoc.pp_keyword s
     end
   else
