@@ -60,7 +60,7 @@ type env = {
   src : Docref.source ; (* source file infos *)
   input : Token.input ; (* input lexer *)
   out : Pdoc.output ; (* output buffer *)
-  mutable clone_decl : bool ; (* clone declaration *)
+  mutable clone_decl : int ; (* clone decl indent (when > 0) *)
   mutable clone_path : string ; (* clone path *)
   mutable clone_order : int ; (* clone ranking *)
   mutable declared : Sid.t ; (* locally declared *)
@@ -148,7 +148,7 @@ let process_href env (href : Docref.href) s =
     env.declared <- Sid.add id env.declared ;
     Pdoc.printf env.out "<a name=\"%s\">%a</a>" name Pdoc.pp_html s
   | Docref.Ref { kind ; path = p ; href = h } ->
-    if env.clone_decl && kind = "theory" then
+    if env.clone_decl > 0 && kind = "theory" then
       begin
         env.clone_order <- succ env.clone_order ;
         env.clone_path <- p ;
@@ -160,6 +160,11 @@ let process_href env (href : Docref.href) s =
 (* -------------------------------------------------------------------------- *)
 (* --- Printing Declarations                                              --- *)
 (* -------------------------------------------------------------------------- *)
+
+let pp_spaces fmt n =
+  for _ = 1 to n do
+    Format.pp_print_char fmt ' '
+  done
 
 let pp_attr fmt = function
   | None -> ()
@@ -201,36 +206,36 @@ let defkind = function
   | { Why3.Expr.c_node = Cany } -> "val"
   | _ -> "let"
 
-let declare env kwd ?(attr=[]) id =
+let declare env n kwd ?(attr=[]) id =
   let name = Docref.id_name id in
   let anchor = Docref.id_anchor id in
-  Pdoc.printf env.out "  %a" Pdoc.pp_keyword kwd ;
+  Pdoc.printf env.out "%a%a" pp_spaces n Pdoc.pp_keyword kwd ;
   List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
   Pdoc.printf env.out " <a name=\"%s\">%s</a>" anchor name
 
-let symbol env ?attr (ls : Why3.Term.lsymbol) =
+let symbol env n ?attr (ls : Why3.Term.lsymbol) =
   match ls.ls_value with
   | None ->
-    declare env "predicate" ?attr ls.ls_name ;
+    declare env n "predicate" ?attr ls.ls_name ;
     List.iter (Pdoc.pp env.out @@ pp_type ~env ~par:true) ls.ls_args
   | Some r ->
-    declare env "function" ?attr ls.ls_name ;
+    declare env n "function" ?attr ls.ls_name ;
     List.iter (Pdoc.pp env.out @@ pp_type ~env ~par:true) ls.ls_args ;
     Pdoc.printf env.out " : %a" (pp_type ~env ~par:false) r
 
-let decl id env (d : Why3.Decl.decl) =
+let decl env n id (d : Why3.Decl.decl) =
   match d.d_node with
-  | Dtype _ | Ddata _ -> declare env "type" id
-  | Dparam ls -> symbol env ~attr:["{parameter}"] ls
+  | Dtype _ | Ddata _ -> declare env n "type" id
+  | Dparam ls -> symbol env n ~attr:["{parameter}"] ls
   | Dlogic ds ->
     List.iter
       (fun (ls,_) ->
          if ls.Why3.Term.ls_name = id then
-           symbol env ls
+           symbol env n ls
       ) ds
-  | Dind _ -> declare env "inductive" id
-  | Dprop(Plemma,_,_) -> declare env "lemma" id
-  | Dprop(Paxiom,_,_) -> declare env "axiom" id
+  | Dind _ -> declare env n "inductive" id
+  | Dprop(Plemma,_,_) -> declare env n "lemma" id
+  | Dprop(Paxiom,_,_) -> declare env n "axiom" id
   | Dprop(Pgoal,_,_) -> ()
 
 let signature env (rs : Why3.Expr.rsymbol) =
@@ -246,20 +251,20 @@ let signature env (rs : Why3.Expr.rsymbol) =
       Why3.Ity.(ty_of_ity rs.rs_cty.cty_result) ;
   end
 
-let mdecl id env (pd: Why3.Pdecl.pdecl) =
+let mdecl env n id (pd: Why3.Pdecl.pdecl) =
   match pd.pd_node with
   | PDpure -> ()
-  | PDtype _ -> declare env "type" id
-  | PDexn _ -> declare env "exception" id
+  | PDtype _ -> declare env n "type" id
+  | PDexn _ -> declare env n "exception" id
   | PDlet def ->
     begin
       match def with
       | LDvar(pv,_) ->
-        declare env "let" id ;
+        declare env n "let" id ;
         Pdoc.printf env.out " : %a"
           (pp_type ~env ~par:false) pv.pv_vs.vs_ty
       | LDsym(rs,def) ->
-        declare env (defkind def) ~attr:(attributes rs) id ;
+        declare env n (defkind def) ~attr:(attributes rs) id ;
         signature env rs
       | LDrec defs ->
         List.iter
@@ -267,20 +272,20 @@ let mdecl id env (pd: Why3.Pdecl.pdecl) =
              let rs = d.rec_sym in
              if Why3.Ident.id_equal id rs.rs_name then
                begin
-                 declare env (defkind d.rec_fun)
+                 declare env n (defkind d.rec_fun)
                    ~attr:(attributes rs) id ;
                  signature env rs ;
                end
           ) defs
     end
 
-let declaration id env (th : Why3.Theory.theory) =
+let declaration n id env (th : Why3.Theory.theory) =
   try
     let m = Why3.Pmodule.restore_module th in
     let pd = Why3.Ident.Mid.find id m.mod_known in
-    mdecl id env pd
+    mdecl env n id pd
   with Not_found ->
-  try decl id env (Why3.Ident.Mid.find id th.th_known)
+  try decl env n id (Why3.Ident.Mid.find id th.th_known)
   with Not_found ->
     assert false
 
@@ -307,23 +312,27 @@ let process_clone_section env (th : Docref.theory) =
   if cloned <> [] then
     begin
       text env ;
+      let n0 = env.clone_decl in
+      let n = n0 + 2 in
       Pdoc.printf env.out
         " <span class=\"section\">\
          {<span class=\"attribute section-toggle\">…</span>\
          <span class=\"clone section-text\">@\n\
-         <span class=\"attribute section-toggle\">begin</span>@\n" ;
+         %a<span class=\"attribute section-toggle\">begin</span>@\n"
+        pp_spaces n ;
       List.iter
         (fun (clone : Docref.clone) ->
            try
-             declaration clone.id_target env th.theory ;
+             declaration (n + 2) clone.id_target env th.theory ;
              Pdoc.printf env.out " = {%a}@\n"
-               (pp_ident ~env ~attr:"attribute" ~name:"cloned")
+               (pp_ident ~env ~attr:"attribute" ~name:"def.")
                clone.id_source
            with Not_found -> ()
         ) cloned ;
       Pdoc.printf env.out
-        "<span class=\"attribute section-toggle\">end</span>@\n\
-         </span>}</span>" ;
+        "%a<span class=\"attribute section-toggle\">end</span>@\n\
+         %a</span>}</span>"
+        pp_spaces n pp_spaces n0 ;
     end
 
 let process_clone env =
@@ -336,7 +345,7 @@ let process_clone env =
         | Some th ->
           process_clone_section env th ;
           env.clone_path <- "" ;
-          env.clone_decl <- false ;
+          env.clone_decl <- 0 ;
   end
 
 (* -------------------------------------------------------------------------- *)
@@ -421,7 +430,8 @@ let process_ident env s =
       | _ ->
         if is_opening s then env.opened <- succ env.opened ;
         if is_closing s then env.opened <- pred env.opened ;
-        if s = "clone" then env.clone_decl <- true ;
+        if s = "clone" then
+          env.clone_decl <- Token.indent env.input ;
         Pdoc.pp env.out Pdoc.pp_keyword s
     end
   else
@@ -532,7 +542,7 @@ let process_file ~why3env ~out:dir file =
   let env = {
     dir ; src ; input ; out ; space = false ;
     scope = None ; mode = Body ; file = Body ; stack = [] ;
-    clone_decl = false ;
+    clone_decl = 0 ;
     clone_path = "" ;
     clone_order = 0 ;
     declared = Sid.empty ;
