@@ -67,7 +67,7 @@ let jproofs (prfs : proofs) : Json.t =
 
 let load_proofs file : profile * theories =
   let js = if Sys.file_exists file then Json.of_file file else `Null in
-  let default = Calibration.default () in
+  let default = Calibration.(if !Hammer.local then empty () else default ()) in
   let profile = Calibration.of_json ~default @@ Json.jfield "profile" js in
   let strategy = jmap (jmap Crc.of_json) @@ Json.jfield "proofs" js in
   profile , strategy

@@ -618,6 +618,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       Arg.parse_argv argv
         [
           "--root", Arg.Set_string chdir, "DIR change to directory";
+          "--local", Arg.Set Hammer.local, "no calibration (use this machine only)";
           "-p", Arg.String (add pkgs), "PKG package dependency";
           "-c", Arg.Clear Runner.cache, "force cache update";
           "-q", Arg.Clear Calibration.parallel, "sequential calibration";

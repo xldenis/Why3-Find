@@ -26,6 +26,7 @@
 type profile
 
 val config : string
+val empty : unit -> profile
 val default : unit -> profile
 val of_json : ?default:profile -> Json.t -> profile
 val to_json : profile -> Json.t

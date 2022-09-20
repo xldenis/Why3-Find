@@ -27,6 +27,7 @@ open Crc
 open Calibration
 open Session
 
+val local : bool ref
 val schedule : profile -> goal -> crc -> crc Fibers.t
 
 type henv = {
