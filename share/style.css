@@ -52,7 +52,7 @@ pre.src {
 }
 
 .clone {
-    display: inline-block;
+    background: #eee;
 }
 
 .src a {

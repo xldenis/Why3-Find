@@ -152,7 +152,6 @@ let process_href env (href : Docref.href) s =
       begin
         env.clone_order <- succ env.clone_order ;
         env.clone_path <- p ;
-        env.clone_decl <- false ;
       end ;
     Pdoc.printf env.out "<a title=\"%s\" href=\"%s\">%a</a>" p h Pdoc.pp_html s
   | Docref.NoRef ->
@@ -289,13 +288,6 @@ let declaration id env (th : Why3.Theory.theory) =
 (* --- Flushing Declarations                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-(*
-let on_theory env f =
-  match env.scope with
-  | None -> ()
-  | Some s -> f (Docref.Mstr.find s env.src.theories)
-*)
-
 let by_source_line a b =
   let la = Docref.id_line a.Docref.id_source in
   let lb = Docref.id_line b.Docref.id_source in
@@ -307,7 +299,7 @@ let in_section env (c : Docref.clone) =
   s.cloned_order = env.clone_order &&
   not @@ Sid.mem c.id_target env.declared
 
-let process_section env (th : Docref.theory) =
+let process_clone_section env (th : Docref.theory) =
   let cloned =
     List.sort by_source_line @@
     List.filter (in_section env) th.clones
@@ -316,10 +308,10 @@ let process_section env (th : Docref.theory) =
     begin
       text env ;
       Pdoc.printf env.out
-        "  <span class=\"clone section\">\
-         {<span class=\"attribute section-toggle\">cloned</span>\
-         <span class=\"section-text active\">…</span>}\
-         <span class=\"section-text\">@\n" ;
+        " <span class=\"section\">\
+         {<span class=\"attribute section-toggle\">…</span>\
+         <span class=\"clone section-text\">@\n\
+         <span class=\"attribute section-toggle\">begin</span>@\n" ;
       List.iter
         (fun (clone : Docref.clone) ->
            try
@@ -330,16 +322,22 @@ let process_section env (th : Docref.theory) =
            with Not_found -> ()
         ) cloned ;
       Pdoc.printf env.out
-        "{<span class=\"attribute section-toggle\">end</span>}\
-         </span></span>@\n" ;
+        "<span class=\"attribute section-toggle\">end</span>@\n\
+         </span>}</span>" ;
     end
 
-let _process_clones env (th : Docref.theory) =
-  if env.clone_path <> "" then
-    begin
-      process_section env th ;
-      env.clone_path <- "" ;
-    end
+let process_clone env =
+  begin
+    if env.clone_path <> "" then  match env.scope with
+      | None -> ()
+      | Some s ->
+        match Docref.Mstr.find_opt s env.src.theories with
+        | None -> ()
+        | Some th ->
+          process_clone_section env th ;
+          env.clone_path <- "" ;
+          env.clone_decl <- false ;
+  end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Foldable Sections                                                  --- *)
@@ -575,7 +573,10 @@ let process_file ~why3env ~out:dir file =
       | CloseSection title -> process_close_section env title
       | Space -> process_space env
       | Newline -> process_newline env
-      | Ident s -> text env ; process_ident env s
+      | Ident s ->
+        text env ;
+        process_ident env s ;
+        process_clone env
       | Infix s ->
         text env ;
         let href = resolve env ~infix:true () in
