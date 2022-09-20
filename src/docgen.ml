@@ -203,8 +203,8 @@ let attributes (rs : Why3.Expr.rsymbol) =
    | RKlemma -> ["lemma"])
 
 let defkind = function
-  | { Why3.Expr.c_node = Cany } -> "val"
-  | _ -> "let"
+  | { Why3.Expr.c_node = Cany } -> "val"," "
+  | _ -> "let"," = "
 
 let declare env n kwd ?(attr=[]) id =
   let name = Docref.id_name id in
@@ -213,29 +213,43 @@ let declare env n kwd ?(attr=[]) id =
   List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
   Pdoc.printf env.out " <a name=\"%s\">%s</a>" anchor name
 
-let symbol env n ?attr (ls : Why3.Term.lsymbol) =
+let definition env ?(op=" = ") def =
+  Pdoc.printf env.out "%s{%a}@\n" op
+    (pp_ident ~env ~attr:"attribute" ~name:"def.") def
+
+let symbol env n ?attr (ls : Why3.Term.lsymbol) ?op def =
   match ls.ls_value with
   | None ->
     declare env n "predicate" ?attr ls.ls_name ;
-    List.iter (Pdoc.pp env.out @@ pp_type ~env ~par:true) ls.ls_args
+    List.iter (Pdoc.pp env.out @@ pp_type ~env ~par:true) ls.ls_args ;
+    definition env ?op def ;
   | Some r ->
     declare env n "function" ?attr ls.ls_name ;
     List.iter (Pdoc.pp env.out @@ pp_type ~env ~par:true) ls.ls_args ;
-    Pdoc.printf env.out " : %a" (pp_type ~env ~par:false) r
+    Pdoc.printf env.out " : %a" (pp_type ~env ~par:false) r ;
+    definition env ?op def
 
-let decl env n id (d : Why3.Decl.decl) =
+let decl env n id (d : Why3.Decl.decl) def =
+  ignore def ;
   match d.d_node with
-  | Dtype _ | Ddata _ -> declare env n "type" id
-  | Dparam ls -> symbol env n ~attr:["{parameter}"] ls
+  | Dtype { ts_def = NoDef } ->
+    declare env n "type" id ; definition env ~op:" " def
+  | Dtype _ | Ddata _ ->
+    declare env n "type" id ; definition env def
+  | Dparam ls ->
+    symbol env n ls ~op:" " def
   | Dlogic ds ->
     List.iter
       (fun (ls,_) ->
          if ls.Why3.Term.ls_name = id then
-           symbol env n ls
+           symbol env n ls def
       ) ds
-  | Dind _ -> declare env n "inductive" id
-  | Dprop(Plemma,_,_) -> declare env n "lemma" id
-  | Dprop(Paxiom,_,_) -> declare env n "axiom" id
+  | Dind _ ->
+    declare env n "inductive" id ; definition env def ;
+  | Dprop(Plemma,_,_) ->
+    declare env n "lemma" id ; definition env ~op:" " def
+  | Dprop(Paxiom,_,_) ->
+    declare env n "axiom" id ; definition env ~op:" " def
   | Dprop(Pgoal,_,_) -> ()
 
 let signature env (rs : Why3.Expr.rsymbol) =
@@ -251,41 +265,46 @@ let signature env (rs : Why3.Expr.rsymbol) =
       Why3.Ity.(ty_of_ity rs.rs_cty.cty_result) ;
   end
 
-let mdecl env n id (pd: Why3.Pdecl.pdecl) =
+let mdecl env n id (pd: Why3.Pdecl.pdecl) def =
+  ignore def ;
   match pd.pd_node with
-  | PDpure -> ()
-  | PDtype _ -> declare env n "type" id
-  | PDexn _ -> declare env n "exception" id
-  | PDlet def ->
+  | PDpure -> List.iter (fun d -> decl env n id d def) pd.pd_pure
+  | PDtype _ -> declare env n "type" id ; definition env def
+  | PDexn _ -> declare env n "exception" id ; definition env ~op:" " def
+  | PDlet dlet ->
     begin
-      match def with
+      match dlet with
       | LDvar(pv,_) ->
         declare env n "let" id ;
         Pdoc.printf env.out " : %a"
-          (pp_type ~env ~par:false) pv.pv_vs.vs_ty
-      | LDsym(rs,def) ->
-        declare env n (defkind def) ~attr:(attributes rs) id ;
-        signature env rs
+          (pp_type ~env ~par:false) pv.pv_vs.vs_ty ;
+        definition env def
+      | LDsym(rs,df) ->
+        let kwd,op = defkind df in
+        declare env n kwd ~attr:(attributes rs) id ;
+        signature env rs ;
+        definition env ~op def
       | LDrec defs ->
         List.iter
           (fun (d : Why3.Expr.rec_defn) ->
              let rs = d.rec_sym in
              if Why3.Ident.id_equal id rs.rs_name then
                begin
-                 declare env n (defkind d.rec_fun)
-                   ~attr:(attributes rs) id ;
+                 let kwd,op = defkind d.rec_fun in
+                 declare env n kwd ~attr:(attributes rs) id ;
                  signature env rs ;
+                 definition env ~op def ;
                end
           ) defs
     end
 
-let declaration n id env (th : Why3.Theory.theory) =
+let declaration env n id (th : Why3.Theory.theory) def =
   try
     let m = Why3.Pmodule.restore_module th in
     let pd = Why3.Ident.Mid.find id m.mod_known in
-    mdecl env n id pd
+    mdecl env n id pd def
   with Not_found ->
-  try decl env n id (Why3.Ident.Mid.find id th.th_known)
+  try decl env n id (Why3.Ident.Mid.find id th.th_known) def
   with Not_found ->
     assert false
 
@@ -317,20 +336,15 @@ let process_clone_section env (th : Docref.theory) =
       Pdoc.printf env.out
         " <span class=\"section\">\
          {<span class=\"attribute section-toggle\">…</span>\
-         <span class=\"clone section-text\">@\n\
+         <span class=\"section-text\"><span class=\"clone\">@\n\
          %a<span class=\"attribute section-toggle\">begin</span>@\n"
         pp_spaces n ;
       List.iter
         (fun (clone : Docref.clone) ->
-           try
-             declaration (n + 2) clone.id_target env th.theory ;
-             Pdoc.printf env.out " = {%a}@\n"
-               (pp_ident ~env ~attr:"attribute" ~name:"def.")
-               clone.id_source
-           with Not_found -> ()
+           declaration env (n + 2) clone.id_target th.theory clone.id_source
         ) cloned ;
       Pdoc.printf env.out
-        "%a<span class=\"attribute section-toggle\">end</span>@\n\
+        "%a<span class=\"attribute section-toggle\">end</span></span>@\n\
          %a</span>}</span>"
         pp_spaces n pp_spaces n0 ;
     end

@@ -13,13 +13,13 @@
   <pre class="src">
   <span class="keyword">module</span> <a name="B_">B</a>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
-    <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#A_">A</a> <span class="section">{<span class="attribute section-toggle">…</span><span class="clone section-text">
+    <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#A_">A</a> <span class="section">{<span class="attribute section-toggle">…</span><span class="section-text"><span class="clone">
       <span class="attribute section-toggle">begin</span>
-   = {<a  class="attribute"title="clones.A.e" href="clones.A.html#e_4">def.</a>}
-   = {<a  class="attribute"title="clones.A.neutral" href="clones.A.html#neutral_6">def.</a>}
-   = {<a  class="attribute"title="clones.A.commutative" href="clones.A.html#commutative_7">def.</a>}
-   = {<a  class="attribute"title="clones.A.neutral_com" href="clones.A.html#neutral_com_8">def.</a>}
-      <span class="attribute section-toggle">end</span>
+        <span class="keyword">function</span> <a name="e_4">e</a> : int {<a  class="attribute"title="clones.A.e" href="clones.A.html#e_4">def.</a>}
+        <span class="keyword">axiom</span> <a name="neutral_6">neutral</a> {<a  class="attribute"title="clones.A.neutral" href="clones.A.html#neutral_6">def.</a>}
+        <span class="keyword">lemma</span> <a name="commutative_7">commutative</a> {<a  class="attribute"title="clones.A.commutative" href="clones.A.html#commutative_7">def.</a>}
+        <span class="keyword">lemma</span> <a name="neutral_com_8">neutral_com</a> {<a  class="attribute"title="clones.A.neutral_com" href="clones.A.html#neutral_com_8">def.</a>}
+      <span class="attribute section-toggle">end</span></span>
     </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.A.t" href="clones.A.html#t_3">t</a> = int, <span class="keyword">function</span> <a title="clones.A.op" href="clones.A.html#op_5">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix +_19">+</a>), <span class="keyword">axiom</span> <a title="clones.A.neutral" href="clones.A.html#neutral_6">neutral</a>
     <span class="comment">(* End *)</span>
   <span class="keyword">end</span>
