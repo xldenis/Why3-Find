@@ -35,6 +35,7 @@ type crc =
 
 type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
 val verdict : crc -> verdict
+val nverdict : stuck:int -> proved:int -> verdict
 
 val stuck : crc -> int
 val proved : crc -> int

@@ -8,11 +8,9 @@
   <title>Module clones.B</title>
   </head>
   <body>
-  <nav>
-  </nav>
   <header>Module <code class="src"><a href="clones.html">clones</a>.B</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a name="B_">B</a>
+  <span class="keyword">module</span> <a name="B_">B</a> <span title="Valid (one goal)" class="icon valid icofont-check"></span>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#A_">A</a> <span class="section">{<span class="attribute section-toggle">…</span><span class="section-text"><span class="clone">
       <span class="attribute section-toggle">begin</span>
@@ -37,11 +35,9 @@
   <title>Module certif.S</title>
   </head>
   <body>
-  <nav>
-  </nav>
   <header>Module <code class="src"><a href="certif.html">certif</a>.S</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a name="S_">S</a>
+  <span class="keyword">module</span> <a name="S_">S</a> <span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span>
   
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">use</span> int.<a title="int.MinMax" href="https://why3.lri.fr/stdlib/int.html#MinMax_">MinMax</a>
@@ -74,7 +70,7 @@
         <span class="keyword">end</span>
       <span class="comment">{</span><span class="attribute section-toggle">qed</span><span class="comment">}</span></span></span>
   
-    <span class="keyword">goal</span> <a name="wrong_34">wrong</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-tringle"></span>: 1 = 0
+    <span class="keyword">goal</span> <a name="wrong_34">wrong</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span>: 1 = 0
   
   <span class="keyword">end</span>
   </pre>

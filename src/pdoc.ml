@@ -185,17 +185,18 @@ let foot =
    </html>\n"
 
 let table_of_contents cout heads =
-  begin
-    output_string cout "<nav>\n" ;
-    let fmt = Format.formatter_of_out_channel cout in
-    List.iter
-      (fun { level ; name ; title } ->
-         Format.fprintf fmt "<a class=\"toc%d\" href=\"#%s\">%s</a>@\n"
-           level name title
-      ) heads ;
-    Format.pp_print_flush fmt () ;
-    output_string cout "</nav>\n" ;
-  end
+  if heads <> [] then
+    begin
+      output_string cout "<nav>\n" ;
+      let fmt = Format.formatter_of_out_channel cout in
+      List.iter
+        (fun { level ; name ; title } ->
+           Format.fprintf fmt "<a class=\"toc%d\" href=\"#%s\">%s</a>@\n"
+             level name title
+        ) heads ;
+      Format.pp_print_flush fmt () ;
+      output_string cout "</nav>\n" ;
+    end
 
 let close output =
   flush output ;

@@ -138,25 +138,36 @@ let attributes ?title ?cla fmt =
     Option.iter (Format.fprintf fmt " class=\"%s\"") cla ;
   end
 
+let process_verdict env = function
+  | `Valid n ->
+    let title = match n with
+      | 0 -> "Valid (no goals)"
+      | 1 -> "Valid (one goal)"
+      | _ -> Printf.sprintf "Valid (%d goals)" n in
+    let cla = "icon valid icofont-check" in
+    Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
+  | `Partial(p,n) ->
+    let title = Printf.sprintf "Partial proof (%d/%d goals)" p n in
+    let cla = "icon warning icofont-exclamation-tringle" in
+    Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
+  | `Failed _ ->
+    let title = "Failed (no proof)" in
+      let cla = "icon failed icofont-exclamation-circle" in
+    Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
+
 let process_proof env = function
   | None -> ()
-  | Some crc ->
-    match Crc.verdict crc with
-    | `Valid n ->
-      let title = match n with
-        | 0 -> "Valid (no goals)"
-        | 1 -> "Valid (one goal)"
-        | _ -> Printf.sprintf "Valid (%d goals)" n in
-      let cla = "icon valid icofont-check" in
-      Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
-    | `Failed _ ->
-      let title = "Failed (no proof)" in
-      let cla = "icon failed icofont-exclamation-tringle" in
-      Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
-    | `Partial(p,n) ->
-      let title = Printf.sprintf "Partial proof (%d/%d goals)" p n in
-      let cla = "icon warning icofont-exclamation-tringle" in
-      Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
+  | Some crc -> process_verdict env @@ Crc.verdict crc
+
+let process_proofs env = function
+  | None -> ()
+  | Some Docref.{ proofs } ->
+    let (s,p) =
+      Docref.Mstr.fold
+        (fun _g c (s,p) -> s + Crc.stuck c , p + Crc.proved c)
+        proofs (0,0) in
+    Pdoc.pp_print_char env.out ' ' ;
+    process_verdict env @@ Crc.nverdict ~stuck:s ~proved:p
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -432,9 +443,12 @@ let process_module env key =
     let href = resolve env () in
     let kind = String.capitalize_ascii key in
     let url = Docref.derived env.src id in
+    let theory = Docref.Mstr.find_opt id env.src.theories in
     Pdoc.printf env.out
-      "<pre class=\"src %s\">%a <a title=\"%s.%s\" href=\"%s\">%s</a></div>@."
+      "<pre class=\"src %s\">%a <a title=\"%s.%s\" href=\"%s\">%s</a>"
       key Pdoc.pp_keyword key env.src.name id url id ;
+    process_proofs env theory ;
+    Pdoc.printf env.out "</pre>@." ;
     let file = Filename.concat env.dir url in
     let title = Printf.sprintf "%s %s.%s" kind env.src.name id in
     Pdoc.fork env.out ~file ~title ;
@@ -447,11 +461,12 @@ let process_module env key =
     push env Pre ;
     env.file <- Pre ;
     env.scope <- Some id ;
-    env.theory <- Docref.Mstr.find_opt id env.src.theories ;
+    env.theory <- theory ;
     env.declared <- Sid.empty ;
     Pdoc.pp env.out Pdoc.pp_keyword key ;
     Pdoc.pp_print_char env.out ' ' ;
-    process_href env href id
+    process_href env href id ;
+    process_proofs env theory ;
   end
 
 let process_close env key =

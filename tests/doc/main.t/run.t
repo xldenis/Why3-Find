@@ -28,17 +28,15 @@
   <title>Library p.a</title>
   </head>
   <body>
-  <nav>
-  </nav>
   <header>Library <code>p.a</code></header>
   <div class="doc">
   <p>Before A</p>
   </div>
-  <pre class="src module"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a></div>
+  <pre class="src module"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a> <span title="Valid (no goals)" class="icon valid icofont-check"></span></pre>
   <div class="doc">
   <p>Before B</p>
   </div>
-  <pre class="src module"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a></div>
+  <pre class="src module"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a> <span title="Valid (no goals)" class="icon valid icofont-check"></span></pre>
   <div class="doc">
   <p>After B</p>
   </div>
@@ -57,14 +55,12 @@
   <title>Module p.a.A</title>
   </head>
   <body>
-  <nav>
-  </nav>
   <header>Module <code class="src"><a href="p.a.html">p.a</a>.A</code></header>
   <div class="doc">
   <p>Introducing A</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> <a name="A_">A</a>
+  <span class="keyword">module</span> <a name="A_">A</a> <span title="Valid (no goals)" class="icon valid icofont-check"></span>
   
     <span class="keyword">type</span> <a name="t_6">t</a> = <a name="A_6">A</a> | <a name="B_6">B</a>
   
@@ -97,14 +93,12 @@
   <title>Module p.a.B</title>
   </head>
   <body>
-  <nav>
-  </nav>
   <header>Module <code class="src"><a href="p.a.html">p.a</a>.B</code></header>
   <div class="doc">
   <p>Introducing B</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> <a name="B_">B</a>
+  <span class="keyword">module</span> <a name="B_">B</a> <span title="Valid (no goals)" class="icon valid icofont-check"></span>
   
     <span class="keyword">exception</span> <a name="Error_22">Error</a>
   

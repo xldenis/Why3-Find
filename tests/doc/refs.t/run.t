@@ -25,8 +25,6 @@
   <title>Library a</title>
   </head>
   <body>
-  <nav>
-  </nav>
   <header>Library <code>a</code></header>
   <div class="doc">
   <p>Infix reference: <code class="src"><a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix +_19">int.Int.(+)</a></code></p>
@@ -35,8 +33,8 @@
   <p>Logic reference: <code class="src"><a title="int.MinMax.max" href="https://why3.lri.fr/stdlib/int.html#max_148">int.MinMax.max</a></code></p>
   <p>Local references <code class="src"><a title="A.t" href="a.A.html#t_14">A.t</a></code>, <code class="src"><a title="B.binop" href="a.B.html#binop_20">binop</a></code></p>
   </div>
-  <pre class="src theory"><span class="keyword">theory</span> <a title="a.A" href="a.A.html">A</a></div>
-  <pre class="src module"><span class="keyword">module</span> <a title="a.B" href="a.B.html">B</a></div>
+  <pre class="src theory"><span class="keyword">theory</span> <a title="a.A" href="a.A.html">A</a> <span title="Valid (no goals)" class="icon valid icofont-check"></span></pre>
+  <pre class="src module"><span class="keyword">module</span> <a title="a.B" href="a.B.html">B</a> <span title="Valid (no goals)" class="icon valid icofont-check"></span></pre>
   <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
@@ -52,11 +50,9 @@
   <title>Theory a.A</title>
   </head>
   <body>
-  <nav>
-  </nav>
   <header>Theory <code class="src"><a href="a.html">a</a>.A</code></header>
   <pre class="src">
-  <span class="keyword">theory</span> <a name="A_">A</a>
+  <span class="keyword">theory</span> <a name="A_">A</a> <span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">type</span> <a name="t_14">t</a>
     <span class="keyword">function</span> <a name="op_15">op</a> <a title="A.t" href="#t_14">t</a> <a title="A.t" href="#t_14">t</a> : <a title="A.t" href="#t_14">t</a>
   <span class="keyword">end</span>
@@ -76,11 +72,9 @@
   <title>Module a.B</title>
   </head>
   <body>
-  <nav>
-  </nav>
   <header>Module <code class="src"><a href="a.html">a</a>.B</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a name="B_">B</a>
+  <span class="keyword">module</span> <a name="B_">B</a> <span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">type</span> <a name="t_19">t</a>
     <span class="keyword">val</span> <a name="binop_20">binop</a> <a title="B.t" href="#t_19">t</a> <a title="B.t" href="#t_19">t</a> : <a title="B.t" href="#t_19">t</a>
   

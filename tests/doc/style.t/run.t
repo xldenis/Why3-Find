@@ -11,8 +11,6 @@
   <title>Library a</title>
   </head>
   <body>
-  <nav>
-  </nav>
   <header>Library <code>a</code></header>
   <div class="doc">
   <p>Testing Documentation.</p>

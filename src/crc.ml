@@ -61,12 +61,12 @@ let apply id children =
 
 type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
 
-let verdict crc =
-  let s = stuck crc in
-  let p = proved crc in
+let nverdict ~stuck:s ~proved:p =
   if s = 0 then `Valid p else
   if p = 0 then `Failed s else
     `Partial(p,s+p)
+
+let verdict crc = nverdict ~stuck:(stuck crc) ~proved:(proved crc)
 
 let pp_result fmt ~stuck:s ~proved:p =
   if s = 0 then
