@@ -146,17 +146,17 @@ let process_proof env = function
       let title = match n with
         | 0 -> "Valid (no goals)"
         | 1 -> "Valid (one goal)"
-        | _ -> "Valid (%d goals)" in
+        | _ -> Printf.sprintf "Valid (%d goals)" n in
       let cla = "icon valid icofont-check" in
-      Pdoc.printf env.out "<span%t></span> " (attributes ~title ~cla)
+      Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
     | `Failed _ ->
       let title = "Failed (no proof)" in
-      let cla = "icon failure icofont-exclamation-tringle" in
-      Pdoc.printf env.out "<span%t></span> " (attributes ~title ~cla)
+      let cla = "icon failed icofont-exclamation-tringle" in
+      Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
     | `Partial(p,n) ->
       let title = Printf.sprintf "Partial proof (%d/%d goals)" p n in
-      let cla = "icon orange icofont-exclamation-tringle" in
-      Pdoc.printf env.out "<span%t></span> " (attributes ~title ~cla)
+      let cla = "icon warning icofont-exclamation-tringle" in
+      Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -177,8 +177,8 @@ let process_href env (href : Docref.href) s =
   match href with
   | Docref.Def { id ; name ; proof } ->
     env.declared <- Sid.add id env.declared ;
-    process_proof env proof ;
-    Pdoc.printf env.out "<a name=\"%s\">%a</a>" name Pdoc.pp_html s
+    Pdoc.printf env.out "<a name=\"%s\">%a</a>" name Pdoc.pp_html s ;
+    process_proof env proof
   | Docref.Ref { kind ; path = p ; href = h } ->
     if env.clone_decl > 0 && kind = "theory" then
       begin
@@ -654,9 +654,12 @@ let shared ~out ~file =
 let main ~pkgs ~out ~files =
   begin
     let Wenv.{ wenv = why3env } = Docref.init ~pkgs in
-    Utils.mkdirs out ;
+    Utils.mkdirs @@ Filename.concat out "fonts" ;
     shared ~out ~file:"style.css" ;
     shared ~out ~file:"script.js" ;
+    shared ~out ~file:"icofont.min.css" ;
+    shared ~out ~file:"fonts/icofont.woff" ;
+    shared ~out ~file:"fonts/icofont.woff2" ;
     List.iter (process_file ~why3env ~out) files
   end
 

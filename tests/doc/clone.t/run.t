@@ -9,7 +9,8 @@
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
   <title>Module a.A</title>
   </head>
   <body>
@@ -23,7 +24,7 @@
     <span class="keyword">val</span> <span class="keyword">constant</span> <a name="neutral_4">neutral</a> : <a title="A.t" href="#t_3">t</a>
     <span class="keyword">val</span> <a name="op_5">op</a> <a title="A.t" href="#t_3">t</a> <a title="A.t" href="#t_3">t</a> : <a title="A.t" href="#t_3">t</a>
     <span class="keyword">let</span> <a name="square_6">square</a> (x : <a title="A.t" href="#t_3">t</a>) : <a title="A.t" href="#t_3">t</a> = <a title="A.op" href="#op_5">op</a> x x
-    <span class="keyword">let</span> <span class="keyword">rec</span> <a name="assoc_7">assoc</a> (xs : <a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> <a title="A.t" href="#t_3">t</a>) : <a title="A.t" href="#t_3">t</a> =
+    <span class="keyword">let</span> <span class="keyword">rec</span> <a name="assoc_7">assoc</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-tringle"></span> (xs : <a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> <a title="A.t" href="#t_3">t</a>) : <a title="A.t" href="#t_3">t</a> =
       <span class="keyword">variant</span> { xs }
       <span class="keyword">match</span> xs <span class="keyword">with</span>
       | <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.html#Nil_8">Nil</a> -&gt; <a title="A.neutral" href="#neutral_4">neutral</a>
@@ -41,7 +42,8 @@
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
   <title>Module a.B</title>
   </head>
   <body>
@@ -72,7 +74,8 @@
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
   <title>Module a.E</title>
   </head>
   <body>
@@ -96,7 +99,8 @@
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
   <title>Module b.C</title>
   </head>
   <body>

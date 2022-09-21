@@ -170,7 +170,8 @@ let head =
   "<html>\n\
    <head>\n\
    <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\">\n\
-   <link rel=\"stylesheet\" href=\"style.css\" type=\"text/css\">\n\
+   <link rel=\"stylesheet\" type=\"text/css\" href=\"style.css\">\n\
+   <link rel=\"stylesheet\" type=\"text/css\" href=\"icofont.min.css\">\n\
    <title>"
 
 let body =

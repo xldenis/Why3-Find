@@ -71,11 +71,15 @@ pre.src {
 /* --- Proof Marks                                                        --- */
 /* -------------------------------------------------------------------------- */
 
-.icon { text-decoration: none }
+.icon {
+    vertical-align: text-bottom ;
+    font-size: smaller ;
+    text-decoration: none ;
+}
 .valid { color: green }
-.admit { color: grey }
-.partial { color: orange }
-.failure { color: red }
+.failed { color: red }
+.warning { color: orange }
+.remark { color: grey }
 
 /* -------------------------------------------------------------------------- */
 /* --- Foldable Section                                                   --- */

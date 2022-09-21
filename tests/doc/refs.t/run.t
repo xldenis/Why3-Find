@@ -7,6 +7,10 @@
   html/a.A.html
   html/a.B.html
   html/a.html
+  html/fonts
+  html/fonts/icofont.woff
+  html/fonts/icofont.woff2
+  html/icofont.min.css
   html/script.js
   html/style.css
 --------------------------------------------------------------------------
@@ -16,7 +20,8 @@
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
   <title>Library a</title>
   </head>
   <body>
@@ -42,7 +47,8 @@
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
   <title>Theory a.A</title>
   </head>
   <body>
@@ -65,7 +71,8 @@
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
   <title>Module a.B</title>
   </head>
   <body>

@@ -20,6 +20,15 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
+(* --- Refs for Documentation                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+module Id = Why3.Ident
+module Sid = Why3.Ident.Sid
+module Thy = Why3.Theory
+module Mstr = Why3.Wstdlib.Mstr
+
+(* -------------------------------------------------------------------------- *)
 (* --- Keywords                                                           --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -35,34 +44,33 @@ let is_uppercased s =
 let to_infix s =
   let n = String.length s in
   if n > 2 && s.[0] = '(' && s.[n-1] = ')' then
+    if String.index_opt s '[' <> None
+    then "mixfix " ^ String.sub s 1 (n-2) else
     if s.[n-2] = '_'
     then "prefix " ^ String.sub s 1 (n-3)
     else "infix " ^ String.sub s 1 (n-2)
   else s
 
-let of_infix s =
-  let unwrap ~prefix s =
-    let n = String.length s in
-    let p = String.length prefix in
-    Printf.sprintf "(%s)" @@ String.sub s p (n-p) in
-  let prefix = "prefix " in
-  if String.starts_with ~prefix s then unwrap ~prefix s
-  else
-    let prefix = "infix " in
-    if String.starts_with ~prefix s then unwrap ~prefix s
-    else s
+let unwrap ~prefix s =
+  let n = String.length s in
+  let p = String.length prefix in
+  Printf.sprintf "(%s)" @@ String.sub s p (n-p)
+
+let rec unwrap_any s = function
+  | [] -> s
+  | prefix::others ->
+    if String.starts_with ~prefix s then
+      unwrap ~prefix s
+    else unwrap_any s others
+
+let of_infix s = unwrap_any s ["prefix ";"infix ";"mixfix "]
 
 (* -------------------------------------------------------------------------- *)
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-module Thy = Why3.Theory
-module Mstr = Why3.Wstdlib.Mstr
-module Sid = Why3.Ident.Sid
-
+type ident = Id.ident
 type position = Lexing.position * Lexing.position
-
-type ident = Why3.Ident.ident
 
 type section = {
   cloned_path : string ;
@@ -71,12 +79,12 @@ type section = {
 
 type clone = {
   id_section : section ;
-  id_source : Why3.Ident.ident ;
-  id_target : Why3.Ident.ident ;
+  id_source : ident ;
+  id_target : ident ;
 }
 
 type theory = {
-  theory: Why3.Theory.theory;
+  theory: Thy.theory;
   clones: clone list ;
   proofs: Crc.crc Mstr.t ;
 }
@@ -96,7 +104,7 @@ let extract ~infix position =
   else loc
 
 let id_loc id =
-  match id.Why3.Ident.id_loc with
+  match id.Id.id_loc with
   | None -> raise Not_found
   | Some loc -> loc
 
@@ -110,7 +118,7 @@ let restore_path id =
   try
     Why3.Pmodule.restore_path id
   with Not_found ->
-    Why3.Theory.restore_path id
+    Thy.restore_path id
 
 let id_path ~src ~scope id =
   let lp,md,qid = restore_path id in
@@ -139,7 +147,7 @@ let baseurl ~src ~scope id =
         Printf.sprintf "https://why3.lri.fr/stdlib/%s.html" path
 
 let anchor ~kind id =
-  let name = id.Why3.Ident.id_string in
+  let name = id.Id.id_string in
   let line = id_line id in
   if kind = "theory"
   then Printf.sprintf "%s_" name
@@ -147,11 +155,15 @@ let anchor ~kind id =
 
 type href =
   | NoRef
-  | Def of { name: string ; id: Why3.Ident.ident ; proof: Crc.crc option }
+  | Def of { name: string ; id: Id.ident ; proof: Crc.crc option }
   | Ref of { kind: string ; path: string ; href: string }
 
-let pp_ident fmt (id : Why3.Ident.ident) =
+let pp_ident fmt (id : Id.ident) =
   Format.fprintf fmt "%s<%d>" id.id_string (Why3.Weakhtbl.tag_hash id.id_tag)
+
+let find_proof id = function
+  | None -> None
+  | Some { proofs } -> Mstr.find_opt id.Id.id_string proofs
 
 let resolve ~src ~scope ~theory ~infix pos =
   try
@@ -159,10 +171,7 @@ let resolve ~src ~scope ~theory ~infix pos =
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, kind) ->
       let name = anchor ~kind id in
-      let proof = match theory with
-        | None -> None
-        | Some { proofs } -> Mstr.find_opt name proofs
-      in
+      let proof = find_proof id theory in
       Def { name ; id ; proof }
     | (id, Why3.Glob.Use, kind) ->
       let path = id_path ~src ~scope id in
@@ -171,7 +180,7 @@ let resolve ~src ~scope ~theory ~infix pos =
       Ref { kind ; path ; href = Printf.sprintf "%s#%s" base name }
   with Not_found -> NoRef
 
-let id_name id = id.Why3.Ident.id_string
+let id_name id = id.Id.id_string
 let id_anchor id = anchor ~kind:"" id
 let id_href ~src ~scope id =
   Printf.sprintf "%s#%s" (baseurl ~src ~scope id) (anchor ~kind:"" id)
@@ -202,7 +211,7 @@ let iter_mi f (mi : Why3.Pmodule.mod_inst) =
     Mxs.iter (fun a b -> f a.xs_name b.xs_name) mi.mi_xs ;
   end
 
-let iter_sm f (sm : Why3.Theory.symbol_map) =
+let iter_sm f (sm : Thy.symbol_map) =
   begin
     let open Why3.Ty in
     let open Why3.Term in
@@ -219,7 +228,7 @@ let iter_sm f (sm : Why3.Theory.symbol_map) =
   end
 
 let section ~order ~path th =
-  let id = th.Why3.Theory.th_name in
+  let id = th.Thy.th_name in
   let cat = String.concat "." in
   let ld,md,qd = restore_path id in
   let k = incr order ; !order in
@@ -247,7 +256,7 @@ let iter_cloned_theory ~order ~path f thy =
   with Not_found ->
     List.iter
       (fun d ->
-         match d.Why3.Theory.td_node with
+         match d.Thy.td_node with
          | Clone(th,sm) ->
            let s = section ~order ~path th in
            iter_sm (fun a b -> if Sid.mem b thy.th_local then f s a b) sm
@@ -322,7 +331,7 @@ let parse ~why3env file =
   let profile, proofs = load_proofs (Filename.concat dir "proof.json") in
   let theories =
     Mstr.map
-      (fun (theory : Why3.Theory.theory) ->
+      (fun (theory : Thy.theory) ->
          let clones = ref [] in
          iter_cloned_theory ~order ~path:name
            (fun s a b ->
@@ -349,13 +358,13 @@ let derived src id =
 (* Theory lookup *)
 
 let ns_find_ts ns qid =
-  try [(Why3.Theory.ns_find_ts ns qid).ts_name] with Not_found -> []
+  try [(Thy.ns_find_ts ns qid).ts_name] with Not_found -> []
 
 let ns_find_ls ns qid =
-  try [(Why3.Theory.ns_find_ls ns qid).ls_name] with Not_found -> []
+  try [(Thy.ns_find_ls ns qid).ls_name] with Not_found -> []
 
 let ns_find_pr ns qid =
-  try [(Why3.Theory.ns_find_pr ns qid).pr_name] with Not_found -> []
+  try [(Thy.ns_find_pr ns qid).pr_name] with Not_found -> []
 
 let ns_find ns kind qid =
   match kind with
@@ -410,7 +419,7 @@ let pns_find pm kind qid =
 
 let find kind qid thy =
   try pns_find (Why3.Pmodule.restore_module thy) kind qid
-  with Not_found -> ns_find thy.Why3.Theory.th_export kind qid
+  with Not_found -> ns_find thy.Thy.th_export kind qid
 
 let find_theory kind qid { theory } = find kind qid theory
 
@@ -422,7 +431,7 @@ let lookup ~scope ~theories kind m qid =
     List.concat @@ List.map (find_theory kind qid) (Mstr.values theories)
 
 let select ~name ids =
-  let ids = List.sort_uniq Why3.Ident.id_compare ids in
+  let ids = List.sort_uniq Id.id_compare ids in
   match ids with
   | [id] -> id
   | [] -> failwith (Printf.sprintf "reference '%s' not found" name)

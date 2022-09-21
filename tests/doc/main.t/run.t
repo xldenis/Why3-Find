@@ -7,6 +7,10 @@
 --------------------------------------------------------------------------
   $ find html | sort
   html
+  html/fonts
+  html/fonts/icofont.woff
+  html/fonts/icofont.woff2
+  html/icofont.min.css
   html/p.a.A.html
   html/p.a.B.html
   html/p.a.html
@@ -19,7 +23,8 @@
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
   <title>Library p.a</title>
   </head>
   <body>
@@ -47,7 +52,8 @@
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
   <title>Module p.a.A</title>
   </head>
   <body>
@@ -86,7 +92,8 @@
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
   <title>Module p.a.B</title>
   </head>
   <body>

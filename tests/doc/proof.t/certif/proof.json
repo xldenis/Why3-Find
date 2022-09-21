@@ -6,16 +6,28 @@
   ],
   "proofs": {
     "S": {
-      "mixfix []": { "prover": "alt-ergo", "time": 0.0091 },
+      "mixfix []": {
+        "transf": "split_vc",
+        "children": [
+          { "prover": "alt-ergo", "time": 0.0044 },
+          {
+            "transf": "split_vc",
+            "children": [ null, { "prover": "alt-ergo", "time": 0.0035 } ]
+          },
+          { "prover": "alt-ergo", "time": 0.0031 },
+          null
+        ]
+      },
       "reflexivity": { "prover": "alt-ergo", "time": 0.0029 },
       "extensivity": {
         "transf": "split_vc",
         "children": [
           { "prover": "alt-ergo", "time": 0.0048 },
-          { "prover": "cvc4", "time": 2.53 },
-          { "prover": "cvc4", "time": 0.14 }
+          null,
+          { "prover": "cvc4", "time": 0.07000000000000001 }
         ]
-      }
+      },
+      "wrong": null
     }
   }
 }
