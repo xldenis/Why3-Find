@@ -162,12 +162,12 @@ let process_proof env = function
 let process_proofs env = function
   | None -> ()
   | Some Docref.{ proofs } ->
-    let (s,p) =
+    let stuck,proved =
       Docref.Mstr.fold
         (fun _g c (s,p) -> s + Crc.stuck c , p + Crc.proved c)
         proofs (0,0) in
     Pdoc.pp_print_char env.out ' ' ;
-    process_verdict env @@ Crc.nverdict ~stuck:s ~proved:p
+    process_verdict env @@ Crc.nverdict ~stuck ~proved
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -254,7 +254,8 @@ let declare env n kwd ?(attr=[]) id =
   let anchor = Docref.id_anchor id in
   Pdoc.printf env.out "%a%a" pp_spaces n Pdoc.pp_keyword kwd ;
   List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
-  Pdoc.printf env.out " <a name=\"%s\">%s</a>" anchor name
+  Pdoc.printf env.out " <a name=\"%s\">%s</a>" anchor name ;
+  process_proof env @@ Docref.find_proof id env.theory
 
 let definition env ?(op=" = ") def =
   Pdoc.printf env.out "%s{%a}@\n" op
@@ -366,6 +367,15 @@ let in_section env (c : Docref.clone) =
   s.cloned_order = env.clone_order &&
   not @@ Sid.mem c.id_target env.declared
 
+let process_clone_proofs env clones =
+  let stuck,proved = List.fold_left
+      (fun (s,p) clone ->
+         match Docref.find_proof clone.Docref.id_target env.theory with
+         | None -> (s,p)
+         | Some c -> s + Crc.stuck c, p + Crc.proved c
+      ) (0,0) clones
+  in process_verdict env @@ Crc.nverdict ~stuck ~proved
+
 let process_clone_section env (th : Docref.theory) =
   let cloned =
     List.sort by_source_line @@
@@ -390,6 +400,7 @@ let process_clone_section env (th : Docref.theory) =
         "%a<span class=\"attribute section-toggle\">end</span></span>@\n\
          %a</span>}</span>"
         pp_spaces n pp_spaces n0 ;
+      process_clone_proofs env cloned ;
     end
 
 let process_clones env =

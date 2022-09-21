@@ -72,6 +72,8 @@ type href =
 
 type position = Lexing.position * Lexing.position
 
+val find_proof : ident -> theory option -> Crc.crc option
+
 val resolve :
   src:source -> scope:string option -> theory:theory option -> infix:bool ->
   position -> href
