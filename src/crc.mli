@@ -33,6 +33,9 @@ type crc =
       proved : int ;
     }
 
+type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
+val verdict : crc -> verdict
+
 val stuck : crc -> int
 val proved : crc -> int
 val unknown : crc -> bool

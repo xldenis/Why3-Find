@@ -59,6 +59,15 @@ let apply id children =
   if stuck > 0 && proved = 0 then Stuck else
     Transf { id ; children ; stuck ; proved }
 
+type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
+
+let verdict crc =
+  let s = stuck crc in
+  let p = proved crc in
+  if s = 0 then `Valid p else
+  if p = 0 then `Failed s else
+    `Partial(p,s+p)
+
 let pp_result fmt ~stuck:s ~proved:p =
   if s = 0 then
     if p <= 1 then Utils.pp_ok fmt
@@ -71,6 +80,7 @@ let pretty fmt crc =
   let s = stuck crc in
   let p = proved crc in
   pp_result fmt ~stuck:s ~proved:p
+
 
 (* -------------------------------------------------------------------------- *)
 (* --- JSON                                                               --- *)

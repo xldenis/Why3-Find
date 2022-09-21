@@ -73,7 +73,7 @@ type href =
 type position = Lexing.position * Lexing.position
 
 val resolve :
-  src:source -> scope:string option -> infix:bool ->
+  src:source -> scope:string option -> theory:theory option -> infix:bool ->
   position -> href
 
 val reference :

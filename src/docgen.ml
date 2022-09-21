@@ -65,6 +65,7 @@ type env = {
   mutable clone_order : int ; (* clone ranking *)
   mutable declared : Sid.t ; (* locally declared *)
   mutable scope : string option ; (* current module name *)
+  mutable theory : Docref.theory option ; (* current module theory *)
   mutable space : bool ; (* leading space in Par mode *)
   mutable mode : mode ; (* current output mode *)
   mutable file : mode ; (* global file output mode *)
@@ -128,6 +129,36 @@ let rec close env =
   | Div | Par | List _ | Item _ | Pre | Head _ -> pop env ; close env
 
 (* -------------------------------------------------------------------------- *)
+(* --- Proof Report                                                       --- *)
+(* -------------------------------------------------------------------------- *)
+
+let attributes ?title ?cla fmt =
+  begin
+    Option.iter (Format.fprintf fmt " title=\"%s\"") title ;
+    Option.iter (Format.fprintf fmt " class=\"%s\"") cla ;
+  end
+
+let process_proof env = function
+  | None -> ()
+  | Some crc ->
+    match Crc.verdict crc with
+    | `Valid n ->
+      let title = match n with
+        | 0 -> "Valid (no goals)"
+        | 1 -> "Valid (one goal)"
+        | _ -> "Valid (%d goals)" in
+      let cla = "icon valid icofont-check" in
+      Pdoc.printf env.out "<span%t></span> " (attributes ~title ~cla)
+    | `Failed _ ->
+      let title = "Failed (no proof)" in
+      let cla = "icon failure icofont-exclamation-tringle" in
+      Pdoc.printf env.out "<span%t></span> " (attributes ~title ~cla)
+    | `Partial(p,n) ->
+      let title = Printf.sprintf "Partial proof (%d/%d goals)" p n in
+      let cla = "icon orange icofont-exclamation-tringle" in
+      Pdoc.printf env.out "<span%t></span> " (attributes ~title ~cla)
+
+(* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -139,13 +170,14 @@ let rec fetch_id input =
 
 let resolve env ?(infix=false) () =
   Docref.resolve
-    ~src:env.src ~scope:env.scope ~infix
-    (Token.position env.input)
+    ~src:env.src ~scope:env.scope ~theory:env.theory
+    ~infix (Token.position env.input)
 
 let process_href env (href : Docref.href) s =
   match href with
-  | Docref.Def { id ; name } ->
+  | Docref.Def { id ; name ; proof } ->
     env.declared <- Sid.add id env.declared ;
+    process_proof env proof ;
     Pdoc.printf env.out "<a name=\"%s\">%a</a>" name Pdoc.pp_html s
   | Docref.Ref { kind ; path = p ; href = h } ->
     if env.clone_decl > 0 && kind = "theory" then
@@ -349,17 +381,15 @@ let process_clone_section env (th : Docref.theory) =
         pp_spaces n pp_spaces n0 ;
     end
 
-let process_clone env =
+let process_clones env =
   begin
-    if env.clone_path <> "" then  match env.scope with
+    if env.clone_path <> "" then
+      match env.theory with
       | None -> ()
-      | Some s ->
-        match Docref.Mstr.find_opt s env.src.theories with
-        | None -> ()
-        | Some th ->
-          process_clone_section env th ;
-          env.clone_path <- "" ;
-          env.clone_decl <- 0 ;
+      | Some th ->
+        process_clone_section env th ;
+        env.clone_path <- "" ;
+        env.clone_decl <- 0 ;
   end
 
 (* -------------------------------------------------------------------------- *)
@@ -417,6 +447,7 @@ let process_module env key =
     push env Pre ;
     env.file <- Pre ;
     env.scope <- Some id ;
+    env.theory <- Docref.Mstr.find_opt id env.src.theories ;
     env.declared <- Sid.empty ;
     Pdoc.pp env.out Pdoc.pp_keyword key ;
     Pdoc.pp_print_char env.out ' ' ;
@@ -429,6 +460,7 @@ let process_close env key =
     env.mode <- Body ;
     env.file <- Body ;
     env.scope <- None ;
+    env.theory <- None ;
     Pdoc.close env.out ;
   end
 
@@ -555,7 +587,8 @@ let process_file ~why3env ~out:dir file =
   let input = Token.input file in
   let env = {
     dir ; src ; input ; out ; space = false ;
-    scope = None ; mode = Body ; file = Body ; stack = [] ;
+    scope = None ; theory = None ;
+    mode = Body ; file = Body ; stack = [] ;
     clone_decl = 0 ;
     clone_path = "" ;
     clone_order = 0 ;
@@ -600,7 +633,7 @@ let process_file ~why3env ~out:dir file =
       | Ident s ->
         text env ;
         process_ident env s ;
-        process_clone env
+        process_clones env
       | Infix s ->
         text env ;
         let href = resolve env ~infix:true () in

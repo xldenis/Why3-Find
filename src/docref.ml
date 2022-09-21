@@ -153,19 +153,15 @@ type href =
 let pp_ident fmt (id : Why3.Ident.ident) =
   Format.fprintf fmt "%s<%d>" id.id_string (Why3.Weakhtbl.tag_hash id.id_tag)
 
-let resolve ~src ~scope ~infix pos =
+let resolve ~src ~scope ~theory ~infix pos =
   try
     let loc = extract ~infix pos in
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, kind) ->
       let name = anchor ~kind id in
-      let proof =
-        match scope with
+      let proof = match theory with
         | None -> None
-        | Some thy ->
-          match Mstr.find_opt thy src.theories with
-          | None -> None
-          | Some { proofs } -> Mstr.find_opt name proofs
+        | Some { proofs } -> Mstr.find_opt name proofs
       in
       Def { name ; id ; proof }
     | (id, Why3.Glob.Use, kind) ->
