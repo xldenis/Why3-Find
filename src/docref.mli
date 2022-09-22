@@ -68,7 +68,7 @@ val id_href : src:source -> scope:string option -> ident -> string
 
 type href =
   | NoRef
-  | Def of { href: string ; id: Why3.Ident.ident ; proof: Crc.crc option }
+  | Def of { id: Why3.Ident.ident ; anchor: string ; proof: Crc.crc option }
   | Ref of { kind: string ; path: string ; href: string }
 
 type position = Lexing.position * Lexing.position

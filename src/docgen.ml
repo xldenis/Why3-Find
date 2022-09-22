@@ -188,21 +188,23 @@ let rec child n fmt crc =
     Format.fprintf fmt "%s%a" id pp_verdict (Crc.nverdict ~stuck ~proved) ;
     List.iter (child (n+2) fmt) children
 
-let process_certif env ~goal crc =
-  Pdoc.printf env.crc "<pre class=\"src\">  %a %s%a%t</pre>"
-    Pdoc.pp_keyword "goal" goal pp_verdict (Crc.verdict crc)
+let process_certif env ~path ~href ~name crc =
+  Pdoc.printf env.crc
+    "<pre class=\"src\"> %a <a id=\"%s\" href=\"%s\">%s</a>%a%t</pre>"
+    Pdoc.pp_keyword "goal" path href name
+    pp_verdict (Crc.verdict crc)
     begin fun fmt -> match crc with
       | Crc.Stuck -> ()
       | Crc.Prover _ -> child 4 fmt crc
       | Crc.Transf _ -> child 4 fmt crc
     end
 
-let process_proof env ~path ~goal = function
+let process_proof env ~href ~name ~path = function
   | None -> ()
   | Some crc ->
-    let href = of_path env path in
-    Pdoc.printf env.out "%a" (pp_vlink ~href) (Crc.verdict crc) ;
-    process_certif env ~goal crc
+    let hlink = of_path env path in
+    Pdoc.printf env.out "%a" (pp_vlink ~href:hlink) (Crc.verdict crc) ;
+    process_certif env ~path ~href ~name crc
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -222,12 +224,13 @@ let resolve env ?(infix=false) () =
 let process_href env (href : Docref.href) s =
   match href with
 
-  | Docref.Def { id ; href ; proof } ->
-    let goal = Docref.id_pretty id in
+  | Docref.Def { id ; anchor ; proof } ->
+    let name = Docref.id_pretty id in
     let path = Docref.id_path ~src:env.src ~scope:env.scope id in
+    let href = Docref.id_href ~src:env.src ~scope:None id in
     env.declared <- Sid.add id env.declared ;
-    Pdoc.printf env.out "<a id=\"%s\">%a</a>" href Pdoc.pp_html s ;
-    process_proof env ~path ~goal proof
+    Pdoc.printf env.out "<a id=\"%s\">%a</a>" anchor Pdoc.pp_html s ;
+    process_proof env ~href ~path ~name proof
 
   | Docref.Ref { kind ; path = p ; href = h } ->
     if env.clone_decl > 0 && kind = "theory" then
@@ -285,14 +288,14 @@ let defkind = function
   | _ -> "let"," = "
 
 let declare env n kwd ?(attr=[]) id =
-  let name = Docref.id_name id in
-  let goal = Docref.id_pretty id in
+  let name = Docref.id_pretty id in
   let anchor = Docref.id_anchor id in
   let path = Docref.id_path ~src:env.src ~scope:env.scope id in
+  let href = Docref.id_href ~src:env.src ~scope:env.scope id in
   Pdoc.printf env.out "%a%a" Pdoc.pp_spaces n Pdoc.pp_keyword kwd ;
   List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
   Pdoc.printf env.out " <a id=\"%s\">%s</a>" anchor name ;
-  process_proof env ~path ~goal @@ Docref.find_proof id env.theory
+  process_proof env ~href ~name ~path @@ Docref.find_proof id env.theory
 
 let definition env ?(op=" = ") def =
   Pdoc.printf env.out "%s{%a}@\n" op

@@ -155,7 +155,7 @@ let anchor ~kind id =
 
 type href =
   | NoRef
-  | Def of { href: string ; id: Id.ident ; proof: Crc.crc option }
+  | Def of { id: Id.ident ; anchor: string ; proof: Crc.crc option }
   | Ref of { kind: string ; path: string ; href: string }
 
 let pp_ident fmt (id : Id.ident) =
@@ -170,9 +170,9 @@ let resolve ~src ~scope ~theory ~infix pos =
     let loc = extract ~infix pos in
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, kind) ->
-      let href = anchor ~kind id in
+      let anchor = anchor ~kind id in
       let proof = find_proof id theory in
-      Def { href ; id ; proof }
+      Def { anchor ; id ; proof }
     | (id, Why3.Glob.Use, kind) ->
       let path = id_path ~src ~scope id in
       let base = baseurl ~src ~scope id in

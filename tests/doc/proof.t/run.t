@@ -1,4 +1,29 @@
   $ why3find doc clones.mlw certif.mlw
+  $ cat html/clones.A.html
+  <html>
+  <head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
+  <title>Module clones.A</title>
+  </head>
+  <body>
+  <header>Module <code class="src"><a href="clones.html">clones</a>.A</code></header>
+  <pre class="src">
+  <span class="keyword">module</span> <a id="A_">A</a> <a href="_clones.html#" title="Valid (one goal)" class="icon valid icofont-check"></a>
+  
+    <span class="keyword">type</span> <a id="t_3">t</a>
+    <span class="keyword">constant</span> <a id="e_4">e</a> : <a title="A.t" href="#t_3">t</a>
+    <span class="keyword">function</span> <a id="op_5">op</a> <a title="A.t" href="#t_3">t</a> <a title="A.t" href="#t_3">t</a> : <a title="A.t" href="#t_3">t</a>
+    <span class="keyword">axiom</span> <a id="neutral_6">neutral</a>: <span class="keyword">forall</span> x. <a title="A.op" href="#op_5">op</a> x <a title="A.e" href="#e_4">e</a> = x
+    <span class="keyword">axiom</span> <a id="commutative_7">commutative</a>: <span class="keyword">forall</span> x y. <a title="A.op" href="#op_5">op</a> x y = <a title="A.op" href="#op_5">op</a> y x
+    <span class="keyword">lemma</span> <a id="neutral_com_8">neutral_com</a><a href="_clones.html#A.neutral_com" title="Valid (one goal)" class="icon valid icofont-check"></a>: <span class="keyword">forall</span> x. <a title="A.op" href="#op_5">op</a> <a title="A.e" href="#e_4">e</a> x = x
+  
+  <span class="keyword">end</span>
+  </pre>
+  <script type="text/javascript" src="script.js"></script>
+  </body>
+  </html>
   $ cat html/clones.B.html
   <html>
   <head>
@@ -75,5 +100,48 @@
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
+  </body>
+  </html>
+  $ cat html/_clones.html
+  <html>
+  <head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
+  <title>Proofs for clones</title>
+  </head>
+  <body>
+  <header>Proofs for <code>clones</code></header>
+  <pre class="src"><span class="keyword">module</span> <a title="clones.A" href="clones.A.html">A</a></pre>
+  <pre class="src">  <span class="keyword">goal</span> <a href="neutral_com#clones.html">neutral_com_8</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+      alt-ergo 400ns</pre><pre class="src"><span class="keyword">module</span> <a title="clones.B" href="clones.B.html">B</a></pre>
+  <pre class="src">  <span class="keyword">goal</span> <a href="commutative#clones.html">commutative_7</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+      alt-ergo 300ns</pre><script type="text/javascript" src="script.js"></script>
+  </body>
+  </html>
+  $ cat html/_certif.html
+  <html>
+  <head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
+  <title>Proofs for certif</title>
+  </head>
+  <body>
+  <header>Proofs for <code>certif</code></header>
+  <pre class="src"><span class="keyword">module</span> <a title="certif.S" href="certif.S.html">S</a></pre>
+  <pre class="src">  <span class="keyword">goal</span> <a href="([])#certif.html">mixfix []_10</a><span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
+      split_vc<span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
+        alt-ergo 4ms
+        split_vc<span title="Partial proof (1/2 goals)" class="icon warning icofont-exclamation-tringle"></span>
+          stuck<span class="icon failed icofont-exclamation-circle"></span>
+          alt-ergo 3ms
+        alt-ergo 3ms
+        stuck<span class="icon failed icofont-exclamation-circle"></span></pre><pre class="src">  <span class="keyword">goal</span> <a href="reflexivity#certif.html">reflexivity_21</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+      alt-ergo 2ms</pre><pre class="src">  <span class="keyword">goal</span> <a href="extensivity#certif.html">extensivity_23</a><span title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></span>
+      split_vc<span title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></span>
+        alt-ergo 4ms
+        stuck<span class="icon failed icofont-exclamation-circle"></span>
+        cvc4 70ms</pre><pre class="src">  <span class="keyword">goal</span> <a href="wrong#certif.html">wrong_34</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span></pre><script type="text/javascript" src="script.js"></script>
   </body>
   </html>

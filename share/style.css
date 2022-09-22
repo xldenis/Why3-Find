@@ -52,7 +52,12 @@ pre.src {
 }
 
 .src a {
+    color: teal;
     text-decoration: none;
+}
+
+.src a:visited {
+    color: teal;
 }
 
 .src a:hover {
@@ -72,10 +77,11 @@ pre.src {
     font-size: smaller ;
     text-decoration: none ;
 }
-.valid { color: green }
-.failed { color: red }
-.warning { color: orange }
-.remark { color: grey }
+
+.valid { color: green !important }
+.failed { color: red !important }
+.warning { color: orange !important }
+.remark { color: grey !important }
 
 /* -------------------------------------------------------------------------- */
 /* --- Foldable Section                                                   --- */
