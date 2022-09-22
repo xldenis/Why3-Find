@@ -90,8 +90,8 @@ type theory = {
 }
 
 type source = {
-  name: string;
   url: string;
+  lib: string list;
   profile: Calibration.profile ;
   theories: theory Mstr.t;
 }
@@ -124,7 +124,7 @@ let id_path ~src ~scope id =
   let lp,md,qid = restore_path id in
   let lp =
     match lp, scope with
-    | [], Some m when m <> md -> [src.name]
+    | [], Some m when m <> md -> src.lib
     | _ -> lp
   in String.concat "." (lp @ md :: List.map of_infix qid)
 
@@ -133,7 +133,7 @@ let baseurl ~src ~scope id =
   if lp = [] then
     match scope with
     | Some m when m = md -> ""
-    | _ -> Printf.sprintf "%s.%s.html" src.name md
+    | _ -> Printf.sprintf "%s.%s.html" (String.concat "." src.lib) md
   else
     let path = String.concat "." lp in
     if Filename.is_relative (id_file id) then
@@ -155,7 +155,7 @@ let anchor ~kind id =
 
 type href =
   | NoRef
-  | Def of { name: string ; id: Id.ident ; proof: Crc.crc option }
+  | Def of { href: string ; id: Id.ident ; proof: Crc.crc option }
   | Ref of { kind: string ; path: string ; href: string }
 
 let pp_ident fmt (id : Id.ident) =
@@ -170,9 +170,9 @@ let resolve ~src ~scope ~theory ~infix pos =
     let loc = extract ~infix pos in
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, kind) ->
-      let name = anchor ~kind id in
+      let href = anchor ~kind id in
       let proof = find_proof id theory in
-      Def { name ; id ; proof }
+      Def { href ; id ; proof }
     | (id, Why3.Glob.Use, kind) ->
       let path = id_path ~src ~scope id in
       let base = baseurl ~src ~scope id in
@@ -181,6 +181,7 @@ let resolve ~src ~scope ~theory ~infix pos =
   with Not_found -> NoRef
 
 let id_name id = id.Id.id_string
+let id_pretty id = of_infix id.Id.id_string
 let id_anchor id = anchor ~kind:"" id
 let id_href ~src ~scope id =
   Printf.sprintf "%s#%s" (baseurl ~src ~scope id) (anchor ~kind:"" id)
@@ -320,7 +321,7 @@ let parse ~why3env file =
     end ;
   let dir = Filename.chop_extension file in
   let lib = library_path file in
-  let name = String.concat "." lib in
+  let path = String.concat "." lib in
   let thys =
     try fst @@ Why3.Env.read_file Why3.Env.base_language why3env file
     with exn ->
@@ -333,7 +334,7 @@ let parse ~why3env file =
     Mstr.map
       (fun (theory : Thy.theory) ->
          let clones = ref [] in
-         iter_cloned_theory ~order ~path:name
+         iter_cloned_theory ~order ~path
            (fun s a b ->
               clones := {
                 id_section = s ;
@@ -345,11 +346,11 @@ let parse ~why3env file =
          { theory ; clones = !clones ; proofs }
       ) thys
   in
-  let url = Printf.sprintf "%s.html" name in
-  { name ; url ; profile ; theories }
+  let url = Printf.sprintf "%s.html" path in
+  { lib ; url ; profile ; theories }
 
 let derived src id =
-  Printf.sprintf "%s.%s.html" src.name id
+  Printf.sprintf "%s.%s.html" (String.concat "." src.lib) id
 
 (* -------------------------------------------------------------------------- *)
 (* --- Global References                                                  --- *)

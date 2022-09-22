@@ -52,10 +52,17 @@ let pp_name fmt a =
 
 let pp_html = Why3.Pp.html_string
 let to_html = Format.asprintf "%a" pp_html
+
 let pp_keyword fmt s =
   Format.fprintf fmt "<span class=\"keyword\">%s</span>" s
+
 let pp_attribute fmt s =
   Format.fprintf fmt "<span class=\"attribute\">%s</span>" s
+
+let pp_spaces fmt n =
+  for _ = 1 to n do
+    Format.pp_print_char fmt ' '
+  done
 
 (* -------------------------------------------------------------------------- *)
 (* --- Html Buffers                                                       --- *)
@@ -163,7 +170,7 @@ let header out ~level ~title ?(toc=title) () =
   if target.hbase <= 0 then target.hbase <- level ;
   let level = 1 + level - target.hbase in
   target.headers <- { level ; name ; title = toc } :: target.headers ;
-  Format.fprintf out.current.fmt "<h%d><a name=\"%s\">%s</a></h%d>@\n"
+  Format.fprintf out.current.fmt "<h%d><a id=\"%s\">%s</a></h%d>@\n"
     level name title level
 
 let head =

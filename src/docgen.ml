@@ -60,6 +60,8 @@ type env = {
   src : Docref.source ; (* source file infos *)
   input : Token.input ; (* input lexer *)
   out : Pdoc.output ; (* output buffer *)
+  crc : Pdoc.output ; (* proofs buffer *)
+  mutable proof_href : int ; (* proof href *)
   mutable clone_decl : int ; (* clone decl indent (when > 0) *)
   mutable clone_path : string ; (* clone path *)
   mutable clone_order : int ; (* clone ranking *)
@@ -132,34 +134,39 @@ let rec close env =
 (* --- Proof Report                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-let attributes ?title ?cla fmt =
-  begin
-    Option.iter (Format.fprintf fmt " title=\"%s\"") title ;
-    Option.iter (Format.fprintf fmt " class=\"%s\"") cla ;
-  end
+let icon_valid = "icon valid icofont-check"
+let icon_partial = "icon warning icofont-exclamation-tringle"
+let icon_failed = "icon failed icofont-exclamation-circle"
 
-let process_verdict env = function
+let pp_mark ?href ~title ~cla fmt =
+  match href with
+  | None ->
+    Format.fprintf fmt "<span title=\"%s\" class=\"%s\"></span>"
+      title cla
+  | Some href ->
+    Format.fprintf fmt "<a href=\"%s\" title=\"%s\" class=\"%s\"></a>"
+      href title cla
+
+let pp_vlink ?href fmt r =
+  match r with
   | `Valid n ->
     let title = match n with
       | 0 -> "Valid (no goals)"
       | 1 -> "Valid (one goal)"
       | _ -> Printf.sprintf "Valid (%d goals)" n in
-    let cla = "icon valid icofont-check" in
-    Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
+    pp_mark ?href ~title ~cla:icon_valid fmt
   | `Partial(p,n) ->
     let title = Printf.sprintf "Partial proof (%d/%d goals)" p n in
-    let cla = "icon warning icofont-exclamation-tringle" in
-    Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
+    pp_mark ?href ~title ~cla:icon_partial fmt
   | `Failed _ ->
     let title = "Failed (no proof)" in
-      let cla = "icon failed icofont-exclamation-circle" in
-    Pdoc.printf env.out "<span%t></span>" (attributes ~title ~cla)
+    pp_mark ?href ~title ~cla:icon_failed fmt
 
-let process_proof env = function
-  | None -> ()
-  | Some crc -> process_verdict env @@ Crc.verdict crc
+let pp_verdict = pp_vlink ?href:None
 
-let process_proofs env = function
+let of_path env p = Printf.sprintf "_%s#%s" env.src.url p
+
+let process_proofs env ?path = function
   | None -> ()
   | Some Docref.{ proofs } ->
     let stuck,proved =
@@ -167,7 +174,35 @@ let process_proofs env = function
         (fun _g c (s,p) -> s + Crc.stuck c , p + Crc.proved c)
         proofs (0,0) in
     Pdoc.pp_print_char env.out ' ' ;
-    process_verdict env @@ Crc.nverdict ~stuck ~proved
+    let href = Option.map (of_path env) path in
+    Pdoc.printf env.out "%a" (pp_vlink ?href) (Crc.nverdict ~stuck ~proved)
+
+let rec child n fmt crc =
+  Format.fprintf fmt "@\n%a" Pdoc.pp_spaces n ;
+  match crc with
+  | Crc.Stuck ->
+    Format.fprintf fmt "stuck<span class=\"%s\"></span>" icon_failed
+  | Crc.Prover(p,t) ->
+    Format.fprintf fmt "%s %a" (Crc.shortname p) Utils.pp_time t
+  | Crc.Transf { id ; children ; stuck ; proved } ->
+    Format.fprintf fmt "%s%a" id pp_verdict (Crc.nverdict ~stuck ~proved) ;
+    List.iter (child (n+2) fmt) children
+
+let process_certif env ~goal crc =
+  Pdoc.printf env.crc "<pre class=\"src\">  %a %s%a%t</pre>"
+    Pdoc.pp_keyword "goal" goal pp_verdict (Crc.verdict crc)
+    begin fun fmt -> match crc with
+      | Crc.Stuck -> ()
+      | Crc.Prover _ -> child 4 fmt crc
+      | Crc.Transf _ -> child 4 fmt crc
+    end
+
+let process_proof env ~path ~goal = function
+  | None -> ()
+  | Some crc ->
+    let href = of_path env path in
+    Pdoc.printf env.out "%a" (pp_vlink ~href) (Crc.verdict crc) ;
+    process_certif env ~goal crc
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -186,10 +221,14 @@ let resolve env ?(infix=false) () =
 
 let process_href env (href : Docref.href) s =
   match href with
-  | Docref.Def { id ; name ; proof } ->
+
+  | Docref.Def { id ; href ; proof } ->
+    let goal = Docref.id_pretty id in
+    let path = Docref.id_path ~src:env.src ~scope:env.scope id in
     env.declared <- Sid.add id env.declared ;
-    Pdoc.printf env.out "<a name=\"%s\">%a</a>" name Pdoc.pp_html s ;
-    process_proof env proof
+    Pdoc.printf env.out "<a id=\"%s\">%a</a>" href Pdoc.pp_html s ;
+    process_proof env ~path ~goal proof
+
   | Docref.Ref { kind ; path = p ; href = h } ->
     if env.clone_decl > 0 && kind = "theory" then
       begin
@@ -197,21 +236,13 @@ let process_href env (href : Docref.href) s =
         env.clone_path <- p ;
       end ;
     Pdoc.printf env.out "<a title=\"%s\" href=\"%s\">%a</a>" p h Pdoc.pp_html s
+
   | Docref.NoRef ->
     Pdoc.pp_html_s env.out s
 
 (* -------------------------------------------------------------------------- *)
 (* --- Printing Declarations                                              --- *)
 (* -------------------------------------------------------------------------- *)
-
-let pp_spaces fmt n =
-  for _ = 1 to n do
-    Format.pp_print_char fmt ' '
-  done
-
-let pp_attr fmt = function
-  | None -> ()
-  | Some c -> Format.fprintf fmt " class=\"%s\"" c
 
 let pp_ident ~env ?attr ?name fmt id =
   let name = match name with Some a -> a | None -> Docref.id_name id in
@@ -220,8 +251,12 @@ let pp_ident ~env ?attr ?name fmt id =
     let scope = env.scope in
     let title = Docref.id_path ~src ~scope id in
     let href = Docref.id_href ~src ~scope id in
-    Format.fprintf fmt "<a %atitle=\"%s\" href=\"%s\">%s</a>"
-      pp_attr attr title href name
+    begin match attr with
+      | None -> Format.fprintf fmt "<a"
+      | Some a -> Format.fprintf fmt "<a class=\"%s\"" a
+    end ;
+    Format.fprintf fmt " title=\"%s\" href=\"%s\">%s</a>"
+      title href name
   with Not_found ->
     Format.pp_print_string fmt name
 
@@ -251,11 +286,13 @@ let defkind = function
 
 let declare env n kwd ?(attr=[]) id =
   let name = Docref.id_name id in
+  let goal = Docref.id_pretty id in
   let anchor = Docref.id_anchor id in
-  Pdoc.printf env.out "%a%a" pp_spaces n Pdoc.pp_keyword kwd ;
+  let path = Docref.id_path ~src:env.src ~scope:env.scope id in
+  Pdoc.printf env.out "%a%a" Pdoc.pp_spaces n Pdoc.pp_keyword kwd ;
   List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
-  Pdoc.printf env.out " <a name=\"%s\">%s</a>" anchor name ;
-  process_proof env @@ Docref.find_proof id env.theory
+  Pdoc.printf env.out " <a id=\"%s\">%s</a>" anchor name ;
+  process_proof env ~path ~goal @@ Docref.find_proof id env.theory
 
 let definition env ?(op=" = ") def =
   Pdoc.printf env.out "%s{%a}@\n" op
@@ -374,7 +411,7 @@ let process_clone_proofs env clones =
          | None -> (s,p)
          | Some c -> s + Crc.stuck c, p + Crc.proved c
       ) (0,0) clones
-  in process_verdict env @@ Crc.nverdict ~stuck ~proved
+  in Pdoc.printf env.out "%a" pp_verdict (Crc.nverdict ~stuck ~proved)
 
 let process_clone_section env (th : Docref.theory) =
   let cloned =
@@ -388,18 +425,18 @@ let process_clone_section env (th : Docref.theory) =
       let n = n0 + 2 in
       Pdoc.printf env.out
         " <span class=\"section\">\
-         {<span class=\"attribute section-toggle\">…</span>\
-         <span class=\"section-text\"><span class=\"clone\">@\n\
-         %a<span class=\"attribute section-toggle\">begin</span>@\n"
-        pp_spaces n ;
+         {<span class=\"section-toggle\">…</span>\
+         <span class=\"section-text\">@\n\
+         %a<span class=\"comment section-toggle\">begin</span>@\n"
+        Pdoc.pp_spaces n ;
       List.iter
         (fun (clone : Docref.clone) ->
            declaration env (n + 2) clone.id_target th.theory clone.id_source
         ) cloned ;
       Pdoc.printf env.out
-        "%a<span class=\"attribute section-toggle\">end</span></span>@\n\
+        "%a<span class=\"comment section-toggle\">end</span>@\n\
          %a</span>}</span>"
-        pp_spaces n pp_spaces n0 ;
+        Pdoc.pp_spaces n Pdoc.pp_spaces n0 ;
       process_clone_proofs env cloned ;
     end
 
@@ -454,20 +491,25 @@ let process_module env key =
     let href = resolve env () in
     let kind = String.capitalize_ascii key in
     let url = Docref.derived env.src id in
+    let path = String.concat "." env.src.lib in
     let theory = Docref.Mstr.find_opt id env.src.theories in
     Pdoc.printf env.out
-      "<pre class=\"src %s\">%a <a title=\"%s.%s\" href=\"%s\">%s</a>"
-      key Pdoc.pp_keyword key env.src.name id url id ;
-    process_proofs env theory ;
+      "<pre class=\"src\">%a <a title=\"%s.%s\" href=\"%s\">%s</a>"
+      Pdoc.pp_keyword key path id url id ;
+    Pdoc.printf env.crc
+      "<pre class=\"src\">%a <a title=\"%s.%s\" href=\"%s\">%s</a>"
+      Pdoc.pp_keyword key path id url id ;
+    process_proofs env ~path:"" theory ;
     Pdoc.printf env.out "</pre>@." ;
+    Pdoc.printf env.crc "</pre>@." ;
     let file = Filename.concat env.dir url in
-    let title = Printf.sprintf "%s %s.%s" kind env.src.name id in
+    let title = Printf.sprintf "%s %s.%s" kind path id in
     Pdoc.fork env.out ~file ~title ;
     Pdoc.printf env.out
       "<header>\
        %s <code class=\"src\"><a href=\"%s\">%s</a>.%s</code>\
        </header>@\n"
-      kind env.src.url env.src.name id ;
+      kind env.src.url path id ;
     Pdoc.pp env.out Format.pp_print_string prelude ;
     push env Pre ;
     env.file <- Pre ;
@@ -477,7 +519,7 @@ let process_module env key =
     Pdoc.pp env.out Pdoc.pp_keyword key ;
     Pdoc.pp_print_char env.out ' ' ;
     process_href env href id ;
-    process_proofs env theory ;
+    process_proofs env ~path:"" theory ;
   end
 
 let process_close env key =
@@ -608,21 +650,27 @@ let process_reference ~why3env ~env r =
 
 let process_file ~why3env ~out:dir file =
   let src = Docref.parse ~why3env file in
-  let title = Printf.sprintf "Library %s" src.name in
+  let path = String.concat "." src.lib in
+  let title = Printf.sprintf "Library %s" path in
   let out = Pdoc.output ~file:(Filename.concat dir src.url) ~title in
+  let crc = Pdoc.output
+      ~file:(Filename.concat dir ("_" ^ src.url))
+      ~title:(Printf.sprintf "Proofs for %s" path) in
   let input = Token.input file in
   let env = {
-    dir ; src ; input ; out ; space = false ;
+    dir ; src ; input ; out ; crc ; space = false ;
     scope = None ; theory = None ;
     mode = Body ; file = Body ; stack = [] ;
     clone_decl = 0 ;
     clone_path = "" ;
     clone_order = 0 ;
+    proof_href = 0 ;
     declared = Sid.empty ;
     opened = 0 ; section = 0 ;
   } in
   begin
-    Pdoc.printf out "<header>Library <code>%s</code></header>@\n" src.name ;
+    Pdoc.printf out "<header>Library <code>%s</code></header>@\n" path ;
+    Pdoc.printf crc "<header>Proofs for <code>%s</code></header>@\n" path ;
     Pdoc.flush out ;
     while not (Token.eof env.input) do
       match Token.token env.input with
@@ -666,6 +714,7 @@ let process_file ~why3env ~out:dir file =
         process_href env href s
     done ;
     Pdoc.close_all out ;
+    Pdoc.close_all crc ;
   end
 
 (* -------------------------------------------------------------------------- *)

@@ -48,8 +48,8 @@ type theory = {
 }
 
 type source = {
-  name: string;
   url: string;
+  lib: string list;
   profile: Calibration.profile;
   theories: theory Mstr.t;
 }
@@ -61,13 +61,14 @@ val is_keyword : string -> bool
 
 val id_line : ident -> int
 val id_name : ident -> string
+val id_pretty : ident -> string
 val id_anchor : ident -> string
 val id_path : src:source -> scope:string option -> ident -> string
 val id_href : src:source -> scope:string option -> ident -> string
 
 type href =
   | NoRef
-  | Def of { name: string ; id: Why3.Ident.ident ; proof: Crc.crc option }
+  | Def of { href: string ; id: Why3.Ident.ident ; proof: Crc.crc option }
   | Ref of { kind: string ; path: string ; href: string }
 
 type position = Lexing.position * Lexing.position

@@ -22,17 +22,17 @@
   <header>Library <code>a</code></header>
   <div class="doc">
   <p>Headings.</p>
-  <h1><a name="_1">Title A</a></h1>
+  <h1><a id="_1">Title A</a></h1>
   <p>Section 1</p>
-  <h2><a name="_2">Title B</a></h2>
+  <h2><a id="_2">Title B</a></h2>
   <p>Section 1</p>
-  <h2><a name="_3">Title E</a></h2>
+  <h2><a id="_3">Title E</a></h2>
   <p>Section 2</p>
-  <h3><a name="_4">Title C</a></h3>
+  <h3><a id="_4">Title C</a></h3>
   <p>Section 1</p>
-  <h3><a name="_5">Title D</a></h3>
+  <h3><a id="_5">Title D</a></h3>
   <p>Section 2</p>
-  <h2><a name="_6">Title F</a></h2>
+  <h2><a id="_6">Title F</a></h2>
   <p>Section 3</p>
   </div>
   <script type="text/javascript" src="script.js"></script>
