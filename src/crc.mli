@@ -20,23 +20,35 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Find Builtin Commands                                         --- *)
+(* --- Proof Certificates                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-val mkdirs : string -> unit
-val cleanup : string -> unit
-val copy : src:string -> tgt:string -> unit
-val locate : string list -> (string * string) option
-val chdir : string -> unit
+type crc =
+  | Stuck
+  | Prover of string * float
+  | Transf of {
+      id : string ;
+      children : crc list ;
+      stuck : int ;
+      proved : int ;
+    }
 
-val pp_ok : Format.formatter -> unit
-val pp_ko : Format.formatter -> unit
-val pp_weak : Format.formatter -> unit
-val pp_mark : Format.formatter -> bool -> unit
-val pp_time : Format.formatter -> float -> unit
+type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
+val verdict : crc -> verdict
+val nverdict : stuck:int -> proved:int -> verdict
 
-val tty : bool
-val flush : unit -> unit
-val progress : ('a,Format.formatter,unit) format -> 'a
+val stuck : crc -> int
+val proved : crc -> int
+val unknown : crc -> bool
+val complete : crc -> bool
+val pretty : Format.formatter -> crc -> unit
+val pp_result : Format.formatter -> stuck:int -> proved:int -> unit
+val dump : Format.formatter -> crc -> unit
+val shortname : string -> string (* prover short name *)
+
+val apply : string -> crc list -> crc
+val merge : crc -> crc -> crc
+val of_json : Json.t -> crc
+val to_json : crc -> Json.t
 
 (* -------------------------------------------------------------------------- *)

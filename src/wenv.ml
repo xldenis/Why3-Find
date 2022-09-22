@@ -20,23 +20,23 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Find Builtin Commands                                         --- *)
+(* --- Why3 Environment                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-val mkdirs : string -> unit
-val cleanup : string -> unit
-val copy : src:string -> tgt:string -> unit
-val locate : string list -> (string * string) option
-val chdir : string -> unit
+type env = {
+  wconfig : Why3.Whyconf.config ;
+  wenv : Why3.Env.env ;
+}
 
-val pp_ok : Format.formatter -> unit
-val pp_ko : Format.formatter -> unit
-val pp_weak : Format.formatter -> unit
-val pp_mark : Format.formatter -> bool -> unit
-val pp_time : Format.formatter -> float -> unit
-
-val tty : bool
-val flush : unit -> unit
-val progress : ('a,Format.formatter,unit) format -> 'a
-
-(* -------------------------------------------------------------------------- *)
+let init ~pkgs =
+  let open Why3 in
+  begin
+    let pkgs = Meta.find_all pkgs in
+    let pkg_path = List.map (fun m -> m.Meta.path) pkgs in
+    (* Environment config *)
+    let wconfig = Whyconf.init_config None in
+    let wmain = Whyconf.get_main wconfig in
+    let wpath = Whyconf.loadpath wmain in
+    let wenv = Why3.Env.create_env ("." :: pkg_path @ wpath) in
+    { wconfig ; wenv }
+  end

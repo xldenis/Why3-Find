@@ -20,23 +20,46 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Find Builtin Commands                                         --- *)
+(* --- Why3 Runner                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-val mkdirs : string -> unit
-val cleanup : string -> unit
-val copy : src:string -> tgt:string -> unit
-val locate : string list -> (string * string) option
-val chdir : string -> unit
+open Wenv
+open Why3.Task
 
-val pp_ok : Format.formatter -> unit
-val pp_ko : Format.formatter -> unit
-val pp_weak : Format.formatter -> unit
-val pp_mark : Format.formatter -> bool -> unit
-val pp_time : Format.formatter -> float -> unit
+type prover
+type result =
+  | NoResult | Failed | Unknown of float | Timeout of float | Valid of float
 
-val tty : bool
-val flush : unit -> unit
-val progress : ('a,Format.formatter,unit) format -> 'a
+val id : prover -> string
+val name : prover -> string
+
+val default : env -> prover list
+val prover : env -> string -> prover
+val select : env -> string list -> prover list
+
+val pp_prover : Format.formatter -> prover -> unit
+val pp_result : Format.formatter -> result -> unit
+
+val of_json : Json.t -> result
+val to_json : result -> Json.t
+
+type callback =
+  Why3.Whyconf.prover ->
+  Why3.Call_provers.resource_limit ->
+  Why3.Call_provers.prover_result ->
+  unit
+
+val prove : env ->
+  ?name:string ->
+  ?cancel:unit Fibers.signal ->
+  ?callback:callback ->
+  task -> prover -> float -> result Fibers.t
+
+val jobs : int ref
+val cache : bool ref
+val pending : unit -> int
+val running : unit -> int
+val pp_goals : Format.formatter -> unit
+val report_stats : unit -> unit
 
 (* -------------------------------------------------------------------------- *)

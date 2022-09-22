@@ -20,23 +20,21 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Find Builtin Commands                                         --- *)
+(* --- JSON Utilities                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-val mkdirs : string -> unit
-val cleanup : string -> unit
-val copy : src:string -> tgt:string -> unit
-val locate : string list -> (string * string) option
-val chdir : string -> unit
+type t = Yojson.t
 
-val pp_ok : Format.formatter -> unit
-val pp_ko : Format.formatter -> unit
-val pp_weak : Format.formatter -> unit
-val pp_mark : Format.formatter -> bool -> unit
-val pp_time : Format.formatter -> float -> unit
+val of_file : string -> t
+val to_file : string -> t -> unit
 
-val tty : bool
-val flush : unit -> unit
-val progress : ('a,Format.formatter,unit) format -> 'a
-
-(* -------------------------------------------------------------------------- *)
+val jint : t -> int
+val jbool : t -> bool
+val jfloat : t -> float
+val jstring : t -> string
+val jstringlist : t -> string list
+val jlist : t -> t list
+val jfield : string -> t -> t
+val jfield_exn : string -> t -> t
+val jmem : string -> t -> bool
+val jiter : (string -> t -> unit) -> t -> unit

@@ -23,27 +23,34 @@
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-val init : pkgs:string list -> Why3.Env.env
+val init : pkgs:string list -> Wenv.env
 
 module Mstr = Why3.Wstdlib.Mstr
-module Sid = Why3.Ident.Sid
 
 type ident = Why3.Ident.ident
+val pp_ident : Format.formatter -> ident -> unit
+
+type section = {
+  cloned_path : string ;
+  cloned_order : int ;
+}
 
 type clone = {
-  id_source : ident ;
-  id_target : ident ;
+  id_section : section ;
+  id_source : Why3.Ident.ident ;
+  id_target : Why3.Ident.ident ;
 }
 
 type theory = {
   theory: Why3.Theory.theory;
-  locals: Sid.t ;
   clones: clone list ;
+  proofs: Crc.crc Mstr.t ;
 }
 
 type source = {
-  name: string;
   url: string;
+  lib: string list;
+  profile: Calibration.profile;
   theories: theory Mstr.t;
 }
 
@@ -54,19 +61,22 @@ val is_keyword : string -> bool
 
 val id_line : ident -> int
 val id_name : ident -> string
+val id_pretty : ident -> string
 val id_anchor : ident -> string
 val id_path : src:source -> scope:string option -> ident -> string
 val id_href : src:source -> scope:string option -> ident -> string
 
 type href =
   | NoRef
-  | Def of string
-  | Ref of { path: string ; href: string }
+  | Def of { id: Why3.Ident.ident ; anchor: string ; proof: Crc.crc option }
+  | Ref of { kind: string ; path: string ; href: string }
 
 type position = Lexing.position * Lexing.position
 
+val find_proof : ident -> theory option -> Crc.crc option
+
 val resolve :
-  src:source -> scope:string option -> infix:bool ->
+  src:source -> scope:string option -> theory:theory option -> infix:bool ->
   position -> href
 
 val reference :

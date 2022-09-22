@@ -44,6 +44,9 @@ val pp_keyword : string fmt
 (** Attribute (sanitized) class. *)
 val pp_attribute : string fmt
 
+(** Spaces. *)
+val pp_spaces : int fmt
+
 (* -------------------------------------------------------------------------- *)
 (* --- HTML Buffers                                                       --- *)
 (* -------------------------------------------------------------------------- *)

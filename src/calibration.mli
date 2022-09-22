@@ -20,23 +20,24 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Find Builtin Commands                                         --- *)
+(* --- Prover Calibration                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-val mkdirs : string -> unit
-val cleanup : string -> unit
-val copy : src:string -> tgt:string -> unit
-val locate : string list -> (string * string) option
-val chdir : string -> unit
+type profile
 
-val pp_ok : Format.formatter -> unit
-val pp_ko : Format.formatter -> unit
-val pp_weak : Format.formatter -> unit
-val pp_mark : Format.formatter -> bool -> unit
-val pp_time : Format.formatter -> float -> unit
+val config : string
+val empty : unit -> profile
+val default : unit -> profile
+val of_json : ?default:profile -> Json.t -> profile
+val to_json : profile -> Json.t
+val iter : (string -> int -> float -> unit) -> profile -> unit
 
-val tty : bool
-val flush : unit -> unit
-val progress : ('a,Format.formatter,unit) format -> 'a
+val round : float -> float
+val observed : profile -> Runner.prover -> float
+val velocity : Wenv.env -> profile -> Runner.prover -> float Fibers.t
+val parallel : bool ref
+
+val calibrate_provers : save:bool -> time:int -> string list -> unit
+val velocity_provers : string list -> unit
 
 (* -------------------------------------------------------------------------- *)

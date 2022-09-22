@@ -1,0 +1,16 @@
+module A
+
+  type t
+  constant e : t
+  function op t t : t
+  axiom neutral: forall x. op x e = x
+  axiom commutative: forall x y. op x y = op y x
+  lemma neutral_com: forall x. op e x = x
+
+end
+
+module B
+  use int.Int
+  clone A with type t = int, function op = (+), axiom neutral
+  (* End *)
+end

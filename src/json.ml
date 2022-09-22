@@ -20,23 +20,55 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Find Builtin Commands                                         --- *)
+(* --- JSON Utilities                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-val mkdirs : string -> unit
-val cleanup : string -> unit
-val copy : src:string -> tgt:string -> unit
-val locate : string list -> (string * string) option
-val chdir : string -> unit
+type t = Yojson.t
 
-val pp_ok : Format.formatter -> unit
-val pp_ko : Format.formatter -> unit
-val pp_weak : Format.formatter -> unit
-val pp_mark : Format.formatter -> bool -> unit
-val pp_time : Format.formatter -> float -> unit
+let of_file f : t = (Yojson.Basic.from_file f :> t)
+let to_file f js =
+  let out = open_out f in
+  Yojson.pretty_to_channel ~std:true out js ;
+  close_out out
 
-val tty : bool
-val flush : unit -> unit
-val progress : ('a,Format.formatter,unit) format -> 'a
+let jbool = function
+  | `Bool b -> b
+  | _ -> false
+
+let jint = function
+  | `Int n -> n
+  | `Float a -> int_of_float (a +. 0.5)
+  | _ -> 0
+
+let jfloat = function
+  | `Float a -> a
+  | `Int n -> float n
+  | _ -> 0.0
+
+let jstring = function
+  | `String a -> a
+  | _ -> ""
+
+let jlist = function
+  | `List xs -> xs
+  | _ -> []
+
+let jstringlist js = jlist js |> List.map jstring
+
+let jmem fd = function
+  | `Assoc fds -> List.mem_assoc fd fds
+  | _ -> false
+
+let jfield fd = function
+  | `Assoc fds -> (try List.assoc fd fds with Not_found -> `Null)
+  | _ -> `Null
+
+let jfield_exn fd = function
+  | `Assoc fds -> List.assoc fd fds
+  | _ -> raise Not_found
+
+let jiter f = function
+  | `Assoc fds -> List.iter (fun (fd,js) -> f fd js) fds
+  | _ -> ()
 
 (* -------------------------------------------------------------------------- *)

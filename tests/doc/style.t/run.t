@@ -6,12 +6,11 @@
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-  <link rel="stylesheet" href="style.css" type="text/css">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
   <title>Library a</title>
   </head>
   <body>
-  <nav>
-  </nav>
   <header>Library <code>a</code></header>
   <div class="doc">
   <p>Testing Documentation.</p>

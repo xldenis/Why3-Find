@@ -20,23 +20,19 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Find Builtin Commands                                         --- *)
+(* --- Proof Manager                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-val mkdirs : string -> unit
-val cleanup : string -> unit
-val copy : src:string -> tgt:string -> unit
-val locate : string list -> (string * string) option
-val chdir : string -> unit
+type mode = [ `Update | `All | `Replay ]
+type log = [ `Default | `Modules | `Theories | `Goals | `Proofs ]
 
-val pp_ok : Format.formatter -> unit
-val pp_ko : Format.formatter -> unit
-val pp_weak : Format.formatter -> unit
-val pp_mark : Format.formatter -> bool -> unit
-val pp_time : Format.formatter -> float -> unit
-
-val tty : bool
-val flush : unit -> unit
-val progress : ('a,Format.formatter,unit) format -> 'a
-
-(* -------------------------------------------------------------------------- *)
+val command :
+  time:int ->
+  mode:mode ->
+  session:bool ->
+  log:log ->
+  pkgs:string list ->
+  provers:string list ->
+  transfs:string list ->
+  files:string list ->
+  string list

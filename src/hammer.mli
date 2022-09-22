@@ -20,23 +20,23 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Find Builtin Commands                                         --- *)
+(* --- Hammer Proof Strategy                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-val mkdirs : string -> unit
-val cleanup : string -> unit
-val copy : src:string -> tgt:string -> unit
-val locate : string list -> (string * string) option
-val chdir : string -> unit
+open Crc
+open Calibration
+open Session
 
-val pp_ok : Format.formatter -> unit
-val pp_ko : Format.formatter -> unit
-val pp_weak : Format.formatter -> unit
-val pp_mark : Format.formatter -> bool -> unit
-val pp_time : Format.formatter -> float -> unit
+val local : bool ref
+val schedule : profile -> goal -> crc -> crc Fibers.t
 
-val tty : bool
-val flush : unit -> unit
-val progress : ('a,Format.formatter,unit) format -> 'a
+type henv = {
+  env : Wenv.env ;
+  time : float ;
+  provers : Runner.prover list ;
+  transfs : string list ;
+}
+
+val run : henv -> unit
 
 (* -------------------------------------------------------------------------- *)

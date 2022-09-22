@@ -20,23 +20,44 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Find Builtin Commands                                         --- *)
+(* --- Session Management                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-val mkdirs : string -> unit
-val cleanup : string -> unit
-val copy : src:string -> tgt:string -> unit
-val locate : string list -> (string * string) option
-val chdir : string -> unit
+open Why3
 
-val pp_ok : Format.formatter -> unit
-val pp_ko : Format.formatter -> unit
-val pp_weak : Format.formatter -> unit
-val pp_mark : Format.formatter -> bool -> unit
-val pp_time : Format.formatter -> float -> unit
+type session
 
-val tty : bool
-val flush : unit -> unit
-val progress : ('a,Format.formatter,unit) format -> 'a
+val create :
+  session:bool ->
+  dir:string ->
+  file:string ->
+  format:string ->
+  Why3.Theory.theory list ->
+  session
+
+val save : session -> unit
+
+type theory
+
+val name : theory -> string
+val theories : session -> theory list
+
+type goal
+
+val split : theory -> goal list
+val goal_name : goal -> string
+val goal_loc : goal -> Loc.position option
+val goal_task : goal -> Task.task
+
+val thy_name : Theory.theory -> string
+val task_name : Task.task -> string
+
+val result : goal ->
+  Whyconf.prover ->
+  Call_provers.resource_limit ->
+  Call_provers.prover_result ->
+  unit
+
+val apply : Env.env -> string -> goal -> goal list option
 
 (* -------------------------------------------------------------------------- *)

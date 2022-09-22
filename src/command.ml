@@ -78,19 +78,6 @@ let template ~subst ~src ~tgt =
   close_out out ;
   Format.printf "Initialized %s@." tgt
 
-let find_direcory ~msg fn =
-  let rec lookup dir =
-    match dir with
-    | "/" | "." -> failwith msg
-    | _ ->
-      if fn dir then dir else
-        lookup (Filename.dirname dir)
-  in lookup @@ Sys.getcwd ()
-
-let find_makefile () =
-  find_direcory ~msg:"Makefile not found"
-    (fun dir -> Sys.file_exists (Filename.concat dir "Makefile"))
-
 (* -------------------------------------------------------------------------- *)
 (* --- Wrapper Command                                                    --- *)
 (* -------------------------------------------------------------------------- *)
@@ -104,13 +91,14 @@ let exec
     ?(drivers=false)
     ?(prefix=[])
     ?(pkgs=[])
+    ?(skip=1)
     argv =
   let open Bag in
   let args = ref empty in
   let pkgs = ref (Bag.of_list pkgs) in
   let drivers = ref drivers in
   let configs = ref configs in
-  let p = ref 1 in
+  let p = ref skip in
   while !p < Array.length argv do
     begin
       match argv.(!p) with
@@ -302,10 +290,12 @@ let () = register ~name:"make"
          \n  run make -C DIR ARGS... from the closest\
          \n  directory DIR that contains a Makefile.\
          \n" ;
-      let dir = find_makefile () in
+      let dir =
+        match Utils.locate ["Makefile"] with
+        | None -> failwith "Makefile not found"
+        | Some(dir,_) -> Utils.chdir dir ; dir in
       let args = Array.sub argv 1 (Array.length argv - 1) in
       let argv = Array.append [| "make" ; "-C" ; dir |] args in
-      Format.printf "Entering directory '%s'@." dir ;
       Unix.execvp "make" argv
     end
 
@@ -569,7 +559,7 @@ let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
         "USAGE:\n\
          \n  why3find extract [OPTIONS] MODULE...\n\n\
          DESCRIPTION:\n\
-         \n  Executes why3 ide with the specified arguments.\n\n\
+         \n  Executes why3 extract with the specified arguments.\n\n\
          OPTIONS:\n\
          \n  -v|--verbose print why3 command\
          \n  -p|--package PKG package dependency\
@@ -580,22 +570,113 @@ let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- HAMMER                                                             --- *)
+(* --- CALIBRATE                                                          --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = register ~name:"hammer" ~args:"[-p PKG] FILE"
+let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
-      usage argv
+      let save = ref false in
+      let velocity = ref false in
+      let time = ref 500 in
+      let prvs = ref [] in
+      let prover p = prvs := p :: !prvs in
+      Arg.parse_argv argv
+        [
+          "-j", Arg.Set_int Runner.jobs, "JOBS max parallel provers";
+          "-c", Arg.Clear Runner.cache, "force cache update";
+          "-q", Arg.Clear Calibration.parallel, "sequential calibration";
+          "-t", Arg.Set_int time, "MS calibration time (default 500ms)";
+          "-P", Arg.String prover, "PRV prover to calibrate";
+          "-m", Arg.Set save, "save calibration profile (master)";
+          "-v", Arg.Set velocity, "evaluate prover velocity (local)";
+        ]
+        prover
         "USAGE:\n\
-         \n  why3find hammer [OPTIONS] FILE\n\n\
+         \n  why3find calibrate [OPTIONS] PROVERS\n\n\
          DESCRIPTION:\n\
-         \n  Run why3 hammer on the given file.\n\n\
-         OPTIONS:\n\
-         \n  -v|--verbose print why3 command\
-         \n  -p|--package PKG package dependency\
-         \n  --extra-config FILE additional configuration file\
-         \n";
-      exec ~cmd:"hammer" ~configs:true argv
+         \n  Calibrate your machine.\
+         \n  By default, report local velocity with respect to\
+         \n  the master calibration profile, if available (same as -v).\
+         \n  Otherwize, compute the local calibration profile (without -m).\
+         \n\n\
+         OPTIONS:\n" ;
+      if !velocity || (not !save && Sys.file_exists Calibration.config) then
+        Calibration.velocity_provers (List.rev !prvs)
+      else
+        Calibration.calibrate_provers ~save:!save ~time:!time (List.rev !prvs)
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- PROVE                                                              --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
+    begin fun argv ->
+      let chdir = ref "" in
+      let pkgs = ref [] in
+      let prvs = ref [] in
+      let trfs = ref [] in
+      let time = ref 5 in
+      let files = ref [] in
+      let ide = ref false in
+      let session = ref false in
+      let log = ref `Default in
+      let mode = ref `Update in
+      let set m v () = m := v in
+      let add r p = r := p :: !r in
+      Arg.parse_argv argv
+        [
+          "--root", Arg.Set_string chdir, "DIR change to directory";
+          "--local", Arg.Set Hammer.local, "no calibration (use this machine only)";
+          "-p", Arg.String (add pkgs), "PKG package dependency";
+          "-c", Arg.Clear Runner.cache, "force cache update";
+          "-q", Arg.Clear Calibration.parallel, "sequential calibration";
+          "-a", Arg.Unit (set mode `All), "rebuild all proofs";
+          "-u", Arg.Unit (set mode `Update), "update proofs (default)";
+          "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
+          "-i", Arg.Set ide, "run why-3 IDE on error (implies -s)";
+          "-s", Arg.Set session, "save why3 session";
+          "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
+          "-t", Arg.Set_int time, "TIME acceptable prover timeout (default 5s)";
+          "-P", Arg.String (add prvs), "PRV use prover";
+          "-T", Arg.String (add trfs), "TRANS use transformation ";
+          "--modules",  Arg.Unit (set log `Modules), "list results by module";
+          "--theories", Arg.Unit (set log `Theories), "list results by theory";
+          "--goals", Arg.Unit (set log `Goals), "list results by goals";
+          "--proofs",   Arg.Unit (set log `Proofs), "list proofs by goals";
+        ]
+        (add files)
+        "USAGE:\n\
+         \n  why3find prove [OPTIONS] FILES\n\n\
+         DESCRIPTION:\n\
+         \n  Prove why3 files.\n\n\
+         OPTIONS:\n" ;
+      let prefix =
+        if !chdir <> "" then (Utils.chdir !chdir ; "") else
+          match Utils.locate [Calibration.config;"Makefile";".git"] with
+          | Some(dir,prefix) ->
+            if prefix <> "" then Utils.chdir dir ; prefix
+          | None -> ""
+      in
+      let pkgs = List.rev !pkgs in
+      let provers = List.rev !prvs in
+      let transfs = List.rev !trfs in
+      let session = !session || !ide in
+      let files = List.map (Filename.concat prefix) @@ List.rev !files in
+      let tofix = Prove.command
+        ~mode:!mode ~session ~log:!log
+        ~time:!time ~provers ~transfs ~pkgs ~files
+      in match tofix with
+      | [] -> ()
+      | f::_ ->
+        if not !ide then
+          exit 1
+        else
+          begin
+            Format.printf "proof failed: running why3 ide %s@." f ;
+            let hammer = Meta.shared "hammer.cfg" in
+            exec ~prefix:["ide";"--extra-config";hammer] ~pkgs ~skip:0 [| f |]
+          end
     end
 
 (* -------------------------------------------------------------------------- *)

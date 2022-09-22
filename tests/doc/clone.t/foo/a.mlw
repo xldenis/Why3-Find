@@ -1,0 +1,19 @@
+module A
+  use list.List
+  type t
+  val constant neutral : t
+  val op t t : t
+  let square (x : t) : t = op x x
+  let rec assoc (xs : list t) : t =
+    variant { xs }
+    match xs with
+    | Nil -> neutral
+    | Cons x xs -> op x (assoc xs)
+    end
+end
+
+theory S
+  type t
+  function op t t : t
+  function sq (x : t) : t = op x x
+end

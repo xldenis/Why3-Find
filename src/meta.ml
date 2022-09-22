@@ -33,23 +33,6 @@ type pkg = {
 }
 
 (* -------------------------------------------------------------------------- *)
-(* --- JSON Utils                                                         --- *)
-(* -------------------------------------------------------------------------- *)
-
-let js_list f = function `List fds -> List.map f fds | `Null -> [] | a -> [f a]
-let js_bool = function `Bool b -> b | _ -> false
-let js_string = function `String a -> a | _ -> ""
-let js_string_list = js_list js_string
-let js_field fd = function
-  | `Assoc fds -> (try List.assoc fd fds with Not_found -> `Null)
-  | _ -> `Null
-
-let to_bool b = `Bool b
-let to_string a = `String a
-let to_list f xs = `List (List.map f xs)
-let to_string_list = to_list to_string
-
-(* -------------------------------------------------------------------------- *)
 (* --- Package Lookup                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -66,11 +49,12 @@ let find pkg =
       if not @@ Sys.file_exists path then lookup pkg ds else
         let meta = Filename.concat path "META.json" in
         if Sys.file_exists meta then
-          let js = Yojson.Basic.from_file meta in
-          let library = js |> js_field "library" |> js_bool in
-          let depends = js |> js_field "depends" |> js_string_list in
-          let configs = js |> js_field "configs" |> js_string_list in
-          let drivers = js |> js_field "drivers" |> js_string_list in
+          let open Json in
+          let js = of_file meta in
+          let library = jfield "library" js |> jbool in
+          let depends = jfield "depends" js |> jstringlist in
+          let configs = jfield "configs" js |> jstringlist in
+          let drivers = jfield "drivers" js |> jstringlist in
           { name = pkg ; path ; library ; depends ; configs ; drivers }
         else
           { name = pkg ; path ; library = false ;
@@ -92,11 +76,12 @@ let find_all pkgs =
 
 let install pkg =
   let meta = Filename.concat pkg.path "META.json" in
-  Yojson.Basic.to_file meta @@ `Assoc [
-    "library", to_bool pkg.library ;
-    "depends", to_string_list pkg.depends ;
-    "configs", to_string_list pkg.configs ;
-    "drivers", to_string_list pkg.drivers ;
+  let list xs = `List (List.map (fun s -> `String s) xs) in
+  Json.to_file meta @@ `Assoc [
+    "library", `Bool pkg.library ;
+    "depends", list pkg.depends ;
+    "configs", list pkg.configs ;
+    "drivers", list pkg.drivers ;
   ]
 
 (* -------------------------------------------------------------------------- *)

@@ -3,3 +3,16 @@ module C
   use list.List
   let single (x : int) : int = assoc (Cons x Nil)
 end
+
+module D
+  use int.Int
+  use list.List
+  let constant zero = 0
+  clone foo.a.A as X with type t = int, val neutral = zero, val op = (+)
+end
+
+theory R
+  use int.Int
+  clone foo.a.S with type t = int, function op = (+)
+  clone foo.a.S as U with type t = int, function op = (*)
+end

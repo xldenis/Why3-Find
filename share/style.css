@@ -36,7 +36,6 @@ div.doc {
 
 pre.src {
     /* Source code block styling */
-    margin: 0px;
 }
 
 .keyword {
@@ -51,12 +50,14 @@ pre.src {
     color: grey;
 }
 
-.clone {
-    display: inline-block;
+.src a {
+    color: teal;
+    outline: none;
+    text-decoration: none;
 }
 
-.src a {
-    text-decoration: none;
+.src a:visited {
+    color: teal;
 }
 
 .src a:hover {
@@ -66,6 +67,22 @@ pre.src {
 .src a:target {
     background: orange;
 }
+
+/* -------------------------------------------------------------------------- */
+/* --- Proof Marks                                                        --- */
+/* -------------------------------------------------------------------------- */
+
+.icon {
+    margin: 2px ;
+    vertical-align: text-bottom ;
+    font-size: smaller ;
+    text-decoration: none ;
+}
+
+.valid { color: green !important }
+.failed { color: red !important }
+.warning { color: orange !important }
+.remark { color: grey !important }
 
 /* -------------------------------------------------------------------------- */
 /* --- Foldable Section                                                   --- */

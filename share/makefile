@@ -4,10 +4,8 @@
 
 #WHY3_PACKAGE= name
 #WHY3_DEPENDS= pkg …
-#WHY3_OPTIONS= OPTIONS…
-#WHY3_HAMMERS= OPTIONS…
 #WHY3_DRIVERS= *.drv …
-#WHY3_CONFIGS= *.cfg …
+#WHY3_HAMMERS= -j <jobs> -t <time> -P <prover> -T <transf> …
 #WHY3_EXTRACT= m.M …
 #WHY3_LIBRARIES= ocaml pkg …
 
@@ -44,14 +42,12 @@ clean:: $(patsubst %.mlw,%.clean,$(WHY3_TARGETS))
 # ---  Patterns
 # --------------------------------------------------------------------------
 
-WHY3_OPTS=$(WHY3_OPTIONS) $(addprefix "--extra-config ",$(WHY3_CONFIGS))
 WHY3_PKGS=$(addprefix "-p ",$(WHY3_DEPENDS))
 WHY3_DRVS=$(addprefix "-D ",$(WHY3_DRIVERS))
 WHY3_LIBS=$(shell why3find query -l $(WHY3_DEPENDS))
-WHY3_CCP=why3find compile $(WHY3_OPTIONS) $(WHY3_PKGS)
-WHY3_IDE=why3find ide $(WHY3_OPTIONS) $(WHY3_PKGS)
-WHY3_REPLAY=why3find replay -f $(WHY3_OPTIONS) $(WHY3_PKGS)
-WHY3_PROVE=why3find hammer $(WHY3_HAMMERS) $(WHY3_PKGS)
+WHY3_CCP=why3find compile $(WHY3_PKGS)
+WHY3_IDE=why3find ide $(WHY3_PKGS)
+WHY3_PROVE=why3find prove $(WHY3_HEAMMERS) $(WHY3_PKGS)
 
 %.dir: %.mlw
 	@mkdir -p $*
@@ -74,28 +70,29 @@ WHY3_PROVE=why3find hammer $(WHY3_HAMMERS) $(WHY3_PKGS)
 	@echo "-----------------------------"
 	@echo "--- fixup $*"
 	@echo "-----------------------------"
-	@if ! $(WHY3_PROVE) $*.mlw; \
-	 then echo "[Fix Required] why3 ide $*, waiting…"; \
-	      $(WHY3_IDE) $*.mlw; \
-	 fi
+	@echo "why3find prove […] -i $*.mlw"
+	@$(WHY3_PROVE) -i $*.mlw
 
 %.prove: %.dir
-	@echo "why3find hammer […] $*.mlw"
-	@($(WHY3_PROVE) -q $*.mlw)
-
-%.check: %.dir
-	@echo "--- check $*"
-	@$(WHY3_REPLAY) --obsolete-only $* > .log 2> /dev/null
-	@if grep -q "\(failed\|not proved\)" .log ;\
-	 then cat .log ; exit 1;\
-	 fi
+	@echo "-----------------------------"
+	@echo "--- prove $*"
+	@echo "-----------------------------"
+	@echo "why3find prove […] -u $*.mlw"
+	@($(WHY3_PROVE) -u $*.mlw)
 
 %.replay: %.dir
 	@echo "-----------------------------"
 	@echo "--- replay $*"
 	@echo "-----------------------------"
-	@$(WHY3_REPLAY) $* | tee .log
-	@if grep -q "\(failed\|not proved\)" .log ; then exit 1; fi
+	@echo "why3find replay […] -r $*.mlw"
+	@$(WHY3_PROVE) -r $*.mlw
+
+%.rebuild: %.dir
+	@echo "-----------------------------"
+	@echo "--- rebuild $*"
+	@echo "-----------------------------"
+	@echo "why3find replay […] -a $*.mlw"
+	@$(WHY3_PROVE) -a $*.mlw
 
 # --------------------------------------------------------------------------
 # ---  Extraction

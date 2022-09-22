@@ -3,6 +3,7 @@ module A
   type t
   val constant neutral : t
   val op t t : t
+  let square (x : t) : t = op x x
   let rec assoc (xs : list t) : t =
     variant { xs }
     match xs with
@@ -23,4 +24,22 @@ module E
   use B
   use list.List
   let single (x : int) : int = assoc (Cons x Nil)
+end
+
+module U
+  use int.Int
+  let constant z = 0
+  let constant u = 1
+end
+
+module F
+  use int.Int
+  use list.List
+  use U
+  scope Ring
+    clone A as SUM with type t = int, val neutral = z, val op = (+)
+    clone A as MUL with type t = int, val neutral = u, val op = (*)
+  end
+  let sum (x : int) : int = Ring.SUM.square x
+  let mul (x : int) : int = Ring.MUL.square x
 end

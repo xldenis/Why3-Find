@@ -8,4 +8,7 @@
     make.template
     style.css
     script.js
+    icofont.min.css
+    (fonts/icofont.woff as fonts/icofont.woff)
+    (fonts/icofont.woff2 as fonts/icofont.woff2)
   ))

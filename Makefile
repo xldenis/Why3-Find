@@ -13,7 +13,7 @@ build:
 	dune build
 
 install:
-	dune install
+	dune install 2> /dev/null
 	codesign -s - `which why3find`
 
 # --------------------------------------------------------------------------
