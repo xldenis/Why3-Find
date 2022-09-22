@@ -173,9 +173,10 @@ let process_proofs env ?path = function
       Docref.Mstr.fold
         (fun _g c (s,p) -> s + Crc.stuck c , p + Crc.proved c)
         proofs (0,0) in
-    Pdoc.pp_print_char env.out ' ' ;
     let href = Option.map (of_path env) path in
-    Pdoc.printf env.out "%a" (pp_vlink ?href) (Crc.nverdict ~stuck ~proved)
+    let r = Crc.nverdict ~stuck ~proved in
+    Pdoc.printf env.out "%a" (pp_vlink ?href) r ;
+    if path <> None then Pdoc.printf env.crc "%a" pp_verdict r
 
 let rec child n fmt crc =
   Format.fprintf fmt "@\n%a" Pdoc.pp_spaces n ;
@@ -500,9 +501,9 @@ let process_module env key =
       "<pre class=\"src\">%a <a title=\"%s.%s\" href=\"%s\">%s</a>"
       Pdoc.pp_keyword key path id url id ;
     Pdoc.printf env.crc
-      "<pre class=\"src\">%a <a title=\"%s.%s\" href=\"%s\">%s</a>"
-      Pdoc.pp_keyword key path id url id ;
-    process_proofs env ~path:"" theory ;
+      "<pre class=\"src\">%a <a href=\"%s\">%s.%s</a>"
+      Pdoc.pp_keyword key url path id ;
+    process_proofs env ~path theory ;
     Pdoc.printf env.out "</pre>@." ;
     Pdoc.printf env.crc "</pre>@." ;
     let file = Filename.concat env.dir url in
@@ -522,7 +523,7 @@ let process_module env key =
     Pdoc.pp env.out Pdoc.pp_keyword key ;
     Pdoc.pp_print_char env.out ' ' ;
     process_href env href id ;
-    process_proofs env ~path:"" theory ;
+    process_proofs env theory ;
   end
 
 let process_close env key =
@@ -658,7 +659,7 @@ let process_file ~why3env ~out:dir file =
   let out = Pdoc.output ~file:(Filename.concat dir src.url) ~title in
   let crc = Pdoc.output
       ~file:(Filename.concat dir ("_" ^ src.url))
-      ~title:(Printf.sprintf "Proofs for %s" path) in
+      ~title:(Printf.sprintf "Proofs %s" path) in
   let input = Token.input file in
   let env = {
     dir ; src ; input ; out ; crc ; space = false ;
@@ -673,8 +674,17 @@ let process_file ~why3env ~out:dir file =
   } in
   begin
     Pdoc.printf out "<header>Library <code>%s</code></header>@\n" path ;
-    Pdoc.printf crc "<header>Proofs for <code>%s</code></header>@\n" path ;
+    Pdoc.printf crc "<header>Proofs (<code>%s</code>)</header>@\n" path ;
+    Pdoc.printf crc "<pre class=\"src\">%a@\n"
+      Pdoc.pp_keyword "prover calibration" ;
+    Calibration.iter
+      (fun p n t ->
+         Pdoc.printf crc "  %-10s n=%d %a (%s)@\n"
+           (Crc.shortname p) n Utils.pp_time t p
+      ) src.profile ;
+    Pdoc.printf crc "</pre>@." ;
     Pdoc.flush out ;
+    Pdoc.flush crc ;
     while not (Token.eof env.input) do
       match Token.token env.input with
       | Eof -> close env

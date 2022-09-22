@@ -310,11 +310,17 @@ let observed profile prv =
     if a > 0.0 then a else 1.0
   with Not_found -> 1.0
 
+let iter f profile =
+  List.iter (fun (p,n,t) -> f p n t) @@
+  List.sort (fun (p,_,_) (q,_,_) -> String.compare p q) @@
+  Hashtbl.fold (fun p g w -> (p,g.size,g.time)::w) profile []
+
 (* -------------------------------------------------------------------------- *)
 (* --- Testing Calibration                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
 let config = "./why3find.json"
+
 let default () =
   if Sys.file_exists config then
     Json.of_file config |> of_json

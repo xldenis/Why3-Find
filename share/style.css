@@ -36,7 +36,6 @@ div.doc {
 
 pre.src {
     /* Source code block styling */
-    margin: 0px;
 }
 
 .keyword {
@@ -53,6 +52,7 @@ pre.src {
 
 .src a {
     color: teal;
+    outline: none;
     text-decoration: none;
 }
 
@@ -73,6 +73,7 @@ pre.src {
 /* -------------------------------------------------------------------------- */
 
 .icon {
+    margin: 2px ;
     vertical-align: text-bottom ;
     font-size: smaller ;
     text-decoration: none ;

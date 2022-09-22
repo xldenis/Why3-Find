@@ -30,11 +30,13 @@ val empty : unit -> profile
 val default : unit -> profile
 val of_json : ?default:profile -> Json.t -> profile
 val to_json : profile -> Json.t
+val iter : (string -> int -> float -> unit) -> profile -> unit
 
 val round : float -> float
 val observed : profile -> Runner.prover -> float
 val velocity : Wenv.env -> profile -> Runner.prover -> float Fibers.t
 val parallel : bool ref
+
 val calibrate_provers : save:bool -> time:int -> string list -> unit
 val velocity_provers : string list -> unit
 

@@ -16,7 +16,7 @@
   <body>
   <header>Module <code class="src"><a href="a.html">a</a>.A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="A_">A</a> <a href="_a.html#" title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></a>
+  <span class="keyword">module</span> <a id="A_">A</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
     <span class="keyword">type</span> <a id="t_3">t</a>
     <span class="keyword">val</span> <span class="keyword">constant</span> <a id="neutral_4">neutral</a> : <a title="A.t" href="#t_3">t</a>
@@ -47,7 +47,7 @@
   <body>
   <header>Module <code class="src"><a href="a.html">a</a>.B</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="B_">B</a> <a href="_a.html#" title="Valid (no goals)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> <a id="B_">B</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
     <span class="keyword">let</span> <span class="keyword">constant</span> <a id="zero_18">zero</a> = 0
@@ -77,7 +77,7 @@
   <body>
   <header>Module <code class="src"><a href="a.html">a</a>.E</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="E_">E</a> <a href="_a.html#" title="Valid (no goals)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> <a id="E_">E</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">use</span> <a title="a.B" href="a.B.html#B_">B</a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
     <span class="keyword">let</span> <a id="single_26">single</a> (x : int) : int = <a title="a.B.assoc" href="a.B.html#assoc_19">assoc</a> (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> x <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.html#Nil_8">Nil</a>)
@@ -100,7 +100,7 @@
   <body>
   <header>Module <code class="src"><a href="b.html">b</a>.C</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="C_">C</a> <a href="_b.html#" title="Valid (no goals)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> <a id="C_">C</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">use</span> a.<a title="a.B" href="a.B.html#B_">B</a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
     <span class="keyword">let</span> <a id="single_4">single</a> (x : int) : int = <a title="a.B.assoc" href="a.B.html#assoc_19">assoc</a> (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> x <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.html#Nil_8">Nil</a>)

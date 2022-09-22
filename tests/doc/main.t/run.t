@@ -33,11 +33,11 @@
   <div class="doc">
   <p>Before A</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a> <a href="_p.a.html#" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a><a href="_p.a.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
   <div class="doc">
   <p>Before B</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a> <a href="_p.a.html#" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><a href="_p.a.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
   <div class="doc">
   <p>After B</p>
   </div>
@@ -61,7 +61,7 @@
   <p>Introducing A</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> <a id="A_">A</a> <a href="_p.a.html#" title="Valid (no goals)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> <a id="A_">A</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
   
     <span class="keyword">type</span> <a id="t_6">t</a> = <a id="A_6">A</a> | <a id="B_6">B</a>
   
@@ -99,7 +99,7 @@
   <p>Introducing B</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> <a id="B_">B</a> <a href="_p.a.html#" title="Valid (no goals)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> <a id="B_">B</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
   
     <span class="keyword">exception</span> <a id="Error_22">Error</a>
   

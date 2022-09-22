@@ -10,7 +10,7 @@
   <body>
   <header>Module <code class="src"><a href="a.html">a</a>.A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="A_">A</a> <a href="_a.html#" title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></a>
+  <span class="keyword">module</span> <a id="A_">A</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
     <span class="keyword">type</span> <a id="t_3">t</a>
     <span class="keyword">val</span> <span class="keyword">constant</span> <a id="neutral_4">neutral</a> : <a title="A.t" href="#t_3">t</a>

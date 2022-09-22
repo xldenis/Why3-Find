@@ -10,7 +10,7 @@
   <body>
   <header>Module <code class="src"><a href="clones.html">clones</a>.A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="A_">A</a> <a href="_clones.html#" title="Valid (one goal)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> <a id="A_">A</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
   
     <span class="keyword">type</span> <a id="t_3">t</a>
     <span class="keyword">constant</span> <a id="e_4">e</a> : <a title="A.t" href="#t_3">t</a>
@@ -35,7 +35,7 @@
   <body>
   <header>Module <code class="src"><a href="clones.html">clones</a>.B</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="B_">B</a> <a href="_clones.html#" title="Valid (one goal)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> <a id="B_">B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#A_">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
@@ -62,7 +62,7 @@
   <body>
   <header>Module <code class="src"><a href="certif.html">certif</a>.S</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="S_">S</a> <a href="_certif.html#" title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></a>
+  <span class="keyword">module</span> <a id="S_">S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span>
   
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">use</span> int.<a title="int.MinMax" href="https://why3.lri.fr/stdlib/int.html#MinMax_">MinMax</a>
@@ -108,14 +108,17 @@
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <link rel="stylesheet" type="text/css" href="style.css">
   <link rel="stylesheet" type="text/css" href="icofont.min.css">
-  <title>Proofs for clones</title>
+  <title>Proofs clones</title>
   </head>
   <body>
-  <header>Proofs for <code>clones</code></header>
-  <pre class="src"><span class="keyword">module</span> <a title="clones.A" href="clones.A.html">A</a></pre>
-  <pre class="src">  <span class="keyword">goal</span> <a href="neutral_com#clones.html">neutral_com_8</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
-      alt-ergo 400ns</pre><pre class="src"><span class="keyword">module</span> <a title="clones.B" href="clones.B.html">B</a></pre>
-  <pre class="src">  <span class="keyword">goal</span> <a href="commutative#clones.html">commutative_7</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+  <header>Proofs (<code>clones</code>)</header>
+  <pre class="src"><span class="keyword">prover calibration</span>
+    alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)
+  </pre>
+  <pre class="src"><span class="keyword">module</span> <a href="clones.A.html">clones.A</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
+  <pre class="src"> <span class="keyword">goal</span> <a id="A.neutral_com" href="clones.A.html#neutral_com_8">neutral_com</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+      alt-ergo 400ns</pre><pre class="src"><span class="keyword">module</span> <a href="clones.B.html">clones.B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
+  <pre class="src"> <span class="keyword">goal</span> <a id="B.A.commutative" href="#commutative_7">commutative</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
       alt-ergo 300ns</pre><script type="text/javascript" src="script.js"></script>
   </body>
   </html>
@@ -125,23 +128,28 @@
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <link rel="stylesheet" type="text/css" href="style.css">
   <link rel="stylesheet" type="text/css" href="icofont.min.css">
-  <title>Proofs for certif</title>
+  <title>Proofs certif</title>
   </head>
   <body>
-  <header>Proofs for <code>certif</code></header>
-  <pre class="src"><span class="keyword">module</span> <a title="certif.S" href="certif.S.html">S</a></pre>
-  <pre class="src">  <span class="keyword">goal</span> <a href="([])#certif.html">mixfix []_10</a><span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
+  <header>Proofs (<code>certif</code>)</header>
+  <pre class="src"><span class="keyword">prover calibration</span>
+    alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)
+    cvc4       n=42 550ms (CVC4,1.8)
+    z3         n=33 570ms (Z3,4.8.6)
+  </pre>
+  <pre class="src"><span class="keyword">module</span> <a href="certif.S.html">certif.S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span></pre>
+  <pre class="src"> <span class="keyword">goal</span> <a id="S.([])" href="certif.S.html#mixfix []_10">([])</a><span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
       split_vc<span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
         alt-ergo 4ms
         split_vc<span title="Partial proof (1/2 goals)" class="icon warning icofont-exclamation-tringle"></span>
           stuck<span class="icon failed icofont-exclamation-circle"></span>
           alt-ergo 3ms
         alt-ergo 3ms
-        stuck<span class="icon failed icofont-exclamation-circle"></span></pre><pre class="src">  <span class="keyword">goal</span> <a href="reflexivity#certif.html">reflexivity_21</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
-      alt-ergo 2ms</pre><pre class="src">  <span class="keyword">goal</span> <a href="extensivity#certif.html">extensivity_23</a><span title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></span>
+        stuck<span class="icon failed icofont-exclamation-circle"></span></pre><pre class="src"> <span class="keyword">goal</span> <a id="S.reflexivity" href="certif.S.html#reflexivity_21">reflexivity</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+      alt-ergo 2ms</pre><pre class="src"> <span class="keyword">goal</span> <a id="S.extensivity" href="certif.S.html#extensivity_23">extensivity</a><span title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></span>
       split_vc<span title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></span>
         alt-ergo 4ms
         stuck<span class="icon failed icofont-exclamation-circle"></span>
-        cvc4 70ms</pre><pre class="src">  <span class="keyword">goal</span> <a href="wrong#certif.html">wrong_34</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span></pre><script type="text/javascript" src="script.js"></script>
+        cvc4 70ms</pre><pre class="src"> <span class="keyword">goal</span> <a id="S.wrong" href="certif.S.html#wrong_34">wrong</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span></pre><script type="text/javascript" src="script.js"></script>
   </body>
   </html>
