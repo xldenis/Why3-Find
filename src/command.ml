@@ -576,6 +576,7 @@ let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
 let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
       let save = ref false in
+      let velocity = ref false in
       let time = ref 500 in
       let prvs = ref [] in
       let prover p = prvs := p :: !prvs in
@@ -586,15 +587,23 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
           "-q", Arg.Clear Calibration.parallel, "sequential calibration";
           "-t", Arg.Set_int time, "MS calibration time (default 500ms)";
           "-P", Arg.String prover, "PRV prover to calibrate";
-          "-s", Arg.Set save, "save calibration profile";
+          "-m", Arg.Set save, "save calibration profile (master)";
+          "-v", Arg.Set velocity, "evaluate prover velocity (local)";
         ]
         prover
         "USAGE:\n\
          \n  why3find calibrate [OPTIONS] PROVERS\n\n\
          DESCRIPTION:\n\
-         \n  Calibrate your machine.\n\n\
+         \n  Calibrate your machine.\
+         \n  By default, report local velocity with respect to\
+         \n  the master calibration profile, if available (same as -v).\
+         \n  Otherwize, compute the local calibration profile (without -m).\
+         \n\n\
          OPTIONS:\n" ;
-      Calibration.calibrate_provers ~save:!save ~time:!time (List.rev !prvs) ;
+      if !velocity || (not !save && Sys.file_exists Calibration.config) then
+        Calibration.velocity_provers (List.rev !prvs)
+      else
+        Calibration.calibrate_provers ~save:!save ~time:!time (List.rev !prvs)
     end
 
 (* -------------------------------------------------------------------------- *)

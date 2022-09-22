@@ -342,7 +342,7 @@ let calibrate_provers ~save ~time provers =
            Format.printf "%-16s no result@." (id prv)
          | Some(n,t) ->
            Hashtbl.add profile (id prv) { size = n ; time = t ; alpha = 1.0 } ;
-           Format.printf "%-16s n=%d %a@." (id prv) n Utils.pp_time t
+           Format.printf "%-16s n=%d %a (local)@." (id prv) n Utils.pp_time t
       ) results ;
     if save then
       begin
@@ -350,7 +350,41 @@ let calibrate_provers ~save ~time provers =
         Json.to_file config (to_json profile) ;
       end
     else
-      Format.printf "Use -s to save profile@." ;
+      Format.printf "Use -m to define as master calibration profile@." ;
+    Fibers.return () ;
+  end
+
+let velocity_provers provers =
+  Fibers.run @@
+  begin
+    let env = Wenv.init ~pkgs:[] in
+    let provers = Runner.select env provers in
+    let profile = default () in
+    let* results =
+      Fibers.all @@ List.map
+        (fun prv ->
+           try
+             let g = Hashtbl.find profile (id prv) in
+             let+ a = velocity env profile prv in
+             prv , Some(g.size,g.time,a)
+           with Not_found ->
+             Fibers.return (prv , None)
+        ) provers
+    in
+    Utils.flush () ;
+    List.iter
+      (fun (prv,res) ->
+         match res with
+         | Some(n,t,1.0) ->
+           Format.printf "%-16s n=%d %a (master)@."
+             (id prv) n Utils.pp_time t
+         | Some(n,tm,a) ->
+           let tl = tm *. a in
+           Format.printf "%-16s n=%d %a / %a (velocity %.1f)@."
+             (id prv) n Utils.pp_time tl Utils.pp_time tm a
+         | None ->
+           Format.printf "%-16s no profile (use -m)@." (id prv)
+      ) results ;
     Fibers.return () ;
   end
 
