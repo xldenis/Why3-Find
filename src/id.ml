@@ -62,6 +62,7 @@ let cat = String.concat "."
 type package = [ `Local | `Stdlib | `Package of Meta.pkg ]
 
 type id = {
+  id : t ;
   id_pkg : package ;
   id_lib : string list ;
   id_mod : string ;
@@ -70,12 +71,14 @@ type id = {
 
 let resolve ~lib id =
   let lp,id_mod,id_qid = path id in
-  if lp = [] then { id_pkg = `Local ; id_lib = lib ; id_mod ; id_qid }
+  if lp = [] then
+    { id ; id_pkg = `Local ; id_lib = lib ; id_mod ; id_qid }
   else
     let id_pkg =
       if Filename.is_relative (file id) then `Local else
-        try `Package (Meta.find (List.hd lp)) with _ -> `Stdlib
-    in { id_pkg ; id_lib = lp ; id_mod ; id_qid }
+        try `Package (Meta.find (List.hd lp))
+        with _ -> `Stdlib
+    in { id ; id_pkg ; id_lib = lp ; id_mod ; id_qid }
 
 (* List Printing *)
 
@@ -149,15 +152,17 @@ let encode_char m fmt c =
   else
     Format.pp_print_char fmt c
 
-let encode ~why3 fmt a =
-  let m = if why3 then charset_why3 else charset_uri in
-  String.iter (encode_char m fmt) a
+let encode fmt a =
+  String.iter (encode_char charset_uri fmt) a
+
+let encode_why3 fmt a =
+  String.iter (encode_char charset_why3 fmt) a
 
 (* URL Resolution *)
 
-let pp_selector ?(why3=false) fmt qid =
+let pp_selector fmt qid =
   Format.pp_print_char fmt '#' ;
-  pp_last fmt (encode ~why3) qid
+  pp_last fmt encode qid
 
 let pp_aname fmt r = pp_selector fmt r.id_qid
 
@@ -182,7 +187,12 @@ let pp_ahref ~scope fmt r =
   | `Stdlib ->
     Format.pp_print_string fmt "https://why3.lri.fr/stdlib/" ;
     pp_htmlfile fmt r ;
-    pp_selector ~why3:true fmt r.id_qid
+    let id = r.id in
+    let name = id.id_string in
+    if r.id_qid = [] then
+      Format.fprintf fmt "#%a_" encode_why3 name
+    else
+      Format.fprintf fmt "#%a_%d" encode_why3 name (line id)
 
 let pp_proof_aname fmt r =
   pp_selector fmt (r.id_mod :: r.id_qid)

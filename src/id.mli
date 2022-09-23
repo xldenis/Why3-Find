@@ -37,7 +37,9 @@ val path : ?lib:string list -> t -> string list * string * string list
 val cat : string list -> string
 
 type package = [ `Local | `Stdlib | `Package of Meta.pkg ]
+
 type id = {
+  id : t ;
   id_pkg : package ;
   id_lib : string list ;
   id_mod : string ;
