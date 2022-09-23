@@ -20,66 +20,40 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Global References                                                  --- *)
+(* --- Why3 Identifiers                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-val init : pkgs:string list -> Wenv.env
+type t = Why3.Ident.ident
 
-module Mstr = Why3.Wstdlib.Mstr
+val hash : t -> int
+val equal : t -> t -> bool
+val compare : t -> t -> int
+val pp : Format.formatter -> t -> unit
 
-type ident = Why3.Ident.ident
+val loc : t -> Why3.Loc.position
+val file : t -> string
+val line : t -> int
+val path : ?lib:string list -> t -> string list * string * string list
+val cat : string list -> string
 
-type section = {
-  cloned_path : string ;
-  cloned_order : int ;
+type package = [ `Local | `Stdlib | `Package of Meta.pkg ]
+type id = {
+  id_pkg : package ;
+  id_lib : string list ;
+  id_mod : string ;
+  id_qid : string list ;
 }
 
-type clone = {
-  id_section : section ;
-  id_source : Why3.Ident.ident ;
-  id_target : Why3.Ident.ident ;
-}
+val resolve : lib:string list -> t -> id
 
-type theory = {
-  theory: Why3.Theory.theory;
-  clones: clone list ;
-  proofs: Crc.crc Mstr.t ;
-}
+val of_infix : string -> string
+val to_infix : string -> string
 
-type source = {
-  url: string;
-  lib: string list;
-  profile: Calibration.profile;
-  theories: theory Mstr.t;
-}
+val pp_title : Format.formatter -> id -> unit
+val pp_aname : Format.formatter -> id -> unit
+val pp_ahref : scope:string option -> Format.formatter -> id -> unit
 
-val parse : why3env:Why3.Env.env -> string -> source
-val derived : source -> string -> string (* URL name *)
-
-val is_keyword : string -> bool
-
-val id_name : ident -> string
-val id_pretty : ident -> string
-val id_anchor : ident -> string
-val id_path : src:source -> scope:string option -> ident -> string
-val id_href : src:source -> scope:string option -> ident -> string
-
-type href =
-  | NoRef
-  | Def of { id: Why3.Ident.ident ; anchor: string ; proof: Crc.crc option }
-  | Ref of { kind: string ; path: string ; href: string }
-
-type position = Lexing.position * Lexing.position
-
-val find_proof : ident -> theory option -> Crc.crc option
-
-val resolve :
-  src:source -> scope:string option -> theory:theory option -> infix:bool ->
-  position -> href
-
-val reference :
-  why3env:Why3.Env.env ->
-  src:source -> scope:string option ->
-  string -> string * ident
+val pp_proof_aname : Format.formatter -> id -> unit
+val pp_proof_ahref : Format.formatter -> id -> unit
 
 (* -------------------------------------------------------------------------- *)

@@ -23,7 +23,6 @@
 (* --- Refs for Documentation                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-module Id = Why3.Ident
 module Sid = Why3.Ident.Sid
 module Thy = Why3.Theory
 module Mstr = Why3.Wstdlib.Mstr
@@ -41,35 +40,11 @@ let is_uppercased s =
   String.length s > 0 &&
   let c = s.[0] in 'A' <= c && c <= 'Z'
 
-let to_infix s =
-  let n = String.length s in
-  if n > 2 && s.[0] = '(' && s.[n-1] = ')' then
-    if String.index_opt s '[' <> None
-    then "mixfix " ^ String.sub s 1 (n-2) else
-    if s.[n-2] = '_'
-    then "prefix " ^ String.sub s 1 (n-3)
-    else "infix " ^ String.sub s 1 (n-2)
-  else s
-
-let unwrap ~prefix s =
-  let n = String.length s in
-  let p = String.length prefix in
-  Printf.sprintf "(%s)" @@ String.sub s p (n-p)
-
-let rec unwrap_any s = function
-  | [] -> s
-  | prefix::others ->
-    if String.starts_with ~prefix s then
-      unwrap ~prefix s
-    else unwrap_any s others
-
-let of_infix s = unwrap_any s ["prefix ";"infix ";"mixfix "]
-
 (* -------------------------------------------------------------------------- *)
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-type ident = Id.ident
+type ident = Id.t
 type position = Lexing.position * Lexing.position
 
 type section = {
@@ -103,40 +78,23 @@ let extract ~infix position =
     Why3.Loc.user_position f l (succ s) (pred e)
   else loc
 
-let id_loc id =
-  match id.Id.id_loc with
-  | None -> raise Not_found
-  | Some loc -> loc
-
-let id_line id =
-  let _,line,_,_ = Why3.Loc.get (id_loc id) in line
-
-let id_file id =
-  let file,_,_,_ = Why3.Loc.get (id_loc id) in file
-
-let restore_path id =
-  try
-    Why3.Pmodule.restore_path id
-  with Not_found ->
-    Thy.restore_path id
-
 let id_path ~src ~scope id =
-  let lp,md,qid = restore_path id in
+  let lp,md,qid = Id.path id in
   let lp =
     match lp, scope with
     | [], Some m when m <> md -> src.lib
     | _ -> lp
-  in String.concat "." (lp @ md :: List.map of_infix qid)
+  in String.concat "." (lp @ md :: List.map Id.of_infix qid)
 
 let baseurl ~src ~scope id =
-  let lp,md,_ = restore_path id in
+  let lp,md,_ = Id.path id in
   if lp = [] then
     match scope with
     | Some m when m = md -> ""
     | _ -> Printf.sprintf "%s.%s.html" (String.concat "." src.lib) md
   else
     let path = String.concat "." lp in
-    if Filename.is_relative (id_file id) then
+    if Filename.is_relative (Id.file id) then
       Printf.sprintf "%s.%s.html" path md
     else
       try
@@ -146,24 +104,21 @@ let baseurl ~src ~scope id =
       with _ ->
         Printf.sprintf "https://why3.lri.fr/stdlib/%s.html" path
 
-let anchor ~kind id =
-  let name = id.Id.id_string in
-  let line = id_line id in
+let anchor ~kind (id : ident) =
+  let name = id.id_string in
+  let line = Id.line id in
   if kind = "theory"
   then Printf.sprintf "%s_" name
   else Printf.sprintf "%s_%d" name line
 
 type href =
   | NoRef
-  | Def of { id: Id.ident ; anchor: string ; proof: Crc.crc option }
+  | Def of { id: ident ; anchor: string ; proof: Crc.crc option }
   | Ref of { kind: string ; path: string ; href: string }
 
-let pp_ident fmt (id : Id.ident) =
-  Format.fprintf fmt "%s<%d>" id.id_string (Why3.Weakhtbl.tag_hash id.id_tag)
-
-let find_proof id = function
+let find_proof (id : ident) = function
   | None -> None
-  | Some { proofs } -> Mstr.find_opt id.Id.id_string proofs
+  | Some { proofs } -> Mstr.find_opt id.id_string proofs
 
 let resolve ~src ~scope ~theory ~infix pos =
   try
@@ -180,9 +135,9 @@ let resolve ~src ~scope ~theory ~infix pos =
       Ref { kind ; path ; href = Printf.sprintf "%s#%s" base name }
   with Not_found -> NoRef
 
-let id_name id = id.Id.id_string
-let id_pretty id = of_infix id.Id.id_string
-let id_anchor id = anchor ~kind:"" id
+let id_name (id : ident) = id.id_string
+let id_pretty (id : ident) = Id.of_infix id.id_string
+let id_anchor (id : ident) = anchor ~kind:"" id
 let id_href ~src ~scope id =
   Printf.sprintf "%s#%s" (baseurl ~src ~scope id) (anchor ~kind:"" id)
 
@@ -231,7 +186,7 @@ let iter_sm f (sm : Thy.symbol_map) =
 let section ~order ~path th =
   let id = th.Thy.th_name in
   let cat = String.concat "." in
-  let ld,md,qd = restore_path id in
+  let ld,md,qd = Id.path id in
   let k = incr order ; !order in
   let p =
     if ld = [] && qd = [] then
@@ -432,7 +387,7 @@ let lookup ~scope ~theories kind m qid =
     List.concat @@ List.map (find_theory kind qid) (Mstr.values theories)
 
 let select ~name ids =
-  let ids = List.sort_uniq Id.id_compare ids in
+  let ids = List.sort_uniq Id.compare ids in
   match ids with
   | [id] -> id
   | [] -> failwith (Printf.sprintf "reference '%s' not found" name)
@@ -449,9 +404,9 @@ let reference ~why3env ~src ~scope r =
   name,
   let lp,m,qid =
     let rec split rp = function
-      | [] -> [], "", List.rev_map to_infix rp
+      | [] -> [], "", List.rev_map Id.to_infix rp
       | p::ps ->
-        if is_uppercased p then List.rev rp,p,List.map to_infix ps
+        if is_uppercased p then List.rev rp,p,List.map Id.to_infix ps
         else split (p::rp) ps
     in split [] (String.split_on_char '.' name) in
   if lp = [] then

@@ -398,8 +398,8 @@ let declaration env n id (th : Why3.Theory.theory) def =
 (* -------------------------------------------------------------------------- *)
 
 let by_source_line a b =
-  let la = Docref.id_line a.Docref.id_source in
-  let lb = Docref.id_line b.Docref.id_source in
+  let la = Id.line a.Docref.id_source in
+  let lb = Id.line b.Docref.id_source in
   Int.compare la lb
 
 let in_section env (c : Docref.clone) =
