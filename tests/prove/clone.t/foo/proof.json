@@ -1,0 +1,10 @@
+{
+  "profile": [],
+  "proofs": {
+    "S": {},
+    "T": {
+      "Add.com": { "prover": "alt-ergo", "time": 0.0005 },
+      "Mul.com": { "prover": "alt-ergo", "time": 0.0005 }
+    }
+  }
+}

@@ -70,7 +70,8 @@ let locate files =
   in lookup (Sys.getcwd ()) ""
 
 let chdir dir =
-  Format.printf "Entering directory '%s'@." dir ;
+  if not @@ Filename.is_relative dir then
+    Format.printf "Entering directory '%s'@." dir ;
   Sys.chdir dir
 
 (* -------------------------------------------------------------------------- *)
