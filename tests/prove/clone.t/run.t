@@ -1,5 +1,4 @@
-  $ why3find prove foo.mlw --root . --local
-  Entering directory '.'
+  $ why3find prove foo.mlw --local --root . -r
   Theory foo.S: ✔
   Theory foo.T: ✔ (2)
   $ cat foo/proof.json
