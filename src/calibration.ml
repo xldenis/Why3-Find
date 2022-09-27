@@ -275,8 +275,6 @@ let to_json (p : profile) : Json.t =
 (* --- Velocity                                                           --- *)
 (* -------------------------------------------------------------------------- *)
 
-let round t = Float.round (t *. 100.0) *. 1e-2
-
 let gauge env profile prv : gauge Fibers.t =
   let p = id prv in
   try Fibers.return @@ Hashtbl.find profile p

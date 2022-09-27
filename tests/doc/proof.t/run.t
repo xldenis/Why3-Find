@@ -117,9 +117,9 @@
   </pre>
   <pre class="src"><span class="keyword">module</span> <a href="clones.A.html">clones.A</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
   <pre class="src"> <span class="keyword">goal</span> <a id="A.neutral_com" href="clones.A.html#neutral_com_8">neutral_com</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
-      alt-ergo 400ns</pre><pre class="src"><span class="keyword">module</span> <a href="clones.B.html">clones.B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
+      alt-ergo 500ns</pre><pre class="src"><span class="keyword">module</span> <a href="clones.B.html">clones.B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
   <pre class="src"> <span class="keyword">goal</span> <a id="B.A.commutative" href="#commutative_7">commutative</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
-      alt-ergo 300ns</pre><script type="text/javascript" src="script.js"></script>
+      alt-ergo 400ns</pre><script type="text/javascript" src="script.js"></script>
   </body>
   </html>
   $ cat html/_certif.html

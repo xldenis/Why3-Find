@@ -35,6 +35,8 @@ val pp_weak : Format.formatter -> unit
 val pp_mark : Format.formatter -> bool -> unit
 val pp_time : Format.formatter -> float -> unit
 
+val round : float -> float
+
 val tty : bool
 val flush : unit -> unit
 val progress : ('a,Format.formatter,unit) format -> 'a

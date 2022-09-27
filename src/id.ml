@@ -82,21 +82,13 @@ let resolve ~lib id =
 
 (* List Printing *)
 
-let pp_next fmt p =
-  Format.pp_print_char fmt '.' ;
-  Format.pp_print_string fmt p
-
-let pp_cat fmt = function
-  | [] -> ()
-  | p::ps -> Format.pp_print_string fmt p ; List.iter (pp_next fmt) ps
+let pp_prefix fmt q =
+  Format.pp_print_string fmt q ; Format.pp_print_char fmt '.'
 
 let rec pp_last fmt pp = function
   | [] -> ()
   | [a] -> pp fmt a
-  | q::qid ->
-      Format.pp_print_string fmt q ;
-      Format.pp_print_char fmt '.' ;
-      pp_last fmt pp qid
+  | q::qid -> pp_prefix fmt q ; pp_last fmt pp qid
 
 (* Title Resolution *)
 
@@ -127,8 +119,8 @@ let of_infix s = unwrap_any s ["prefix ";"infix ";"mixfix "]
 let pp_infix fmt a = Format.pp_print_string fmt (of_infix a)
 
 let pp_title fmt r =
-  pp_cat fmt r.id_lib ;
-  pp_next fmt r.id_mod ;
+  List.iter (pp_prefix fmt) r.id_lib ;
+  pp_prefix fmt r.id_mod ;
   pp_last fmt pp_infix r.id_qid
 
 (* URI Encoding *)
@@ -167,8 +159,8 @@ let pp_selector fmt qid =
 let pp_aname fmt r = pp_selector fmt r.id_qid
 
 let pp_htmlfile fmt r =
-  pp_cat fmt r.id_lib ;
-  pp_next fmt r.id_mod ;
+  List.iter (pp_prefix fmt) r.id_lib ;
+  Format.pp_print_string fmt r.id_mod ;
   Format.pp_print_string fmt ".html"
 
 let pp_ahref ~scope fmt r =
@@ -199,8 +191,8 @@ let pp_proof_aname fmt r =
 
 let pp_proof_ahref fmt r =
   Format.pp_print_char fmt '_' ;
-  pp_cat fmt r.id_lib ;
-  Format.pp_print_string fmt ".html" ;
+  List.iter (pp_prefix fmt) r.id_lib ;
+  Format.pp_print_string fmt "html" ;
   pp_proof_aname fmt r
 
 (* -------------------------------------------------------------------------- *)

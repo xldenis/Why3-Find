@@ -118,7 +118,7 @@ type href =
 
 let find_proof (id : ident) = function
   | None -> None
-  | Some { proofs } -> Mstr.find_opt id.id_string proofs
+  | Some { proofs } -> Mstr.find_opt (Session.proof_name id) proofs
 
 let resolve ~src ~scope ~theory ~infix pos =
   try

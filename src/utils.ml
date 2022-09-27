@@ -77,6 +77,12 @@ let chdir dir =
 (* --- Time Printing                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
+let round t =
+  if t < 1e-3 then Float.round (t *. 1e4) *. 1e-4 else
+  if t < 1.0 then Float.round (t *. 1e3) *. 1e-3 else
+  if t < 20.0 then Float.round (t *. 1e1) *. 1e-1 else
+    Float.round t
+
 let pp_time fmt t =
   let t = if t < 0.0 then (Format.pp_print_char fmt '-' ; -. t) else t in
   if t < 1e-3 then Format.fprintf fmt "%dns" (int_of_float @@ t *. 1e6) else

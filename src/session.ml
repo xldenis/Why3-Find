@@ -26,6 +26,7 @@
 module Th = Why3.Theory
 module T = Why3.Task
 module S = Why3.Session_itp
+module Mid = Why3.Ident.Mid
 
 type session =
   | Ths of Th.theory list
@@ -68,15 +69,18 @@ let split = function
   | Thy th -> tasks @@ T.split_theory th None None
   | Sth(s,th) -> nodes s @@ S.theory_goals th
 
-let names = Hashtbl.create 0
-let task_name t =
-  let a0 = (T.task_goal t).pr_name.id_string in
-  try Hashtbl.find names a0 with Not_found ->
-    let a =
-      if String.ends_with ~suffix:"'vc" a0
-      then String.sub a0 0 (String.length a0 - 3) else a0
-    in Hashtbl.add names a0 a ; a
+let proof_name =
+  let names = ref Mid.empty in
+  fun id ->
+    try Mid.find id !names with Not_found ->
+      let Id.{ id_qid } = Id.resolve ~lib:[] id in
+      let path = Id.cat id_qid in
+      let name =
+        if String.ends_with ~suffix:"'vc" path
+        then String.sub path 0 (String.length path - 3) else path
+      in names := Mid.add id name !names ; name
 
+let task_name t = proof_name (T.task_goal t).pr_name
 let goal_task = function Task t | Snode(_,_,t) -> t
 let goal_loc g = (T.task_goal (goal_task g)).pr_name.id_loc
 let goal_name g = task_name @@ goal_task g

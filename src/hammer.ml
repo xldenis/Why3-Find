@@ -97,7 +97,7 @@ let prove env ?cancel prv timeout : strategy = fun n ->
       task prv time
   in
   match result with
-  | Valid t -> Prover( Runner.name prv, t /. alpha )
+  | Valid t -> Prover( Runner.name prv, Utils.round @@ t /. alpha )
   | _ -> Stuck
 
 (* -------------------------------------------------------------------------- *)
