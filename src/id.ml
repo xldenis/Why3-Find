@@ -118,17 +118,20 @@ let of_infix s = unwrap_any s ["prefix ";"infix ";"mixfix "]
 
 let pp_infix fmt a = Format.pp_print_string fmt (of_infix a)
 
+let pp_local fmt r =
+  pp_last fmt pp_infix r.id_qid
+
 let pp_title fmt r =
   List.iter (pp_prefix fmt) r.id_lib ;
   pp_prefix fmt r.id_mod ;
-  pp_last fmt pp_infix r.id_qid
+  pp_local fmt r
 
 (* URI Encoding *)
 
 let charset_uri =
-  let m = Array.make 256 false in
+  let m = Array.make 256 true in
   let r = " !#$%&'()*+,/:;=?@[]" in
-  String.iter (fun c -> m.(Char.code c) <- true) r ; m
+  String.iter (fun c -> m.(Char.code c) <- false) r ; m
 
 let charset_why3 =
   let m = Array.make 256 false in
@@ -140,9 +143,9 @@ let charset_why3 =
 let encode_char m fmt c =
   let k = int_of_char c in
   if m.(k) then
-    Format.fprintf fmt "%%%2X" k
-  else
     Format.pp_print_char fmt c
+  else
+    Format.fprintf fmt "%%%2X" k
 
 let encode fmt a =
   String.iter (encode_char charset_uri fmt) a
@@ -152,16 +155,18 @@ let encode_why3 fmt a =
 
 (* URL Resolution *)
 
+let pp_anchor fmt qid = pp_last fmt encode qid
+
 let pp_selector fmt qid =
   Format.pp_print_char fmt '#' ;
-  pp_last fmt encode qid
-
-let pp_aname fmt r = pp_selector fmt r.id_qid
+  pp_anchor fmt qid
 
 let pp_htmlfile fmt r =
   List.iter (pp_prefix fmt) r.id_lib ;
   Format.pp_print_string fmt r.id_mod ;
   Format.pp_print_string fmt ".html"
+
+let pp_aname fmt r = pp_anchor fmt r.id_qid
 
 let pp_ahref ~scope fmt r =
   match r.id_pkg with
@@ -187,12 +192,12 @@ let pp_ahref ~scope fmt r =
       Format.fprintf fmt "#%a_%d" encode_why3 name (line id)
 
 let pp_proof_aname fmt r =
-  pp_selector fmt (r.id_mod :: r.id_qid)
+  pp_anchor fmt (r.id_mod :: r.id_qid)
 
 let pp_proof_ahref fmt r =
   Format.pp_print_char fmt '_' ;
   List.iter (pp_prefix fmt) r.id_lib ;
-  Format.pp_print_string fmt "html" ;
+  Format.pp_print_string fmt "html#" ;
   pp_proof_aname fmt r
 
 (* -------------------------------------------------------------------------- *)

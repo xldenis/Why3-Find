@@ -61,9 +61,9 @@
   <p>Introducing A</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> <a id="A_">A</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
+  <span class="keyword">module</span> <a id="">A</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
   
-    <span class="keyword">type</span> <a id="t_6">t</a> = <a id="A_6">A</a> | <a id="B_6">B</a>
+    <span class="keyword">type</span> <a id="t">t</a> = <a id="A">A</a> | <a id="B">B</a>
   
   </pre>
   <div class="doc">
@@ -71,10 +71,10 @@
   </div>
   <pre class="src">
   
-    <span class="keyword">let</span> <a id="swap_9">swap</a> (e : <a title="A.t" href="#t_6">t</a>) : <a title="A.t" href="#t_6">t</a> =
+    <span class="keyword">let</span> <a id="swap">swap</a> (e : <a title="p.a.A.t" href="#t">t</a>) : <a title="p.a.A.t" href="#t">t</a> =
       <span class="keyword">match</span> e <span class="keyword">with</span>
-      | <a title="A.A" href="#A_6">A</a> -&gt; <a title="A.B" href="#B_6">B</a>
-      | <a title="A.B" href="#B_6">B</a> -&gt; <a title="A.A" href="#A_6">A</a>
+      | <a title="p.a.A.A" href="#A">A</a> -&gt; <a title="p.a.A.B" href="#B">B</a>
+      | <a title="p.a.A.B" href="#B">B</a> -&gt; <a title="p.a.A.A" href="#A">A</a>
       <span class="keyword">end</span>
   
   <span class="keyword">end</span>
@@ -99,12 +99,12 @@
   <p>Introducing B</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> <a id="B_">B</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
+  <span class="keyword">module</span> <a id="">B</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
   
-    <span class="keyword">exception</span> <a id="Error_22">Error</a>
+    <span class="keyword">exception</span> <a id="Error">Error</a>
   
-    <span class="keyword">val</span> <a id="wrong_24">wrong</a> () : unit
-      <span class="keyword">raises</span> { <a title="B.Error" href="#Error_22">Error</a> }
+    <span class="keyword">val</span> <a id="wrong">wrong</a> () : unit
+      <span class="keyword">raises</span> { <a title="p.a.B.Error" href="#Error">Error</a> }
   
   </pre>
   <div class="doc">
@@ -112,8 +112,8 @@
   </div>
   <pre class="src">
   
-    <span class="keyword">let</span> <a id="test_28">test</a> () : unit =
-      <span class="keyword">try</span> <a title="B.wrong" href="#wrong_24">wrong</a> () <span class="keyword">with</span> <a title="B.Error" href="#Error_22">Error</a> -&gt; () <span class="keyword">end</span>
+    <span class="keyword">let</span> <a id="test">test</a> () : unit =
+      <span class="keyword">try</span> <a title="p.a.B.wrong" href="#wrong">wrong</a> () <span class="keyword">with</span> <a title="p.a.B.Error" href="#Error">Error</a> -&gt; () <span class="keyword">end</span>
   
   <span class="keyword">end</span>
   </pre>

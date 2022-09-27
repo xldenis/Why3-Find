@@ -73,8 +73,8 @@ let proof_name =
   let names = ref Mid.empty in
   fun id ->
     try Mid.find id !names with Not_found ->
-      let Id.{ id_qid } = Id.resolve ~lib:[] id in
-      let path = Id.cat id_qid in
+      let _,_,qid = Id.path id in
+      let path = Id.cat qid in
       let name =
         if String.ends_with ~suffix:"'vc" path
         then String.sub path 0 (String.length path - 3) else path

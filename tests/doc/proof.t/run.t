@@ -10,14 +10,14 @@
   <body>
   <header>Module <code class="src"><a href="clones.html">clones</a>.A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="A_">A</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+  <span class="keyword">module</span> <a id="">A</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
   
-    <span class="keyword">type</span> <a id="t_3">t</a>
-    <span class="keyword">constant</span> <a id="e_4">e</a> : <a title="A.t" href="#t_3">t</a>
-    <span class="keyword">function</span> <a id="op_5">op</a> <a title="A.t" href="#t_3">t</a> <a title="A.t" href="#t_3">t</a> : <a title="A.t" href="#t_3">t</a>
-    <span class="keyword">axiom</span> <a id="neutral_6">neutral</a>: <span class="keyword">forall</span> x. <a title="A.op" href="#op_5">op</a> x <a title="A.e" href="#e_4">e</a> = x
-    <span class="keyword">axiom</span> <a id="commutative_7">commutative</a>: <span class="keyword">forall</span> x y. <a title="A.op" href="#op_5">op</a> x y = <a title="A.op" href="#op_5">op</a> y x
-    <span class="keyword">lemma</span> <a id="neutral_com_8">neutral_com</a><a href="_clones.html#A.neutral_com" title="Valid (one goal)" class="icon valid icofont-check"></a>: <span class="keyword">forall</span> x. <a title="A.op" href="#op_5">op</a> <a title="A.e" href="#e_4">e</a> x = x
+    <span class="keyword">type</span> <a id="t">t</a>
+    <span class="keyword">constant</span> <a id="e">e</a> : <a title="clones.A.t" href="#t">t</a>
+    <span class="keyword">function</span> <a id="op">op</a> <a title="clones.A.t" href="#t">t</a> <a title="clones.A.t" href="#t">t</a> : <a title="clones.A.t" href="#t">t</a>
+    <span class="keyword">axiom</span> <a id="neutral">neutral</a>: <span class="keyword">forall</span> x. <a title="clones.A.op" href="#op">op</a> x <a title="clones.A.e" href="#e">e</a> = x
+    <span class="keyword">axiom</span> <a id="commutative">commutative</a>: <span class="keyword">forall</span> x y. <a title="clones.A.op" href="#op">op</a> x y = <a title="clones.A.op" href="#op">op</a> y x
+    <span class="keyword">lemma</span> <a id="neutral_com">neutral_com</a><a href="_clones.html#A.neutral_com" title="Valid (one goal)" class="icon valid icofont-check"></a>: <span class="keyword">forall</span> x. <a title="clones.A.op" href="#op">op</a> <a title="clones.A.e" href="#e">e</a> x = x
   
   <span class="keyword">end</span>
   </pre>
@@ -35,16 +35,16 @@
   <body>
   <header>Module <code class="src"><a href="clones.html">clones</a>.B</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="B_">B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
-    <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
-    <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#A_">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
+  <span class="keyword">module</span> <a id="">B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+    <span class="keyword">use</span> int.<a title="int.Int." href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
+    <span class="keyword">clone</span> <a title="clones.A." href="clones.A.html#">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">function</span> <a id="e_4">e</a> : int {<a class="attribute" title="clones.A.e" href="clones.A.html#e_4">def.</a>}
-        <span class="keyword">axiom</span> <a id="neutral_6">neutral</a> {<a class="attribute" title="clones.A.neutral" href="clones.A.html#neutral_6">def.</a>}
-        <span class="keyword">lemma</span> <a id="commutative_7">commutative</a><a href="_clones.html#B.A.commutative" title="Valid (one goal)" class="icon valid icofont-check"></a> {<a class="attribute" title="clones.A.commutative" href="clones.A.html#commutative_7">def.</a>}
-        <span class="keyword">lemma</span> <a id="neutral_com_8">neutral_com</a> {<a class="attribute" title="clones.A.neutral_com" href="clones.A.html#neutral_com_8">def.</a>}
+        <span class="keyword">function</span> <a id="A.e">A.e</a> : int {<a class="attribute" title="clones.A.e" href="clones.A.html#e">def.</a>}
+        <span class="keyword">axiom</span> <a id="A.neutral">A.neutral</a> {<a class="attribute" title="clones.A.neutral" href="clones.A.html#neutral">def.</a>}
+        <span class="keyword">lemma</span> <a id="A.commutative">A.commutative</a><a href="_clones.html#B.A.commutative" title="Valid (one goal)" class="icon valid icofont-check"></a> {<a class="attribute" title="clones.A.commutative" href="clones.A.html#commutative">def.</a>}
+        <span class="keyword">lemma</span> <a id="A.neutral_com">A.neutral_com</a> {<a class="attribute" title="clones.A.neutral_com" href="clones.A.html#neutral_com">def.</a>}
       <span class="comment section-toggle">end</span>
-    </span>}</span><span title="Valid (one goal)" class="icon valid icofont-check"></span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.A.t" href="clones.A.html#t_3">t</a> = int, <span class="keyword">function</span> <a title="clones.A.op" href="clones.A.html#op_5">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix +_19">+</a>), <span class="keyword">axiom</span> <a title="clones.A.neutral" href="clones.A.html#neutral_6">neutral</a>
+    </span>}</span><span title="Valid (one goal)" class="icon valid icofont-check"></span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.A.t" href="clones.A.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.A.op" href="clones.A.html#op">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20+_19">+</a>), <span class="keyword">axiom</span> <a title="clones.A.neutral" href="clones.A.html#neutral">neutral</a>
     <span class="comment">(* End *)</span>
   <span class="keyword">end</span>
   </pre>
@@ -62,40 +62,40 @@
   <body>
   <header>Module <code class="src"><a href="certif.html">certif</a>.S</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="S_">S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span>
+  <span class="keyword">module</span> <a id="">S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span>
   
-    <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
-    <span class="keyword">use</span> int.<a title="int.MinMax" href="https://why3.lri.fr/stdlib/int.html#MinMax_">MinMax</a>
-    <span class="keyword">use</span> option.<a title="option.Option" href="https://why3.lri.fr/stdlib/option.html#Option_">Option</a>
-    <span class="keyword">use</span> list.<a title="list.ListRich" href="https://why3.lri.fr/stdlib/list.html#ListRich_">ListRich</a> <span class="keyword">as</span> L
+    <span class="keyword">use</span> int.<a title="int.Int." href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
+    <span class="keyword">use</span> int.<a title="int.MinMax." href="https://why3.lri.fr/stdlib/int.MinMax.html#MinMax_">MinMax</a>
+    <span class="keyword">use</span> option.<a title="option.Option." href="https://why3.lri.fr/stdlib/option.Option.html#Option_">Option</a>
+    <span class="keyword">use</span> list.<a title="list.ListRich." href="https://why3.lri.fr/stdlib/list.ListRich.html#ListRich_">ListRich</a> <span class="keyword">as</span> L
   
-    <span class="keyword">type</span> <a id="seq_8">seq</a> &#39;a = L.<a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> &#39;a
+    <span class="keyword">type</span> <a id="seq">seq</a> &#39;a = L.<a title="list.List.list" href="https://why3.lri.fr/stdlib/list.List.html#list_8">list</a> &#39;a
   
-    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">function</span> (<a id="mixfix []_10">[]</a><a href="_certif.html#S.([])" title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></a>) (u : <a title="S.seq" href="#seq_8">seq</a> &#39;a) (k : int) : &#39;a
-      <span class="keyword">requires</span> { 0 <a title="int.Int.(<=)" href="https://why3.lri.fr/stdlib/int.html#infix <=_25">&lt;=</a> k <a title="int.Int.(<)" href="https://why3.lri.fr/stdlib/int.html#infix <_21">&lt;</a> L.<a title="list.Length.length" href="https://why3.lri.fr/stdlib/list.html#length_24">length</a> u }
-      <span class="keyword">ensures</span> { L.<a title="list.Nth.nth" href="https://why3.lri.fr/stdlib/list.html#nth_104">nth</a> k u = <a title="option.Option.Some" href="https://why3.lri.fr/stdlib/option.html#Some_5">Some</a> result }
+    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">function</span> (<a id="mixfix%20%5B%5D">[]</a><a href="_certif.html#S.mixfix%20%5B%5D" title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></a>) (u : <a title="certif.S.seq" href="#seq">seq</a> &#39;a) (k : int) : &#39;a
+      <span class="keyword">requires</span> { 0 <a title="int.Int.(<=)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20%3C=_25">&lt;=</a> k <a title="int.Int.(<)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20%3C_21">&lt;</a> L.<a title="list.Length.length" href="https://why3.lri.fr/stdlib/list.Length.html#length_24">length</a> u }
+      <span class="keyword">ensures</span> { L.<a title="list.Nth.nth" href="https://why3.lri.fr/stdlib/list.Nth.html#nth_104">nth</a> k u = <a title="option.Option.Some" href="https://why3.lri.fr/stdlib/option.Option.html#Some_5">Some</a> result }
       <span class="keyword">variant</span> { u }
-      = <span class="keyword">match</span> u <span class="keyword">with</span> L.<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> x w -&gt;
-          <span class="keyword">if</span> k <a title="int.Int.(=)" href="https://why3.lri.fr/stdlib/int.html#infix =_16">=</a> 1 <span class="comment">(*incorrect*)</span> <span class="keyword">then</span> x <span class="keyword">else</span> w[k<a title="int.Int.(-)" href="https://why3.lri.fr/stdlib/int.html#infix -_23">-</a>1]
+      = <span class="keyword">match</span> u <span class="keyword">with</span> L.<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.List.html#Cons_8">Cons</a> x w -&gt;
+          <span class="keyword">if</span> k <a title="int.Int.(=)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20=_16">=</a> 1 <span class="comment">(*incorrect*)</span> <span class="keyword">then</span> x <span class="keyword">else</span> w[k<a title="int.Int.(-)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20-_23">-</a>1]
         <span class="keyword">end</span>
   
-    <span class="keyword">predicate</span> (<a id="infix ==_18">==</a>) (u v : <a title="S.seq" href="#seq_8">seq</a> &#39;a) =
-      L.<a title="list.Length.length" href="https://why3.lri.fr/stdlib/list.html#length_24">length</a> u = L.<a title="list.Length.length" href="https://why3.lri.fr/stdlib/list.html#length_24">length</a> v /\ <span class="keyword">forall</span> k. 0 <a title="int.Int.(<=)" href="https://why3.lri.fr/stdlib/int.html#infix <=_25">&lt;=</a> k <a title="int.Int.(<)" href="https://why3.lri.fr/stdlib/int.html#infix <_21">&lt;</a> L.<a title="list.Length.length" href="https://why3.lri.fr/stdlib/list.html#length_24">length</a> u -&gt; u[k] = v[k]
+    <span class="keyword">predicate</span> (<a id="infix%20%3D%3D">==</a>) (u v : <a title="certif.S.seq" href="#seq">seq</a> &#39;a) =
+      L.<a title="list.Length.length" href="https://why3.lri.fr/stdlib/list.Length.html#length_24">length</a> u = L.<a title="list.Length.length" href="https://why3.lri.fr/stdlib/list.Length.html#length_24">length</a> v /\ <span class="keyword">forall</span> k. 0 <a title="int.Int.(<=)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20%3C=_25">&lt;=</a> k <a title="int.Int.(<)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20%3C_21">&lt;</a> L.<a title="list.Length.length" href="https://why3.lri.fr/stdlib/list.Length.html#length_24">length</a> u -&gt; u[k] = v[k]
   
-    <span class="keyword">lemma</span> <a id="reflexivity_21">reflexivity</a><a href="_certif.html#S.reflexivity" title="Valid (one goal)" class="icon valid icofont-check"></a> : <span class="keyword">forall</span> u : <a title="S.seq" href="#seq_8">seq</a> &#39;a. u <a title="S.(==)" href="#infix ==_18">==</a> u
+    <span class="keyword">lemma</span> <a id="reflexivity">reflexivity</a><a href="_certif.html#S.reflexivity" title="Valid (one goal)" class="icon valid icofont-check"></a> : <span class="keyword">forall</span> u : <a title="certif.S.seq" href="#seq">seq</a> &#39;a. u <a title="certif.S.(==)" href="#infix%20%3D%3D">==</a> u
   
-    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">lemma</span> <a id="extensivity_23">extensivity</a><a href="_certif.html#S.extensivity" title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></a> (a b : <a title="S.seq" href="#seq_8">seq</a> &#39;a)
-      <span class="keyword">requires</span> { a <a title="S.(==)" href="#infix ==_18">==</a> b }
+    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">lemma</span> <a id="extensivity">extensivity</a><a href="_certif.html#S.extensivity" title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></a> (a b : <a title="certif.S.seq" href="#seq">seq</a> &#39;a)
+      <span class="keyword">requires</span> { a <a title="certif.S.(==)" href="#infix%20%3D%3D">==</a> b }
       <span class="keyword">ensures</span> { a = b }
       <span class="section level1"><span class="comment">{</span><span class="attribute section-toggle">proof</span><span class="comment section-text active">…</span><span class="comment">}</span><span class="section-text">
       <span class="keyword">variant</span> { a, b }
       = <span class="keyword">match</span> a, b <span class="keyword">with</span>
-        | L.<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> _ a&#39; , L.<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.html#Cons_8">Cons</a> _ _ -&gt; extensivity a&#39; b <span class="comment">(*incorrect*)</span>
+        | L.<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.List.html#Cons_8">Cons</a> _ a&#39; , L.<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.List.html#Cons_8">Cons</a> _ _ -&gt; extensivity a&#39; b <span class="comment">(*incorrect*)</span>
         | _ -&gt; ()
         <span class="keyword">end</span>
       <span class="comment">{</span><span class="attribute section-toggle">qed</span><span class="comment">}</span></span></span>
   
-    <span class="keyword">goal</span> <a id="wrong_34">wrong</a><a href="_certif.html#S.wrong" title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></a>: 1 = 0
+    <span class="keyword">goal</span> <a id="wrong">wrong</a><a href="_certif.html#S.wrong" title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></a>: 1 = 0
   
   <span class="keyword">end</span>
   </pre>
@@ -116,9 +116,9 @@
     alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)
   </pre>
   <pre class="src"><span class="keyword">module</span> <a href="clones.A.html">clones.A</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
-  <pre class="src"> <span class="keyword">goal</span> <a id="A.neutral_com" href="clones.A.html#neutral_com_8">neutral_com</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+  <pre class="src"> <span class="keyword">goal</span> <a id="A.neutral_com" href="clones.A.html#neutral_com">neutral_com</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
       alt-ergo 500ns</pre><pre class="src"><span class="keyword">module</span> <a href="clones.B.html">clones.B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
-  <pre class="src"> <span class="keyword">goal</span> <a id="B.A.commutative" href="#commutative_7">commutative</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+  <pre class="src"> <span class="keyword">goal</span> <a id="B.A.commutative" href="clones.B.html#A.commutative">A.commutative</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
       alt-ergo 400ns</pre><script type="text/javascript" src="script.js"></script>
   </body>
   </html>
@@ -138,18 +138,18 @@
     z3         n=33 570ms (Z3,4.8.6)
   </pre>
   <pre class="src"><span class="keyword">module</span> <a href="certif.S.html">certif.S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span></pre>
-  <pre class="src"> <span class="keyword">goal</span> <a id="S.([])" href="certif.S.html#mixfix []_10">([])</a><span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
+  <pre class="src"> <span class="keyword">goal</span> <a id="S.mixfix%20%5B%5D" href="certif.S.html#mixfix%20%5B%5D">([])</a><span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
       split_vc<span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
         alt-ergo 4ms
         split_vc<span title="Partial proof (1/2 goals)" class="icon warning icofont-exclamation-tringle"></span>
           stuck<span class="icon failed icofont-exclamation-circle"></span>
           alt-ergo 3ms
         alt-ergo 3ms
-        stuck<span class="icon failed icofont-exclamation-circle"></span></pre><pre class="src"> <span class="keyword">goal</span> <a id="S.reflexivity" href="certif.S.html#reflexivity_21">reflexivity</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
-      alt-ergo 2ms</pre><pre class="src"> <span class="keyword">goal</span> <a id="S.extensivity" href="certif.S.html#extensivity_23">extensivity</a><span title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></span>
+        stuck<span class="icon failed icofont-exclamation-circle"></span></pre><pre class="src"> <span class="keyword">goal</span> <a id="S.reflexivity" href="certif.S.html#reflexivity">reflexivity</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+      alt-ergo 2ms</pre><pre class="src"> <span class="keyword">goal</span> <a id="S.extensivity" href="certif.S.html#extensivity">extensivity</a><span title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></span>
       split_vc<span title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></span>
         alt-ergo 4ms
         stuck<span class="icon failed icofont-exclamation-circle"></span>
-        cvc4 70ms</pre><pre class="src"> <span class="keyword">goal</span> <a id="S.wrong" href="certif.S.html#wrong_34">wrong</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span></pre><script type="text/javascript" src="script.js"></script>
+        cvc4 70ms</pre><pre class="src"> <span class="keyword">goal</span> <a id="S.wrong" href="certif.S.html#wrong">wrong</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span></pre><script type="text/javascript" src="script.js"></script>
   </body>
   </html>

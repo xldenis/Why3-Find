@@ -58,23 +58,17 @@ val derived : source -> string -> string (* URL name *)
 
 val is_keyword : string -> bool
 
-val id_name : ident -> string
-val id_pretty : ident -> string
-val id_anchor : ident -> string
-val id_path : src:source -> scope:string option -> ident -> string
-val id_href : src:source -> scope:string option -> ident -> string
-
 type href =
   | NoRef
-  | Def of { id: Why3.Ident.ident ; anchor: string ; proof: Crc.crc option }
-  | Ref of { kind: string ; path: string ; href: string }
+  | Ref of Id.id
+  | Def of Id.id * Crc.crc option
 
 type position = Lexing.position * Lexing.position
 
 val find_proof : ident -> theory option -> Crc.crc option
 
 val resolve :
-  src:source -> scope:string option -> theory:theory option -> infix:bool ->
+  src:source -> theory:theory option -> infix:bool ->
   position -> href
 
 val reference :

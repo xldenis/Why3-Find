@@ -78,68 +78,25 @@ let extract ~infix position =
     Why3.Loc.user_position f l (succ s) (pred e)
   else loc
 
-let id_path ~src ~scope id =
-  let lp,md,qid = Id.path id in
-  let lp =
-    match lp, scope with
-    | [], Some m when m <> md -> src.lib
-    | _ -> lp
-  in String.concat "." (lp @ md :: List.map Id.of_infix qid)
-
-let baseurl ~src ~scope id =
-  let lp,md,_ = Id.path id in
-  if lp = [] then
-    match scope with
-    | Some m when m = md -> ""
-    | _ -> Printf.sprintf "%s.%s.html" (String.concat "." src.lib) md
-  else
-    let path = String.concat "." lp in
-    if Filename.is_relative (Id.file id) then
-      Printf.sprintf "%s.%s.html" path md
-    else
-      try
-        let pkg = List.hd lp in
-        let meta = Meta.find pkg in
-        Printf.sprintf "file://%s/html/%s.%s.html" meta.Meta.path path md
-      with _ ->
-        Printf.sprintf "https://why3.lri.fr/stdlib/%s.html" path
-
-let anchor ~kind (id : ident) =
-  let name = id.id_string in
-  let line = Id.line id in
-  if kind = "theory"
-  then Printf.sprintf "%s_" name
-  else Printf.sprintf "%s_%d" name line
-
 type href =
   | NoRef
-  | Def of { id: ident ; anchor: string ; proof: Crc.crc option }
-  | Ref of { kind: string ; path: string ; href: string }
+  | Ref of Id.id
+  | Def of Id.id * Crc.crc option
 
 let find_proof (id : ident) = function
   | None -> None
   | Some { proofs } -> Mstr.find_opt (Session.proof_name id) proofs
 
-let resolve ~src ~scope ~theory ~infix pos =
+let resolve ~src ~theory ~infix pos =
   try
     let loc = extract ~infix pos in
     match Why3.Glob.find loc with
-    | (id, Why3.Glob.Def, kind) ->
-      let anchor = anchor ~kind id in
+    | (id, Why3.Glob.Def, _) ->
       let proof = find_proof id theory in
-      Def { anchor ; id ; proof }
-    | (id, Why3.Glob.Use, kind) ->
-      let path = id_path ~src ~scope id in
-      let base = baseurl ~src ~scope id in
-      let name = anchor ~kind id in
-      Ref { kind ; path ; href = Printf.sprintf "%s#%s" base name }
+      Def (Id.resolve ~lib:src.lib id, proof)
+    | (id, Why3.Glob.Use, _) ->
+      Ref (Id.resolve ~lib:src.lib id)
   with Not_found -> NoRef
-
-let id_name (id : ident) = id.id_string
-let id_pretty (id : ident) = Id.of_infix id.id_string
-let id_anchor (id : ident) = anchor ~kind:"" id
-let id_href ~src ~scope id =
-  Printf.sprintf "%s#%s" (baseurl ~src ~scope id) (anchor ~kind:"" id)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Theory Iterators                                                   --- *)

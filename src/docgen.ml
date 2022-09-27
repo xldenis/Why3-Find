@@ -144,7 +144,7 @@ let pp_mark ?href ~title ~cla fmt =
     Format.fprintf fmt "<span title=\"%s\" class=\"%s\"></span>"
       title cla
   | Some href ->
-    Format.fprintf fmt "<a href=\"%s\" title=\"%s\" class=\"%s\"></a>"
+    Format.fprintf fmt "<a href=\"%t\" title=\"%s\" class=\"%s\"></a>"
       href title cla
 
 let pp_vlink ?href fmt r =
@@ -164,7 +164,7 @@ let pp_vlink ?href fmt r =
 
 let pp_verdict = pp_vlink ?href:None
 
-let of_path env p = Printf.sprintf "_%s#%s" env.src.url p
+let href_proofs env path fmt = Format.fprintf fmt "_%s#%s" env.src.url path
 
 let process_proofs env ?path = function
   | None -> ()
@@ -173,7 +173,7 @@ let process_proofs env ?path = function
       Docref.Mstr.fold
         (fun _g c (s,p) -> s + Crc.stuck c , p + Crc.proved c)
         proofs (0,0) in
-    let href = Option.map (of_path env) path in
+    let href = Option.map (href_proofs env) path in
     let r = Crc.nverdict ~stuck ~proved in
     Pdoc.printf env.out "%a" (pp_vlink ?href) r ;
     if path <> None then Pdoc.printf env.crc "%a" pp_verdict r
@@ -189,10 +189,13 @@ let rec child n fmt crc =
     Format.fprintf fmt "%s%a" id pp_verdict (Crc.nverdict ~stuck ~proved) ;
     List.iter (child (n+2) fmt) children
 
-let process_certif env ~path ~href ~name crc =
+let process_certif env id crc =
   Pdoc.printf env.crc
-    "<pre class=\"src\"> %a <a id=\"%s\" href=\"%s\">%s</a>%a%t</pre>"
-    Pdoc.pp_keyword "goal" path href name
+    "<pre class=\"src\"> %a <a id=\"%a\" href=\"%a\">%a</a>%a%t</pre>"
+    Pdoc.pp_keyword "goal"
+    Id.pp_proof_aname id
+    (Id.pp_ahref ~scope:None) id
+    Id.pp_local id
     pp_verdict (Crc.verdict crc)
     begin fun fmt -> match crc with
       | Crc.Stuck -> ()
@@ -200,12 +203,12 @@ let process_certif env ~path ~href ~name crc =
       | Crc.Transf _ -> child 4 fmt crc
     end
 
-let process_proof env ~href ~name ~path = function
+let process_proof env id = function
   | None -> ()
   | Some crc ->
-    let hlink = of_path env path in
-    Pdoc.printf env.out "%a" (pp_vlink ~href:hlink) (Crc.verdict crc) ;
-    process_certif env ~path ~href ~name crc
+    let href fmt = Id.pp_proof_ahref fmt id in
+    Pdoc.printf env.out "%a" (pp_vlink ~href) (Crc.verdict crc) ;
+    process_certif env id crc
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -219,27 +222,27 @@ let rec fetch_id input =
 
 let resolve env ?(infix=false) () =
   Docref.resolve
-    ~src:env.src ~scope:env.scope ~theory:env.theory
+    ~src:env.src ~theory:env.theory
     ~infix (Token.position env.input)
 
 let process_href env (href : Docref.href) s =
   match href with
 
-  | Docref.Def { id ; anchor ; proof } ->
-    let name = Docref.id_pretty id in
-    let path = Docref.id_path ~src:env.src ~scope:env.scope id in
-    let href = Docref.id_href ~src:env.src ~scope:None id in
-    env.declared <- Sid.add id env.declared ;
-    Pdoc.printf env.out "<a id=\"%s\">%a</a>" anchor Pdoc.pp_html s ;
-    process_proof env ~href ~path ~name proof
+  | Docref.Def(id,proof) ->
+    env.declared <- Sid.add id.id env.declared ;
+    Pdoc.printf env.out "<a id=\"%a\">%a</a>" Id.pp_aname id Pdoc.pp_html s ;
+    process_proof env id proof
 
-  | Docref.Ref { kind ; path = p ; href = h } ->
-    if env.clone_decl > 0 && kind = "theory" then
+  | Docref.Ref id ->
+    if env.clone_decl > 0 && id.id_qid = [] then
       begin
         env.clone_order <- succ env.clone_order ;
-        env.clone_path <- p ;
+        env.clone_path <- Id.cat (id.id_lib @ id.id_mod :: id.id_qid) ;
       end ;
-    Pdoc.printf env.out "<a title=\"%s\" href=\"%s\">%a</a>" p h Pdoc.pp_html s
+    Pdoc.printf env.out "<a title=\"%a\" href=\"%a\">%a</a>"
+      Id.pp_title id
+      (Id.pp_ahref ~scope:env.scope) id
+      Pdoc.pp_html s
 
   | Docref.NoRef ->
     Pdoc.pp_html_s env.out s
@@ -249,20 +252,27 @@ let process_href env (href : Docref.href) s =
 (* -------------------------------------------------------------------------- *)
 
 let pp_ident ~env ?attr ?name fmt id =
-  let name = match name with Some a -> a | None -> Docref.id_name id in
   try
-    let src = env.src in
-    let scope = env.scope in
-    let title = Docref.id_path ~src ~scope id in
-    let href = Docref.id_href ~src ~scope id in
+    let id = Id.resolve ~lib:env.src.lib id in
+    let pp_name fmt =
+      match name with
+      | Some a -> Format.pp_print_string fmt a
+      | None -> Id.pp_local fmt id
+    in
     begin match attr with
       | None -> Format.fprintf fmt "<a"
       | Some a -> Format.fprintf fmt "<a class=\"%s\"" a
     end ;
-    Format.fprintf fmt " title=\"%s\" href=\"%s\">%s</a>"
-      title href name
+    Format.fprintf fmt " title=\"%a\" href=\"%a\">%t</a>"
+      Id.pp_title id
+      (Id.pp_ahref ~scope:None) id
+      pp_name
   with Not_found ->
-    Format.pp_print_string fmt name
+  (* Builtin *)
+  Format.pp_print_string fmt @@
+  match name with
+  | Some a -> a
+  | None -> id.id_string
 
 let rec pp_type ~env ~par fmt (ty : Why3.Ty.ty) =
   match ty.ty_node with
@@ -289,14 +299,11 @@ let defkind = function
   | _ -> "let"," = "
 
 let declare env n kwd ?(attr=[]) id =
-  let name = Docref.id_pretty id in
-  let anchor = Docref.id_anchor id in
-  let path = Docref.id_path ~src:env.src ~scope:env.scope id in
-  let href = Docref.id_href ~src:env.src ~scope:env.scope id in
+  let r = Id.resolve ~lib:env.src.lib id in
   Pdoc.printf env.out "%a%a" Pdoc.pp_spaces n Pdoc.pp_keyword kwd ;
   List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
-  Pdoc.printf env.out " <a id=\"%s\">%s</a>" anchor name ;
-  process_proof env ~href ~name ~path @@ Docref.find_proof id env.theory
+  Pdoc.printf env.out " <a id=\"%a\">%a</a>" Id.pp_aname r Id.pp_local r ;
+  process_proof env r @@ Docref.find_proof r.id env.theory
 
 let definition env ?(op=" = ") def =
   Pdoc.printf env.out "%s{%a}@\n" op
@@ -351,7 +358,6 @@ let signature env (rs : Why3.Expr.rsymbol) =
   end
 
 let mdecl env n id (pd: Why3.Pdecl.pdecl) def =
-  ignore def ;
   match pd.pd_node with
   | PDpure -> List.iter (fun d -> decl env n id d def) pd.pd_pure
   | PDtype _ -> declare env n "type" id ; definition env def
@@ -638,12 +644,11 @@ let process_reference ~why3env ~env r =
     let src = env.src in
     let scope = env.scope in
     let name, id = Docref.reference ~why3env ~src ~scope r in
-    let title = Docref.id_path ~src ~scope id in
-    let href = Docref.id_href ~src ~scope id in
+    let r = Id.resolve ~lib:src.lib id in
     text env ;
     Pdoc.printf env.out
-      "<code class=\"src\"><a title=\"%s\" href=\"%s\">%s</a></code>"
-      title href name
+      "<code class=\"src\"><a title=\"%a\" href=\"%a\">%s</a></code>"
+      Id.pp_title r (Id.pp_ahref ~scope:None) r name
   with
   | Not_found -> Token.error env.input "unknown reference"
   | Failure msg -> Token.error env.input "%s" msg
