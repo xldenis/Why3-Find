@@ -292,7 +292,8 @@ let ns_find ns kind qid =
       ns_find_ls ns qid ;
       ns_find_pr ns qid ;
     ]
-  | _ -> failwith @@ Printf.sprintf
+  | _ ->
+    Utils.failwith
       "invalid reference kind '%c' (use 't', 'l', 'v', 'e' or 'p')" kind
 
 (* Module lookup *)
@@ -325,7 +326,7 @@ let pns_find pm kind qid =
       ns_find_ls tns qid ;
       ns_find_pr tns qid ;
     ]
-  | _ -> failwith @@ Printf.sprintf
+  | _ -> Utils.failwith
       "invalid reference kind '%c' (use 't', 'l', 'v', 'e' or 'p')" kind
 
 (* Reference Lookup *)
@@ -347,8 +348,8 @@ let select ~name ids =
   let ids = List.sort_uniq Id.compare ids in
   match ids with
   | [id] -> id
-  | [] -> failwith (Printf.sprintf "reference '%s' not found" name)
-  | _ -> failwith (Printf.sprintf "ambiguous reference '%s'" name)
+  | [] -> Utils.failwith "reference '%s' not found" name
+  | _ -> Utils.failwith "ambiguous reference '%s'" name
 
 (* Global reference resolution *)
 
@@ -372,7 +373,7 @@ let reference ~why3env ~src ~scope r =
     let thy =
       try Why3.Env.read_theory why3env lp m
       with Not_found ->
-        failwith @@ Printf.sprintf "unknown theory or module '%s.%s'"
+        Utils.failwith "unknown theory or module '%s.%s'"
           (String.concat "." lp) m
     in
     if kind = '?' && qid = [] then

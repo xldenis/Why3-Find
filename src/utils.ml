@@ -57,22 +57,28 @@ let copy ~src ~tgt =
       ( Stdlib.output out buffer 0 n ; walk () )
   in walk () ; close_in inc ; close_out out
 
-let locate files =
-  let rec lookup dir prefix =
-    match dir with
-    | "/" | "." -> None
-    | _ ->
-      if List.exists
-          (fun f -> Sys.file_exists (F.concat dir f))
-          files
-      then Some (dir,prefix)
-      else lookup (F.dirname dir) (F.concat (F.basename dir) prefix)
-  in lookup (Sys.getcwd ()) ""
+let rec lookup ~dir ~file ~path =
+  match dir with
+  | "/" | "." -> None
+  | _ ->
+    if Sys.file_exists (F.concat dir file)
+    then Some (dir,path)
+    else lookup ~file
+        ~dir:(F.dirname dir)
+        ~path:(F.concat (F.basename dir) path)
+
+let rec findfirst ~dir = function
+  | [] -> None
+  | file::files ->
+    match lookup ~dir ~file ~path:"" with
+    | None -> findfirst ~dir files
+    | result -> result
+
+let locate files = findfirst ~dir:(Sys.getcwd()) files
 
 let chdir dir =
-  if not @@ Filename.is_relative dir then
-    Format.printf "Entering directory '%s'@." dir ;
-  Sys.chdir dir
+  Sys.chdir dir ;
+  Format.printf "Entering directory '%s'@." @@ Sys.getcwd ()
 
 (* -------------------------------------------------------------------------- *)
 (* --- Time Printing                                                      --- *)
@@ -95,6 +101,18 @@ let pp_ok fmt = Format.fprintf fmt "@{<green>\u{2714}@}"
 let pp_ko fmt = Format.fprintf fmt "@{<red>\u{2718}@}"
 let pp_weak fmt = Format.fprintf fmt "@{<orange>\u{2718}@}"
 let pp_mark fmt b = if b then pp_ok fmt else pp_ko fmt
+
+(* -------------------------------------------------------------------------- *)
+(* --- Failures                                                           --- *)
+(* -------------------------------------------------------------------------- *)
+
+let failwith msg =
+  let buffer = Buffer.create 80 in
+  Format.kfprintf
+    (fun fmt ->
+       Format.pp_print_flush fmt () ;
+       Stdlib.failwith @@ Buffer.contents buffer
+    ) (Format.formatter_of_buffer buffer) msg
 
 (* -------------------------------------------------------------------------- *)
 (* --- Terminal Facilities                                                --- *)

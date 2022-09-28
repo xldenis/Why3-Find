@@ -23,6 +23,12 @@
 (* --- Why3 Environment                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
+val args : (string * Arg.spec * string) list
+val get : string -> of_json:(Json.t -> 'a) -> 'a
+val set : string -> to_json:('a -> Json.t) -> 'a -> unit
+val argv : string list -> string list
+val save : unit -> unit
+
 type env = {
   wconfig : Why3.Whyconf.config ;
   wenv : Why3.Env.env ;

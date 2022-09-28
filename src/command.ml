@@ -170,7 +170,7 @@ let process cmd argv : unit =
 
 let register ~name ?(args="") process =
   if List.mem_assoc name !commands then
-    (failwith (Printf.sprintf "Duplicate command '%s'" name)) ;
+    Utils.failwith "Duplicate command '%s'" name ;
   commands := (name,(args,process)) :: !commands
 
 (* -------------------------------------------------------------------------- *)
@@ -445,10 +445,7 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
         | "" -> Format.printf "depend %s@." src ; depends := src :: !depends
         | ".mlw" ->
           if not (String.starts_with ~prefix src) then
-            failwith
-              (Printf.sprintf
-                 "can not install %S from outside of %S"
-                 src prefix) ;
+            Utils.failwith "can not install %S from outside of %S" src prefix ;
           Format.printf "install (source) %s@." src ;
           install ~src ;
         | ".cfg" ->
@@ -459,7 +456,7 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
           Format.printf "install (driver) %s@." src ;
           install ~src ;
           drivers := src :: !drivers ;
-        | _ -> failwith (Printf.sprintf "don't know what to do with %S" src)
+        | _ -> Utils.failwith "don't know what to do with %S" src
       done ;
       Format.printf "install (meta)   META.json@." ;
       Meta.install {
@@ -600,7 +597,7 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
          \n  Otherwize, compute the local calibration profile (without -m).\
          \n\n\
          OPTIONS:\n" ;
-      if !velocity || (not !save && Sys.file_exists Calibration.config) then
+      if !velocity then
         Calibration.velocity_provers (List.rev !prvs)
       else
         Calibration.calibrate_provers ~save:!save ~time:!time (List.rev !prvs)
@@ -612,7 +609,6 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
 
 let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
     begin fun argv ->
-      let chdir = ref "" in
       let pkgs = ref [] in
       let prvs = ref [] in
       let trfs = ref [] in
@@ -625,47 +621,41 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let set m v () = m := v in
       let add r p = r := p :: !r in
       Arg.parse_argv argv
-        [
-          "--root", Arg.Set_string chdir, "DIR change to directory";
-          "--local", Arg.Set Hammer.local, "no calibration (use this machine only)";
-          "-p", Arg.String (add pkgs), "PKG package dependency";
-          "-c", Arg.Clear Runner.cache, "force cache update";
-          "-q", Arg.Clear Calibration.parallel, "sequential calibration";
-          "-a", Arg.Unit (set mode `All), "rebuild all proofs";
-          "-u", Arg.Unit (set mode `Update), "update proofs (default)";
-          "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
-          "-i", Arg.Set ide, "run why-3 IDE on error (implies -s)";
-          "-s", Arg.Set session, "save why3 session";
-          "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
-          "-t", Arg.Set_int time, "TIME acceptable prover timeout (default 5s)";
-          "-P", Arg.String (add prvs), "PRV use prover";
-          "-T", Arg.String (add trfs), "TRANS use transformation ";
-          "--modules",  Arg.Unit (set log `Modules), "list results by module";
-          "--theories", Arg.Unit (set log `Theories), "list results by theory";
-          "--goals", Arg.Unit (set log `Goals), "list results by goals";
-          "--proofs",   Arg.Unit (set log `Proofs), "list proofs by goals";
-        ]
+        begin
+          Wenv.args @ [
+            "--local", Arg.Set Hammer.local, "no calibration (use this machine only)";
+            "-p", Arg.String (add pkgs), "PKG package dependency";
+            "-c", Arg.Clear Runner.cache, "force cache update";
+            "-q", Arg.Clear Calibration.parallel, "sequential calibration";
+            "-a", Arg.Unit (set mode `All), "rebuild all proofs";
+            "-u", Arg.Unit (set mode `Update), "update proofs (default)";
+            "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
+            "-i", Arg.Set ide, "run why-3 IDE on error (implies -s)";
+            "-s", Arg.Set session, "save why3 session";
+            "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
+            "-t", Arg.Set_int time, "TIME acceptable prover timeout (default 5s)";
+            "-P", Arg.String (add prvs), "PRV use prover";
+            "-T", Arg.String (add trfs), "TRANS use transformation ";
+            "--modules",  Arg.Unit (set log `Modules), "list results by module";
+            "--theories", Arg.Unit (set log `Theories), "list results by theory";
+            "--goals", Arg.Unit (set log `Goals), "list results by goals";
+            "--proofs",   Arg.Unit (set log `Proofs), "list proofs by goals";
+          ]
+        end
         (add files)
         "USAGE:\n\
          \n  why3find prove [OPTIONS] FILES\n\n\
          DESCRIPTION:\n\
          \n  Prove why3 files.\n\n\
          OPTIONS:\n" ;
-      let prefix =
-        if !chdir <> "" then (Utils.chdir !chdir ; "") else
-          match Utils.locate [Calibration.config;"Makefile";".git"] with
-          | Some(dir,prefix) ->
-            if prefix <> "" then Utils.chdir dir ; prefix
-          | None -> ""
-      in
       let pkgs = List.rev !pkgs in
       let provers = List.rev !prvs in
       let transfs = List.rev !trfs in
       let session = !session || !ide in
-      let files = List.map (Filename.concat prefix) @@ List.rev !files in
+      let files = Wenv.argv @@ List.rev !files in
       let tofix = Prove.command
-        ~mode:!mode ~session ~log:!log
-        ~time:!time ~provers ~transfs ~pkgs ~files
+          ~mode:!mode ~session ~log:!log
+          ~time:!time ~provers ~transfs ~pkgs ~files
       in match tofix with
       | [] -> ()
       | f::_ ->

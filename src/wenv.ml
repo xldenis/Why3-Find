@@ -20,6 +20,67 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
+(* --- Why3Find Environment                                               --- *)
+(* -------------------------------------------------------------------------- *)
+
+let config = "./why3find.json"
+let prefix = ref ""
+let sections = Hashtbl.create 0
+let loaded = ref false
+let modified = ref false
+let chdir = ref ""
+
+let load () =
+  if not !loaded then
+    begin
+      loaded := true ;
+      if !chdir <> "" then
+        Utils.chdir !chdir
+      else
+        begin
+          match Utils.locate [config;"Makefile";".git"] with
+          | Some(dir,path) -> Utils.chdir dir ; prefix := path
+          | None -> ()
+        end ;
+      if Sys.file_exists config then
+        Json.of_file config |> Json.jiter (Hashtbl.add sections)
+    end
+
+let get fd ~of_json =
+  load () ; of_json @@ Hashtbl.find sections fd
+
+let set fd ~to_json value =
+  load () ;
+  Hashtbl.replace sections fd (to_json value) ;
+  modified := true
+
+let save () =
+  if !modified then
+    let fields =
+      List.sort (fun a b -> String.compare (fst a) (fst b)) @@
+      Hashtbl.fold
+        (fun fd js fds -> (fd,js) :: fds)
+        sections []
+    in
+    begin
+      Json.to_file config (`Assoc fields) ;
+      Format.printf "Configuration saved to %s@."
+        (Filename.concat (Sys.getcwd ()) config) ;
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Command Line Arguments                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let args = [
+  "--root", Arg.Set_string chdir, "DIR change to directory";
+]
+
+let argv files =
+  load () ;
+  List.map (Filename.concat !prefix) files
+
+(* -------------------------------------------------------------------------- *)
 (* --- Why3 Environment                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -33,10 +94,11 @@ let init ~pkgs =
   begin
     let pkgs = Meta.find_all pkgs in
     let pkg_path = List.map (fun m -> m.Meta.path) pkgs in
-    (* Environment config *)
     let wconfig = Whyconf.init_config None in
     let wmain = Whyconf.get_main wconfig in
     let wpath = Whyconf.loadpath wmain in
     let wenv = Why3.Env.create_env ("." :: pkg_path @ wpath) in
     { wconfig ; wenv }
   end
+
+(* -------------------------------------------------------------------------- *)

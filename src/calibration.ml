@@ -317,12 +317,9 @@ let iter f profile =
 (* --- Testing Calibration                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let config = "./why3find.json"
-
 let default () =
-  if Sys.file_exists config then
-    Json.of_file config |> of_json
-  else empty ()
+  try Wenv.get "profile" ~of_json:(of_json ?default:None)
+  with Not_found -> empty ()
 
 let calibrate_provers ~save ~time provers =
   Fibers.run @@
@@ -349,10 +346,7 @@ let calibrate_provers ~save ~time provers =
            Format.printf "%-16s n=%d %a (local)@." (id prv) n Utils.pp_time t
       ) results ;
     if save then
-      begin
-        Format.printf "Saved to %s@." config ;
-        Json.to_file config (to_json profile) ;
-      end
+      Wenv.save ()
     else
       Format.printf "Use -m to define as master calibration profile@." ;
     Fibers.return () ;

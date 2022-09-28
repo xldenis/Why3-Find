@@ -43,7 +43,7 @@ let path pkg =
 
 let find pkg =
   let rec lookup pkg = function
-    | [] -> failwith (Printf.sprintf "Package '%s' not found" pkg)
+    | [] -> Utils.failwith "Package '%s' not found" pkg
     | d::ds ->
       let path = Filename.concat d pkg in
       if not @@ Sys.file_exists path then lookup pkg ds else
@@ -90,7 +90,7 @@ let install pkg =
 
 let shared file =
   let rec lookup = function
-    | [] -> failwith (Printf.sprintf "Resource '%s' not found" file)
+    | [] -> Utils.failwith "Resource '%s' not found" file
     | d::ds ->
       let path = Filename.concat d file in
       if Sys.file_exists path then path else
