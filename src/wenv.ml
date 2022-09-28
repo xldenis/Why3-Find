@@ -23,7 +23,7 @@
 (* --- Why3Find Environment                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
-let config = "./why3find.json"
+let config = "why3find.json"
 let prefix = ref ""
 let sections = Hashtbl.create 0
 let loaded = ref false

@@ -346,7 +346,10 @@ let calibrate_provers ~save ~time provers =
            Format.printf "%-16s n=%d %a (local)@." (id prv) n Utils.pp_time t
       ) results ;
     if save then
-      Wenv.save ()
+      begin
+        Wenv.set "profile" ~to_json profile ;
+        Wenv.save () ;
+      end
     else
       Format.printf "Use -m to define as master calibration profile@." ;
     Fibers.return () ;

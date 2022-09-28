@@ -578,15 +578,18 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
       let prvs = ref [] in
       let prover p = prvs := p :: !prvs in
       Arg.parse_argv argv
-        [
-          "-j", Arg.Set_int Runner.jobs, "JOBS max parallel provers";
-          "-c", Arg.Clear Runner.cache, "force cache update";
-          "-q", Arg.Clear Calibration.parallel, "sequential calibration";
-          "-t", Arg.Set_int time, "MS calibration time (default 500ms)";
-          "-P", Arg.String prover, "PRV prover to calibrate";
-          "-m", Arg.Set save, "save calibration profile (master)";
-          "-v", Arg.Set velocity, "evaluate prover velocity (local)";
-        ]
+        begin
+          Wenv.args @
+          [
+            "-j", Arg.Set_int Runner.jobs, "JOBS max parallel provers";
+            "-c", Arg.Clear Runner.cache, "force cache update";
+            "-q", Arg.Clear Calibration.parallel, "sequential calibration";
+            "-t", Arg.Set_int time, "MS calibration time (default 500ms)";
+            "-P", Arg.String prover, "PRV prover to calibrate";
+            "-m", Arg.Set save, "save calibration profile (master)";
+            "-v", Arg.Set velocity, "evaluate prover velocity (local)";
+          ]
+        end
         prover
         "USAGE:\n\
          \n  why3find calibrate [OPTIONS] PROVERS\n\n\
