@@ -27,6 +27,7 @@ type t = Yojson.t
 
 val of_file : string -> t
 val to_file : string -> t -> unit
+val is_empty : t -> bool
 
 val jint : t -> int
 val jbool : t -> bool
@@ -34,6 +35,7 @@ val jfloat : t -> float
 val jstring : t -> string
 val jstringlist : t -> string list
 val jlist : t -> t list
+val jmap : (t -> 'a) -> t -> 'a list
 val jfield : string -> t -> t
 val jfield_exn : string -> t -> t
 val jmem : string -> t -> bool

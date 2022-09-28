@@ -23,10 +23,15 @@
 (* --- Why3 Environment                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-val args : (string * Arg.spec * string) list
+val options : (string * Arg.spec * string) list
+val pkg_options : unit -> (string * Arg.spec * string) list
 val get : string -> of_json:(Json.t -> 'a) -> 'a
 val set : string -> to_json:('a -> Json.t) -> 'a -> unit
 val argv : string list -> string list
+val packages : unit -> string list
+val provers : unit -> string list
+val transfs : unit -> string list
+
 val save : unit -> unit
 
 type env = {

@@ -291,7 +291,7 @@ let () = register ~name:"make"
          \n  directory DIR that contains a Makefile.\
          \n" ;
       let dir =
-        match Utils.locate ["Makefile"] with
+        match Utils.locate "Makefile" with
         | None -> failwith "Makefile not found"
         | Some(dir,_) -> Utils.chdir dir ; dir in
       let args = Array.sub argv 1 (Array.length argv - 1) in
@@ -575,24 +575,21 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
       let save = ref false in
       let velocity = ref false in
       let time = ref 500 in
-      let prvs = ref [] in
-      let prover p = prvs := p :: !prvs in
       Arg.parse_argv argv
         begin
-          Wenv.args @
+          Wenv.options @
           [
             "-j", Arg.Set_int Runner.jobs, "JOBS max parallel provers";
             "-c", Arg.Clear Runner.cache, "force cache update";
             "-q", Arg.Clear Calibration.parallel, "sequential calibration";
             "-t", Arg.Set_int time, "MS calibration time (default 500ms)";
-            "-P", Arg.String prover, "PRV prover to calibrate";
             "-m", Arg.Set save, "save calibration profile (master)";
             "-v", Arg.Set velocity, "evaluate prover velocity (local)";
           ]
         end
-        prover
+        (Utils.failwith "don't known what to do with %S")
         "USAGE:\n\
-         \n  why3find calibrate [OPTIONS] PROVERS\n\n\
+         \n  why3find calibrate [OPTIONS]\n\n\
          DESCRIPTION:\n\
          \n  Calibrate your machine.\
          \n  By default, report local velocity with respect to\
@@ -600,10 +597,11 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
          \n  Otherwize, compute the local calibration profile (without -m).\
          \n\n\
          OPTIONS:\n" ;
+      let provers = Wenv.provers () in
       if !velocity then
-        Calibration.velocity_provers (List.rev !prvs)
+        Calibration.velocity_provers provers
       else
-        Calibration.calibrate_provers ~save:!save ~time:!time (List.rev !prvs)
+        Calibration.calibrate_provers ~save:!save ~time:!time provers
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -612,9 +610,6 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
 
 let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
     begin fun argv ->
-      let pkgs = ref [] in
-      let prvs = ref [] in
-      let trfs = ref [] in
       let time = ref 5 in
       let files = ref [] in
       let ide = ref false in
@@ -625,9 +620,8 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let add r p = r := p :: !r in
       Arg.parse_argv argv
         begin
-          Wenv.args @ [
+          Wenv.options @ [
             "--local", Arg.Set Hammer.local, "no calibration (use this machine only)";
-            "-p", Arg.String (add pkgs), "PKG package dependency";
             "-c", Arg.Clear Runner.cache, "force cache update";
             "-q", Arg.Clear Calibration.parallel, "sequential calibration";
             "-a", Arg.Unit (set mode `All), "rebuild all proofs";
@@ -637,8 +631,6 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
             "-s", Arg.Set session, "save why3 session";
             "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
             "-t", Arg.Set_int time, "TIME acceptable prover timeout (default 5s)";
-            "-P", Arg.String (add prvs), "PRV use prover";
-            "-T", Arg.String (add trfs), "TRANS use transformation ";
             "--modules",  Arg.Unit (set log `Modules), "list results by module";
             "--theories", Arg.Unit (set log `Theories), "list results by theory";
             "--goals", Arg.Unit (set log `Goals), "list results by goals";
@@ -651,9 +643,9 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
          DESCRIPTION:\n\
          \n  Prove why3 files.\n\n\
          OPTIONS:\n" ;
-      let pkgs = List.rev !pkgs in
-      let provers = List.rev !prvs in
-      let transfs = List.rev !trfs in
+      let pkgs = Wenv.packages () in
+      let provers = Wenv.provers () in
+      let transfs = Wenv.transfs () in
       let session = !session || !ide in
       let files = Wenv.argv @@ List.rev !files in
       let tofix = Prove.command
@@ -683,19 +675,20 @@ let () = register ~name:"doc" ~args:"[-p PKG] FILE..."
       let out = ref "html" in
       let add r p = r := p :: !r in
       Arg.parse_argv argv
-        [
-          "-o", Arg.Set_string out,
-          "destination directory (default \"html\")" ;
-          "-p", Arg.String (add pkgs), "package dependency"
-        ]
+        begin
+          Wenv.pkg_options () @ [
+            "-o", Arg.Set_string out,
+            "destination directory (default \"html\")" ;
+          ]
+        end
         (add files)
         "USAGE:\n\
          \n  why3find query [PKG...]\n\n\
          DESCRIPTION:\n\
          \n  Query why3 package location.\n\n\
          OPTIONS:\n" ;
-      let pkgs = List.rev !pkgs in
-      let files = List.rev !files in
+      let pkgs = Wenv.packages () @ List.rev !pkgs in
+      let files = Wenv.argv @@ List.rev !files in
       let out = !out in
       Docgen.main ~pkgs ~files ~out
     end

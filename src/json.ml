@@ -53,6 +53,8 @@ let jlist = function
   | `List xs -> xs
   | _ -> []
 
+let jmap f js = jlist js |> List.map f
+
 let jstringlist js = jlist js |> List.map jstring
 
 let jmem fd = function
@@ -70,5 +72,11 @@ let jfield_exn fd = function
 let jiter f = function
   | `Assoc fds -> List.iter (fun (fd,js) -> f fd js) fds
   | _ -> ()
+
+let is_empty = function
+  | `Null -> true
+  | `List [] -> true
+  | `Assoc [] -> true
+  | _ -> false
 
 (* -------------------------------------------------------------------------- *)

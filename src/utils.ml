@@ -67,14 +67,7 @@ let rec lookup ~dir ~file ~path =
         ~dir:(F.dirname dir)
         ~path:(F.concat (F.basename dir) path)
 
-let rec findfirst ~dir = function
-  | [] -> None
-  | file::files ->
-    match lookup ~dir ~file ~path:"" with
-    | None -> findfirst ~dir files
-    | result -> result
-
-let locate files = findfirst ~dir:(Sys.getcwd()) files
+let locate file = lookup ~dir:(Sys.getcwd()) ~path:"" ~file
 
 let chdir dir =
   Sys.chdir dir ;

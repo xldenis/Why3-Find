@@ -34,11 +34,12 @@ let load () =
   if not !loaded then
     begin
       loaded := true ;
+      Hashtbl.clear sections ;
       if !chdir <> "" then
         Utils.chdir !chdir
       else
         begin
-          match Utils.locate [config;"Makefile";".git"] with
+          match Utils.locate config with
           | Some(dir,path) -> Utils.chdir dir ; prefix := path
           | None -> ()
         end ;
@@ -54,31 +55,86 @@ let set fd ~to_json value =
   Hashtbl.replace sections fd (to_json value) ;
   modified := true
 
-let save () =
-  if !modified then
-    let fields =
-      List.sort (fun a b -> String.compare (fst a) (fst b)) @@
-      Hashtbl.fold
-        (fun fd js fds -> (fd,js) :: fds)
-        sections []
-    in
-    begin
-      Json.to_file config (`Assoc fields) ;
-      Format.printf "Configuration saved to %s@."
-        (Filename.concat (Sys.getcwd ()) config) ;
-    end
+(* -------------------------------------------------------------------------- *)
+(* --- Packages                                                           --- *)
+(* -------------------------------------------------------------------------- *)
+
+let pkgs = ref []
+let prvs = ref []
+let trfs = ref []
 
 (* -------------------------------------------------------------------------- *)
 (* --- Command Line Arguments                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-let args = [
+let removal = ref false
+
+let add r a =
+  modified := true ;
+  r := a :: !r
+
+let gets fd ?(prefix=false) r =
+  load () ;
+  let cfg = try get fd ~of_json:(Json.(jmap jstring)) with Not_found -> [] in
+  if !removal then
+    let filter =
+      if prefix then
+        fun x -> not @@ List.exists (String.starts_with ~prefix:x) !r
+      else
+        fun x -> not @@ List.mem x !r
+    in List.filter filter cfg
+  else
+    cfg @ List.rev !r
+
+let sets fd xs =
+  set fd ~to_json:Fun.id (`List (List.map (fun x -> `String x) xs))
+
+let options = [
   "--root", Arg.Set_string chdir, "DIR change to directory";
+  "--package", Arg.String (add pkgs), "PKG add package dependency";
+  "--prover", Arg.String (add prvs), "PRV add automated prover";
+  "--transf", Arg.String (add trfs), "TRANS add transformation ";
+  "--remove", Arg.Set removal, "remove all specified packages, provers\
+                                and transformations";
+  "-p", Arg.String (add pkgs), " same as --package";
+  "-P", Arg.String (add prvs), " same as --prover";
+  "-T", Arg.String (add trfs), " same as --transf";
 ]
 
+let pkg_options () =
+  List.filter
+    (fun (opt,_,_) -> match opt with
+       | "--rot" | "-p" | "--package" -> true
+       | _ -> false
+    ) options
+
+let packages () = gets "packages" pkgs
+let provers () = gets "provers" ~prefix:true prvs
+let transfs () = gets "transfs" trfs
+
 let argv files =
-  load () ;
-  List.map (Filename.concat !prefix) files
+  load () ; List.map (Filename.concat !prefix) files
+
+(* -------------------------------------------------------------------------- *)
+(* --- Saving Config                                                      --- *)
+(* -------------------------------------------------------------------------- *)
+
+let save () =
+  if !modified then
+    begin
+      sets "packages" @@ packages () ;
+      sets "provers" @@ provers () ;
+      sets "transfs" @@ transfs () ;
+      let sections =
+        List.sort (fun a b -> String.compare (fst a) (fst b)) @@
+        Hashtbl.fold
+          (fun fd js fds -> (fd,js) :: fds)
+          sections []
+      in Json.to_file config (`Assoc sections) ;
+      Format.printf "Configuration saved to %s@."
+        (Filename.concat (Sys.getcwd ()) config) ;
+      loaded := false ;
+    end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Why3 Environment                                                   --- *)

@@ -26,7 +26,7 @@
 val mkdirs : string -> unit
 val cleanup : string -> unit
 val copy : src:string -> tgt:string -> unit
-val locate : string list -> (string * string) option
+val locate : string -> (string * string) option
 val chdir : string -> unit
 
 val pp_ok : Format.formatter -> unit
