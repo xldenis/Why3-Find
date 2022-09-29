@@ -31,6 +31,7 @@ type henv = {
   time : float ;
   provers : Runner.prover list ;
   transfs : string list ;
+  minimize : bool ;
 }
 
 type node = {
@@ -111,7 +112,7 @@ let rec subgoals profile goals hints =
   | g::gs, h::hs -> schedule profile g h :: subgoals profile gs hs
 
 let apply env tr hs : strategy = fun n ->
-  match Session.apply env tr n.goal with
+  match Session.apply env.Wenv.wenv tr n.goal with
   | None -> stuck
   | Some gs -> Crc.apply tr @+ Fibers.all @@ subgoals n.profile gs hs
 
@@ -131,14 +132,13 @@ let hammer1 env prvs time : strategy = fun n ->
   in try List.find (fun r -> r <> Stuck) results with Not_found -> Stuck
 
 let hammer2 env trfs : strategy =
-  smap (fun tr -> apply env.Wenv.wenv tr []) trfs
+  smap (fun tr -> apply env tr []) trfs
 
 let hammer henv =
-  hammer0 henv.env henv.provers (henv.time *. 0.5) >>>
+  hammer0 henv.env henv.provers (henv.time *. 0.2) >>>
   hammer1 henv.env henv.provers henv.time >>>
   hammer2 henv.env henv.transfs >>>
-  hammer1 henv.env henv.provers (henv.time *. 2.0) >>>
-  fail
+  hammer1 henv.env henv.provers (henv.time *. 2.0)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Node Processing                                                    --- *)
@@ -151,11 +151,27 @@ let overhead t = max (t *. 2.0) 1.0
 let check h p t =
   prove h.env (select p h.provers) (overhead t) >>> hammer h
 
-let process henv : strategy = fun n ->
+let transf h id cs =
+  apply h.env id cs >>>
+  hammer1 h.env h.provers h.time >>>
+  hammer2 h.env (List.filter (fun f -> f <> id) h.transfs) >>>
+  hammer1 h.env h.provers (h.time *. 2.0)
+
+let reduce h id cs =
+  hammer1 h.env h.provers h.time >>>
+  apply h.env id cs >>>
+  hammer2 h.env (List.filter (fun f -> f <> id) h.transfs) >>>
+  hammer1 h.env h.provers (h.time *. 2.0)
+
+let process h : strategy = fun n ->
   match n.hint with
-  | Stuck -> hammer henv n
-  | Prover(p,t) -> check henv p t n
-  | Transf { id ; children } -> apply henv.env.Wenv.wenv id children n
+  | Stuck -> hammer h n
+  | Prover(p,t) -> check h p t n
+  | Transf { id ; children } ->
+    if h.minimize then
+      reduce h id children n
+    else
+      transf h id children n
 
 (* -------------------------------------------------------------------------- *)
 (* --- Main Loop                                                          --- *)

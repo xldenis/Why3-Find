@@ -75,7 +75,7 @@ let load_proofs file : profile * theories =
 let save_proofs ~mode dir file profile (prfs : proofs) =
   match mode with
   | `Replay -> ()
-  | `Update | `All ->
+  | `Minimize | `Update | `Force ->
     Utils.mkdirs dir ;
     Json.to_file file @@ `Assoc [
       "profile", Calibration.to_json profile ;
@@ -86,7 +86,7 @@ let save_proofs ~mode dir file profile (prfs : proofs) =
 (* --- Single File Processing                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-type mode = [ `Update | `All | `Replay ]
+type mode = [ `Force | `Update | `Minimize | `Replay ]
 type log0 = [ `Modules | `Theories | `Goals | `Proofs ]
 type log = [ `Default | log0 ]
 
@@ -120,11 +120,11 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
                   let hint = M.find_def Crc.Stuck goal hints in
                   let+ crc =
                     match mode with
-                    | `All ->
+                    | `Force ->
                       Hammer.schedule profile task Stuck
                     | `Replay ->
                       Hammer.schedule profile task hint
-                    | `Update ->
+                    | `Update | `Minimize ->
                       Crc.merge hint @+ Hammer.schedule profile task hint
                   in
                   stuck := !stuck + Crc.stuck crc ;
@@ -193,11 +193,12 @@ let prove_files ~time ~mode ~session ~log ~pkgs ~provers ~transfs ~files =
     let env = Wenv.init ~pkgs in
     let provers = Runner.select env provers in
     let unsuccess = ref [] in
+    let minimize = (mode = `Minimize) in
     let log : log0 = match log with
       | `Default -> if List.length files > 1 then `Modules else `Theories
       | #log0 as l -> l in
     List.iter (process ~env ~mode ~session ~log ~unsuccess) files ;
-    Hammer.run { env ; time ; provers ; transfs } ;
+    Hammer.run { env ; time ; provers ; transfs ; minimize } ;
     if Utils.tty then Runner.report_stats () ;
     List.rev !unsuccess ;
   end

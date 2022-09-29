@@ -23,7 +23,7 @@
 (* --- Proof Manager                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-type mode = [ `Update | `All | `Replay ]
+type mode = [ `Force | `Update | `Minimize | `Replay ]
 type log = [ `Default | `Modules | `Theories | `Goals | `Proofs ]
 
 val prove_files :

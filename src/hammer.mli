@@ -35,6 +35,7 @@ type henv = {
   time : float ;
   provers : Runner.prover list ;
   transfs : string list ;
+  minimize : bool ;
 }
 
 val run : henv -> unit
