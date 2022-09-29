@@ -28,11 +28,16 @@ val pkg_options : unit -> (string * Arg.spec * string) list
 val get : string -> of_json:(Json.t -> 'a) -> 'a
 val set : string -> to_json:('a -> Json.t) -> 'a -> unit
 val argv : string list -> string list
+
+val is_modified : unit -> bool
+
 val packages : unit -> string list
 val provers : unit -> string list
 val transfs : unit -> string list
 
-val is_modified : unit -> bool
+val set_packages : string list -> unit
+val set_provers : string list -> unit
+val set_transfs : string list -> unit
 
 val load : unit -> unit
 val save : unit -> unit

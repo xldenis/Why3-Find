@@ -32,6 +32,8 @@ type result =
 
 val id : prover -> string
 val name : prover -> string
+val title : ?strict:bool -> prover -> string
+val relax : string -> string
 
 val default : env -> prover list
 val prover : env -> string -> prover

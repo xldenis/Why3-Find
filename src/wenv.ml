@@ -89,9 +89,6 @@ let gets fd ?(prefix=false) ?(default=[]) r =
   else
     cfg @ List.rev !r
 
-let sets fd xs =
-  set fd ~to_json:Fun.id (`List (List.map (fun x -> `String x) xs))
-
 let options = [
   "--root", Arg.Set_string chdir, "DIR change to directory";
   "--package", Arg.String (add pkgs), "PKG add package dependency";
@@ -115,6 +112,13 @@ let packages () = gets "packages" pkgs
 let provers () = gets "provers" ~prefix:true prvs
 let transfs () = gets "transfs" ~default:["split_vc";"inline_goal" ] trfs
 
+let sets fd xs =
+  set fd ~to_json:Fun.id (`List (List.map (fun x -> `String x) xs))
+
+let set_packages = sets "packages"
+let set_provers = sets "provers"
+let set_transfs = sets "transfs"
+
 let argv files =
   load () ; List.map (Filename.concat !prefix) files
 
@@ -127,9 +131,6 @@ let is_modified () = !modified
 let save () =
   if !modified then
     begin
-      sets "packages" @@ packages () ;
-      sets "provers" @@ provers () ;
-      sets "transfs" @@ transfs () ;
       let sections =
         List.sort (fun a b -> String.compare (fst a) (fst b)) @@
         Hashtbl.fold

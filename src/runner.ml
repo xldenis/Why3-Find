@@ -45,6 +45,7 @@ type callback =
 
 let id prv = prover_parseable_format prv.config.prover
 let name prv = String.lowercase_ascii @@ prv.config.prover.prover_name
+let title ?(strict=false) p = if strict then id p else name p
 
 let pp_prover fmt prv = Format.pp_print_string fmt @@ id prv
 
@@ -66,6 +67,12 @@ let find_default env name =
   match find_exact env name with
   | Some prv -> [prv]
   | None -> []
+
+let relax name =
+  String.lowercase_ascii @@
+  match String.split_on_char ',' name with
+  | shortname :: _ :: _ -> shortname
+  | _ -> name
 
 let prover env name =
   try

@@ -574,6 +574,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
       let list = ref false in
       let save = ref false in
+      let strict = ref false in
+      let relax = ref false in
       let calibrate = ref false in
       let velocity = ref false in
       Arg.parse_argv argv
@@ -585,6 +587,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             "-v", Arg.Set velocity, "evaluate prover velocity (local)";
             "-l", Arg.Set list, "list final configuration";
             "-s", Arg.Set save, "save project configuration";
+            "--relax", Arg.Set relax, "relax prover version constraints";
+            "--strict", Arg.Set strict, "save strict prover versions";
           ]
         end
         (Utils.failwith "don't known what to do with %S")
@@ -607,26 +611,35 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
           List.iter (Format.printf " - %s@.") pkgs ;
         end ;
       (* --- Provers ----- *)
-      if !list then Format.printf "Provers Configuration:@." ;
-      let provers = Runner.select env @@ Wenv.provers () in
+      let list_provers = !list || !relax || !strict in
+      if list_provers then Format.printf "Provers Configuration:@." ;
+      let pconfig = Wenv.provers () in
+      let pconfig =
+        if !relax then List.map Runner.relax pconfig else pconfig in
+      let provers = Runner.select env @@ pconfig in
       if !calibrate then
         Calibration.calibrate_provers ~saved:!save env provers
       else
-      if !velocity || !list then
+      if !velocity then
         Calibration.velocity_provers env provers ;
+      let provers = if !strict then List.map Runner.id provers else pconfig in
+      if list_provers && not !velocity && not !calibrate then
+        List.iter (Format.printf " - %s@.") provers ;
       (* --- Transformations ----- *)
-      if !list then
+      let transfs = Wenv.transfs () in
+      if !list && transfs <> [] then
         begin
-          let transfs = Wenv.transfs () in
-          if transfs <> [] then
-            begin
-              Format.printf "Proof Transformations:@." ;
-              List.iter (Format.printf " - %s@.") transfs ;
-            end ;
+          Format.printf "Proof Transformations:@." ;
+          List.iter (Format.printf " - %s@.") transfs ;
         end ;
       if !save then
-        Wenv.save ()
-      else if Wenv.is_modified () then
+        begin
+          Wenv.set_packages pkgs ;
+          Wenv.set_provers provers ;
+          Wenv.set_transfs transfs ;
+          Wenv.save () ;
+        end
+      else if !strict || !relax || Wenv.is_modified () then
         Format.printf "Use '-s' to save project configuration.@." ;
     end
 
