@@ -212,13 +212,14 @@ and spawn p na ng nb =
 (* --- Problem Lookup                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-let parallel = ref true
+let reftime = ref 0.5
+let sequential = ref false
 
 let lookup ~progress q prv =
-  if !parallel then
-    parlookup (pguess ~progress q prv)
-  else
+  if !sequential then
     seqlookup ~progress q prv (guess prv) None
+  else
+    parlookup (pguess ~progress q prv)
 
 (* -------------------------------------------------------------------------- *)
 (* --- On-the-fly Calibration                                             --- *)
@@ -232,7 +233,7 @@ let calibrate ?(progress=false) env prv : (int * float) option Fibers.t =
     let v = Fibers.var () in
     let c = Fibers.get v in
     Hashtbl.add qhash (id prv) c ;
-    let q = qenv env 0.5 in
+    let q = qenv env !reftime in
     let job = lookup ~progress q prv in
     Fibers.await job (Fibers.set v) ; c
 
@@ -314,20 +315,19 @@ let iter f profile =
   Hashtbl.fold (fun p g w -> (p,g.size,g.time)::w) profile []
 
 (* -------------------------------------------------------------------------- *)
-(* --- Testing Calibration                                                --- *)
+(* --- Calibration                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
 let default () =
   try Wenv.get "profile" ~of_json:(of_json ?default:None)
   with Not_found -> empty ()
 
-let calibrate_provers ~save ~time provers =
+let calibrate_provers ~save ~provers =
   Fibers.run @@
   begin
     let env = Wenv.init ~pkgs:[] in
-    let time = float time *. 1e-3 in
     let provers = Runner.select env provers in
-    let q = qenv env time in
+    let q = qenv env !reftime in
     let* results =
       Fibers.all @@ List.map
         (fun prv ->
@@ -388,5 +388,14 @@ let velocity_provers provers =
       ) results ;
     Fibers.return () ;
   end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Options                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let options = [
+  "--reftime", Arg.Set_float reftime, "TIME set calibration time (default 0.5s)" ;
+  "--sequential", Arg.Set sequential, "use sequential calibration algorithm" ;
+]
 
 (* -------------------------------------------------------------------------- *)

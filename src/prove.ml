@@ -188,9 +188,8 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
 (* --- Prove Command                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-let command ~time ~mode ~session ~log ~pkgs ~provers ~transfs ~files =
+let prove_files ~time ~mode ~session ~log ~pkgs ~provers ~transfs ~files =
   begin
-    let time = float time in
     let env = Wenv.init ~pkgs in
     let provers = Runner.select env provers in
     let transfs = [ "split_vc" ; "inline_goal" ] @ transfs in

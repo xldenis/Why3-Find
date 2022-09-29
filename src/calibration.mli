@@ -33,9 +33,10 @@ val iter : (string -> int -> float -> unit) -> profile -> unit
 
 val observed : profile -> Runner.prover -> float
 val velocity : Wenv.env -> profile -> Runner.prover -> float Fibers.t
-val parallel : bool ref
 
-val calibrate_provers : save:bool -> time:int -> string list -> unit
+val calibrate_provers : save:bool -> provers:string list -> unit
 val velocity_provers : string list -> unit
+
+val options : (string * Arg.spec * string) list
 
 (* -------------------------------------------------------------------------- *)

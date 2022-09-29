@@ -55,8 +55,7 @@ val prove : env ->
   ?callback:callback ->
   task -> prover -> float -> result Fibers.t
 
-val jobs : int ref
-val cache : bool ref
+val options : (string * Arg.spec * string) list
 val pending : unit -> int
 val running : unit -> int
 val pp_goals : Format.formatter -> unit

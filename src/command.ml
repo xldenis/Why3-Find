@@ -567,24 +567,24 @@ let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- CALIBRATE                                                          --- *)
+(* --- CONFIGURATION                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
+let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
+      let list = ref false in
       let save = ref false in
+      let calibrate = ref false in
       let velocity = ref false in
-      let time = ref 500 in
       Arg.parse_argv argv
         begin
           Wenv.options @
+          Runner.options @
           [
-            "-j", Arg.Set_int Runner.jobs, "JOBS max parallel provers";
-            "-c", Arg.Clear Runner.cache, "force cache update";
-            "-q", Arg.Clear Calibration.parallel, "sequential calibration";
-            "-t", Arg.Set_int time, "MS calibration time (default 500ms)";
-            "-m", Arg.Set save, "save calibration profile (master)";
+            "-m", Arg.Set calibrate, "calibrate provers (master)";
             "-v", Arg.Set velocity, "evaluate prover velocity (local)";
+            "-l", Arg.Set list, "list final configuration";
+            "-s", Arg.Set save, "save project configuration";
           ]
         end
         (Utils.failwith "don't known what to do with %S")
@@ -601,7 +601,7 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
       if !velocity then
         Calibration.velocity_provers provers
       else
-        Calibration.calibrate_provers ~save:!save ~time:!time provers
+        Calibration.calibrate_provers ~save:!save ~provers
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -610,31 +610,30 @@ let () = register ~name:"calibrate" ~args:"[OPTIONS] PROVERS"
 
 let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
     begin fun argv ->
-      let time = ref 5 in
       let files = ref [] in
       let ide = ref false in
       let session = ref false in
       let log = ref `Default in
       let mode = ref `Update in
+      let time = ref 1.0 in
       let set m v () = m := v in
       let add r p = r := p :: !r in
       Arg.parse_argv argv
         begin
-          Wenv.options @ [
-            "--local", Arg.Set Hammer.local, "no calibration (use this machine only)";
-            "-c", Arg.Clear Runner.cache, "force cache update";
-            "-q", Arg.Clear Calibration.parallel, "sequential calibration";
+          Wenv.options @
+          Runner.options @
+          [
+            "-t", Arg.Set_float time, "TIME prover time (default 1.0s)";
             "-a", Arg.Unit (set mode `All), "rebuild all proofs";
             "-u", Arg.Unit (set mode `Update), "update proofs (default)";
             "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
             "-i", Arg.Set ide, "run why-3 IDE on error (implies -s)";
             "-s", Arg.Set session, "save why3 session";
-            "-j", Arg.Set_int Runner.jobs, "JOBS max running provers";
-            "-t", Arg.Set_int time, "TIME acceptable prover timeout (default 5s)";
             "--modules",  Arg.Unit (set log `Modules), "list results by module";
             "--theories", Arg.Unit (set log `Theories), "list results by theory";
             "--goals", Arg.Unit (set log `Goals), "list results by goals";
             "--proofs",   Arg.Unit (set log `Proofs), "list proofs by goals";
+            "--local", Arg.Set Hammer.local, "no calibration (use this machine only)";
           ]
         end
         (add files)
@@ -648,9 +647,9 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let transfs = Wenv.transfs () in
       let session = !session || !ide in
       let files = Wenv.argv @@ List.rev !files in
-      let tofix = Prove.command
+      let tofix = Prove.prove_files
           ~mode:!mode ~session ~log:!log
-          ~time:!time ~provers ~transfs ~pkgs ~files
+          ~time:1.0 ~provers ~transfs ~pkgs ~files
       in match tofix with
       | [] -> ()
       | f::_ ->

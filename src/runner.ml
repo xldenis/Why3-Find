@@ -355,6 +355,15 @@ let prove env ?name ?cancel ?callback task prover time =
        (fun result -> set entry result ; result)
        (call_prover env ?name ?cancel ?callback task prover time))
 
+(* -------------------------------------------------------------------------- *)
+(* --- Options                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let options = [
+  "-c", Arg.Clear cache, "force cache update";
+  "-j", Arg.Set_int jobs, "JOBS max parallel provers";
+]
+
 let report_stats () =
   let h = !hits in
   let m = !miss in

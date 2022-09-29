@@ -134,7 +134,7 @@ let hammer2 env trfs : strategy =
   smap (fun tr -> apply env.Wenv.wenv tr []) trfs
 
 let hammer henv =
-  hammer0 henv.env henv.provers 0.2 >>>
+  hammer0 henv.env henv.provers (henv.time *. 0.5) >>>
   hammer1 henv.env henv.provers henv.time >>>
   hammer2 henv.env henv.transfs >>>
   hammer1 henv.env henv.provers (henv.time *. 2.0) >>>

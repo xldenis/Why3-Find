@@ -26,8 +26,8 @@
 type mode = [ `Update | `All | `Replay ]
 type log = [ `Default | `Modules | `Theories | `Goals | `Proofs ]
 
-val command :
-  time:int ->
+val prove_files :
+  time:float ->
   mode:mode ->
   session:bool ->
   log:log ->
