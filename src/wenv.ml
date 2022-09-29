@@ -119,8 +119,11 @@ let set_packages = sets "packages"
 let set_provers = sets "provers"
 let set_transfs = sets "transfs"
 
-let argv files =
-  load () ; List.map (Filename.concat !prefix) files
+let arg0 file =
+  if Filename.is_relative file then Filename.concat !prefix file else file
+
+let arg1 file = load () ; arg0 file
+let argv files = load () ; List.map arg0 files
 
 (* -------------------------------------------------------------------------- *)
 (* --- Saving Config                                                      --- *)

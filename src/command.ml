@@ -711,7 +711,7 @@ let () = register ~name:"doc" ~args:"[-p PKG] FILE..."
     begin fun argv ->
       let pkgs = ref [] in
       let files = ref [] in
-      let out = ref "html" in
+      let out = ref "" in
       let add r p = r := p :: !r in
       Arg.parse_argv argv
         begin
@@ -728,7 +728,7 @@ let () = register ~name:"doc" ~args:"[-p PKG] FILE..."
          OPTIONS:\n" ;
       let pkgs = Wenv.packages () @ List.rev !pkgs in
       let files = Wenv.argv @@ List.rev !files in
-      let out = !out in
+      let out = if !out = "" then "html" else Wenv.arg1 !out in
       Docgen.main ~pkgs ~files ~out
     end
 
