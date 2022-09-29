@@ -322,11 +322,9 @@ let default () =
   try Wenv.get "profile" ~of_json:(of_json ?default:None)
   with Not_found -> empty ()
 
-let calibrate_provers ~save ~provers =
+let calibrate_provers ~saved env provers =
   Fibers.run @@
   begin
-    let env = Wenv.init ~pkgs:[] in
-    let provers = Runner.select env provers in
     let q = qenv env !reftime in
     let* results =
       Fibers.all @@ List.map
@@ -340,26 +338,19 @@ let calibrate_provers ~save ~provers =
       (fun (prv,res) ->
          match res with
          | None ->
-           Format.printf "%-16s no result@." (id prv)
+           Format.printf " - %-16s no result@." (id prv)
          | Some(n,t) ->
            Hashtbl.add profile (id prv) { size = n ; time = t ; alpha = 1.0 } ;
-           Format.printf "%-16s n=%d %a (local)@." (id prv) n Utils.pp_time t
+           Format.printf " - %-16s n=%d %a (%s)@." (id prv) n Utils.pp_time t
+             (if saved then "master" else "locally")
       ) results ;
-    if save then
-      begin
-        Wenv.set "profile" ~to_json profile ;
-        Wenv.save () ;
-      end
-    else
-      Format.printf "Use -m to define as master calibration profile@." ;
+    Wenv.set "profile" ~to_json profile ;
     Fibers.return () ;
   end
 
-let velocity_provers provers =
+let velocity_provers env provers =
   Fibers.run @@
   begin
-    let env = Wenv.init ~pkgs:[] in
-    let provers = Runner.select env provers in
     let profile = default () in
     let* results =
       Fibers.all @@ List.map
@@ -377,14 +368,14 @@ let velocity_provers provers =
       (fun (prv,res) ->
          match res with
          | Some(n,t,1.0) ->
-           Format.printf "%-16s n=%d %a (master)@."
+           Format.printf " - %-16s n=%d %a (master)@."
              (id prv) n Utils.pp_time t
          | Some(n,tm,a) ->
            let tl = tm *. a in
-           Format.printf "%-16s n=%d %a / %a (velocity %.1f)@."
+           Format.printf " - %-16s n=%d %a / %a (velocity %.1f)@."
              (id prv) n Utils.pp_time tl Utils.pp_time tm a
          | None ->
-           Format.printf "%-16s no profile (use -m)@." (id prv)
+           Format.printf " - %-16s no profile (use -m)@." (id prv)
       ) results ;
     Fibers.return () ;
   end

@@ -192,7 +192,6 @@ let prove_files ~time ~mode ~session ~log ~pkgs ~provers ~transfs ~files =
   begin
     let env = Wenv.init ~pkgs in
     let provers = Runner.select env provers in
-    let transfs = [ "split_vc" ; "inline_goal" ] @ transfs in
     let unsuccess = ref [] in
     let log : log0 = match log with
       | `Default -> if List.length files > 1 then `Modules else `Theories

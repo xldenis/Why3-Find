@@ -32,6 +32,9 @@ val packages : unit -> string list
 val provers : unit -> string list
 val transfs : unit -> string list
 
+val is_modified : unit -> bool
+
+val load : unit -> unit
 val save : unit -> unit
 
 type env = {

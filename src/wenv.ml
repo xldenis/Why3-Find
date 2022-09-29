@@ -73,9 +73,12 @@ let add r a =
   modified := true ;
   r := a :: !r
 
-let gets fd ?(prefix=false) r =
+let gets fd ?(prefix=false) ?(default=[]) r =
   load () ;
-  let cfg = try get fd ~of_json:(Json.(jmap jstring)) with Not_found -> [] in
+  let cfg =
+    try get fd ~of_json:(Json.(jmap jstring))
+    with Not_found -> default
+  in
   if !removal then
     let filter =
       if prefix then
@@ -110,7 +113,7 @@ let pkg_options () =
 
 let packages () = gets "packages" pkgs
 let provers () = gets "provers" ~prefix:true prvs
-let transfs () = gets "transfs" trfs
+let transfs () = gets "transfs" ~default:["split_vc";"inline_goal" ] trfs
 
 let argv files =
   load () ; List.map (Filename.concat !prefix) files
@@ -118,6 +121,8 @@ let argv files =
 (* -------------------------------------------------------------------------- *)
 (* --- Saving Config                                                      --- *)
 (* -------------------------------------------------------------------------- *)
+
+let is_modified () = !modified
 
 let save () =
   if !modified then

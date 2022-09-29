@@ -597,11 +597,37 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
          \n  Otherwize, compute the local calibration profile (without -m).\
          \n\n\
          OPTIONS:\n" ;
-      let provers = Wenv.provers () in
-      if !velocity then
-        Calibration.velocity_provers provers
+      Wenv.load () ;
+      (* --- Packages ---- *)
+      let pkgs = Wenv.packages () in
+      let env = Wenv.init ~pkgs in
+      if !list && pkgs <> [] then
+        begin
+          Format.printf "Package Dependencies:@." ;
+          List.iter (Format.printf " - %s@.") pkgs ;
+        end ;
+      (* --- Provers ----- *)
+      if !list then Format.printf "Provers Configuration:@." ;
+      let provers = Runner.select env @@ Wenv.provers () in
+      if !calibrate then
+        Calibration.calibrate_provers ~saved:!save env provers
       else
-        Calibration.calibrate_provers ~save:!save ~provers
+      if !velocity || !list then
+        Calibration.velocity_provers env provers ;
+      (* --- Transformations ----- *)
+      if !list then
+        begin
+          let transfs = Wenv.transfs () in
+          if transfs <> [] then
+            begin
+              Format.printf "Proof Transformations:@." ;
+              List.iter (Format.printf " - %s@.") transfs ;
+            end ;
+        end ;
+      if !save then
+        Wenv.save ()
+      else if Wenv.is_modified () then
+        Format.printf "Use '-s' to save project configuration.@." ;
     end
 
 (* -------------------------------------------------------------------------- *)
