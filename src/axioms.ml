@@ -23,18 +23,14 @@
 (* --- Compute Axioms                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-module Sid = Why3.Ident.Sid
-module Mid = Why3.Ident.Mid
+open Why3
+module Sid = Ident.Sid
+module Mid = Ident.Mid
+module Hid = Ident.Hid
 
-(* module Thy = Why3.Theory *)
-(* module Mod = Why3.Pmodule *)
-(* module Hid = Why3.Ident.Hid *)
-(* module Extract = Why3.Pdriver *)
-
-(*
-type kind = [ `Type | `Logic | `Program | `Axiom ]
-type role = { kind : kind ; builtin : bool ; extern : bool }
-*)
+(* module Thy = Theory *)
+(* module Mod = Pmodule *)
+(* module Extract = Pdriver *)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Builtin & Extracted Environments                                   --- *)
@@ -42,34 +38,186 @@ type role = { kind : kind ; builtin : bool ; extern : bool }
 
 type henv = {
   builtins : Sid.t ;
-  extracted : Sid.t ;
+  externals : Sid.t ;
 }
 
 let ocaml64 =
-  Filename.concat Why3.Config.datadir @@
+  Filename.concat Config.datadir @@
   Filename.concat "drivers" "ocaml64.drv"
+
+let drivers (pkg : Meta.pkg) =
+  List.map (Filename.concat pkg.path) pkg.drivers
 
 let init (wenv : Wenv.env) =
   let provers = Runner.select wenv @@ Wenv.provers () in
   let builtins = List.fold_left
       (fun s Runner.{ driver } ->
-         Sid.union s @@ Mid.domain @@ Why3.Driver.syntax_map driver)
-      Sid.empty provers
-  in
-  let drivers = List.concat_map (fun pkg -> pkg.Meta.drivers) wenv.pkgs in
-  let pdriver = Why3.Pdriver.load_driver wenv.wenv ocaml64 drivers in
-  let extracted = Mid.domain @@ pdriver.drv_syntax in
-  { builtins ; extracted }
+         Sid.union s @@ Mid.domain @@ Driver.syntax_map driver)
+      Sid.empty provers in
+  let drivers = List.concat_map drivers wenv.pkgs in
+  let pdriver = Pdriver.load_driver wenv.wenv ocaml64 drivers in
+  let externals = Mid.domain @@ pdriver.drv_syntax in
+  { builtins ; externals }
 
-(*
-type axioms = {
-  locals : role Mid.t ;
-  theories : Sid.t ;
+(* -------------------------------------------------------------------------- *)
+(* --- Theory & Module Assumed Symbols                                    --- *)
+(* -------------------------------------------------------------------------- *)
+
+type kind =
+  | Type of Ty.tysymbol
+  | Logic of Term.lsymbol
+  | Value of Expr.rsymbol
+  | Axiom of Decl.prsymbol
+
+let ident = function
+  | Type ty -> ty.ts_name
+  | Logic ls -> ls.ls_name
+  | Value rs -> rs.rs_name
+  | Axiom pr -> pr.pr_name
+
+type parameter = { kind : kind ; builtin : bool ; extern : bool }
+type hypotheses = { parameters : int ; assumed : int }
+
+type signature = {
+  params : int ;
+  locals : parameter Mid.t ;
+  used_theories : Theory.theory list ;
+  cloned_theories : Theory.theory list ;
 }
 
-let axioms = Hid.create 0
+let empty = {
+  params = 0 ;
+  locals = Mid.empty ;
+  used_theories = [] ;
+  cloned_theories = [] ;
+}
 
-let assumed { builtin ; extern } = not builtin && not extern
-*)
+let add henv hs kind =
+  let id = ident kind in
+  let builtin = Sid.mem id henv.builtins in
+  let extern = Sid.mem id henv.externals in
+  let prm = { kind ; builtin ; extern } in
+  let params = if builtin || extern then hs.params else succ hs.params in
+  { hs with params ; locals = Mid.add id prm hs.locals }
+
+let add_used hs (thy : Theory.theory) =
+  { hs with used_theories = thy :: hs.used_theories }
+
+let add_cloned hs (thy : Theory.theory) =
+  { hs with cloned_theories = thy :: hs.cloned_theories }
+
+(* -------------------------------------------------------------------------- *)
+(* --- Theory Declarations                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let nodef (td : _ Ty.type_def) = match td with
+  | NoDef -> true
+  | Alias _ | Range _ | Float _ -> false
+
+let add_type henv hs (ty : Ty.tysymbol) =
+  if nodef ty.ts_def then add henv hs (Type ty) else hs
+
+let add_prop henv hs (pk : Decl.prop_kind) (pr : Decl.prsymbol) =
+  match pk with
+  | Plemma | Pgoal -> hs
+  | Paxiom -> add henv hs (Axiom pr)
+
+let add_decl henv (hs : signature) (d : Decl.decl) : signature =
+  match d.d_node with
+  | Dtype ty -> add_type henv hs ty
+  | Ddata _ -> hs
+  | Dparam ls -> add henv hs (Logic ls)
+  | Dlogic _ | Dind _ -> hs
+  | Dprop(pk,pr,_) -> add_prop henv hs pk pr
+
+let add_tdecl henv (hs : signature) (d : Theory.tdecl) : signature =
+  match d.td_node with
+  | Decl d -> add_decl henv hs d
+  | Use thy -> add_used hs thy
+  | Clone(thy,_) -> add_cloned hs thy
+  | Meta _ -> hs
+
+let theory_signature henv (thy : Theory.theory) =
+  List.fold_left (add_tdecl henv) empty thy.th_decls
+
+(* -------------------------------------------------------------------------- *)
+(* --- Module Declarations                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
+  let its = it.itd_its in
+  if nodef its.its_def then add henv hs (Type its.its_ts) else hs
+
+let add_rsymbol henv hs (rs : Expr.rsymbol) (cexp : Expr.cexp) =
+  match cexp.c_node with
+  | Cany -> add henv hs (Value rs)
+  | _ -> hs
+
+let add_letrec henv (hs : signature) (def : Expr.rec_defn) : signature =
+  add_rsymbol henv hs def.rec_sym def.rec_fun
+
+let add_pdecl henv (hs : signature) (d : Pdecl.pdecl) : signature =
+  match d.pd_node with
+  | PDtype tys -> List.fold_left (add_mtype henv) hs tys
+  | PDlet (LDvar _) -> hs
+  | PDlet (LDsym(r,c)) -> add_rsymbol henv hs r c
+  | PDlet (LDrec defs) -> List.fold_left (add_letrec henv) hs defs
+  | PDexn _ -> hs
+  | PDpure -> List.fold_left (add_decl henv) hs d.pd_pure
+
+let rec  add_munit henv (hs : signature) (m : Pmodule.mod_unit) : signature =
+  match m with
+  | Udecl pd -> add_pdecl henv hs pd
+  | Uuse pm -> add_used hs pm.mod_theory
+  | Uclone mi -> add_cloned hs mi.mi_mod.mod_theory
+  | Uscope(_,ms) -> List.fold_left (add_munit henv) hs ms
+  | Umeta _ -> hs
+
+let module_signature henv (pm : Pmodule.pmodule) : signature =
+  List.fold_left (add_munit henv) empty pm.mod_units
+
+(* -------------------------------------------------------------------------- *)
+(* --- Signatute & Hypotheses                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let sigs = Hid.create 0
+let hyps = Hid.create 0
+
+let signature henv (thy : Theory.theory) =
+  let id = thy.th_name in
+  try Hid.find sigs id
+  with Not_found ->
+    let hs =
+      try module_signature henv @@ Pmodule.restore_module thy
+      with Not_found -> theory_signature henv thy
+    in Hid.add sigs id hs ; hs
+
+let parameter signature id =
+  Mid.find_opt id signature.locals
+
+let hypotheses henv (thy : Theory.theory) =
+  let th = thy.th_name in
+  try Hid.find hyps th
+  with Not_found ->
+    let ths = ref Mid.empty in
+    let rec add ~locals (thy : Theory.theory) =
+      let id = thy.th_name in
+      if not @@ Mid.mem id !ths then
+        begin
+          let s = signature henv thy in
+          if locals then
+            ths := Mid.add id s !ths ;
+          add_signature s ;
+        end
+    and add_signature s =
+      List.iter (add ~locals:true) s.used_theories ;
+      List.iter (add ~locals:false) s.cloned_theories ;
+    in
+    let s = signature henv thy in
+    add_signature s ;
+    let parameters = s.params in
+    let assumed = Mid.fold (fun _ s n -> n + s.params) !ths 0 in
+    let hs = { parameters ; assumed } in
+    Hid.add hyps th hs ; hs
 
 (* -------------------------------------------------------------------------- *)

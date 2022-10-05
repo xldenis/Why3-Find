@@ -26,4 +26,21 @@
 type henv
 val init : Wenv.env -> henv
 
+open Why3
+
+type signature
+val signature : henv -> Theory.theory -> signature
+
+type kind =
+  | Type of Ty.tysymbol
+  | Logic of Term.lsymbol
+  | Value of Expr.rsymbol
+  | Axiom of Decl.prsymbol
+
+type parameter = { kind : kind ; builtin : bool ; extern : bool }
+val parameter : signature -> Ident.ident -> parameter option
+
+type hypotheses = { parameters : int ; assumed : int }
+val hypotheses : henv -> Theory.theory -> hypotheses
+
 (* -------------------------------------------------------------------------- *)
