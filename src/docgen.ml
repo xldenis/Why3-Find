@@ -744,9 +744,9 @@ let shared ~out ~file =
   let src = Meta.shared file in
   Utils.copy ~src ~tgt
 
-let main ~pkgs ~out ~files =
+let generate ~out ~files =
   begin
-    let Wenv.{ wenv = why3env } = Docref.init ~pkgs in
+    let Wenv.{ wenv = why3env } = Docref.init () in
     Utils.mkdirs @@ Filename.concat out "fonts" ;
     shared ~out ~file:"style.css" ;
     shared ~out ~file:"script.js" ;

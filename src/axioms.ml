@@ -20,60 +20,52 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Global References                                                  --- *)
+(* --- Compute Axioms                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-val init : unit -> Wenv.env
+module Sid = Why3.Ident.Sid
+module Mid = Why3.Ident.Mid
 
-module Mstr = Why3.Wstdlib.Mstr
+(* module Thy = Why3.Theory *)
+(* module Mod = Why3.Pmodule *)
+(* module Hid = Why3.Ident.Hid *)
+(* module Extract = Why3.Pdriver *)
 
-type ident = Why3.Ident.ident
+(*
+type kind = [ `Type | `Logic | `Program | `Axiom ]
+type role = { kind : kind ; builtin : bool ; extern : bool }
+*)
 
-type section = {
-  cloned_path : string ;
-  cloned_order : int ;
+(* -------------------------------------------------------------------------- *)
+(* --- Builtin & Extracted Environments                                   --- *)
+(* -------------------------------------------------------------------------- *)
+
+type henv = {
+  builtins : Sid.t ;
+  extracted : Sid.t ;
 }
 
-type clone = {
-  id_section : section ;
-  id_source : Why3.Ident.ident ;
-  id_target : Why3.Ident.ident ;
+let init (wenv : Wenv.env) =
+  let provers = Runner.select wenv @@ Wenv.provers () in
+  let builtins = List.fold_left
+      (fun s Runner.{ driver } ->
+         Sid.union s @@ Mid.domain @@ Why3.Driver.syntax_map driver)
+      Sid.empty provers
+  in
+  let drivers = List.concat_map (fun pkg -> pkg.Meta.drivers) wenv.pkgs in
+  let pdriver = Why3.Pdriver.load_driver wenv.wenv "ocaml64" drivers in
+  let extracted = Mid.domain @@ pdriver.drv_syntax in
+  { builtins ; extracted }
+
+(*
+type axioms = {
+  locals : role Mid.t ;
+  theories : Sid.t ;
 }
 
-type theory = {
-  theory: Why3.Theory.theory;
-  clones: clone list ;
-  proofs: Crc.crc Mstr.t ;
-}
+let axioms = Hid.create 0
 
-type source = {
-  url: string;
-  lib: string list;
-  profile: Calibration.profile;
-  theories: theory Mstr.t;
-}
-
-val parse : why3env:Why3.Env.env -> string -> source
-val derived : source -> string -> string (* URL name *)
-
-val is_keyword : string -> bool
-
-type href =
-  | NoRef
-  | Ref of Id.id
-  | Def of Id.id * Crc.crc option
-
-type position = Lexing.position * Lexing.position
-
-val find_proof : ident -> theory option -> Crc.crc option
-
-val resolve :
-  src:source -> theory:theory option -> infix:bool ->
-  position -> href
-
-val reference :
-  why3env:Why3.Env.env ->
-  src:source -> scope:string option ->
-  string -> string * ident
+let assumed { builtin ; extern } = not builtin && not extern
+*)
 
 (* -------------------------------------------------------------------------- *)

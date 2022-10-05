@@ -188,9 +188,11 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
 (* --- Prove Command                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-let prove_files ~time ~mode ~session ~log ~pkgs ~provers ~transfs ~files =
+let prove_files ~time ~mode ~session ~log ~files =
   begin
-    let env = Wenv.init ~pkgs in
+    let env = Wenv.init () in
+    let provers = Wenv.provers () in
+    let transfs = Wenv.transfs () in
     let provers = Runner.select env provers in
     let unsuccess = ref [] in
     let minimize = (mode = `Minimize) in

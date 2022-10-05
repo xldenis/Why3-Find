@@ -46,6 +46,7 @@ val save : unit -> unit
 type env = {
   wconfig : Why3.Whyconf.config ;
   wenv : Why3.Env.env ;
+  pkgs : Meta.pkg list ;
 }
 
-val init : pkgs:string list -> env
+val init : unit -> env

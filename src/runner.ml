@@ -59,8 +59,7 @@ let find_exact (env : Wenv.env) s =
         Format.eprintf "Failed to load driver for %s@."
           (prover_parseable_format config.prover) ;
         exit 2
-    in
-    Some { config ; driver }
+    in Some { config ; driver }
   with _ -> None
 
 let find_default env name =

@@ -26,7 +26,11 @@
 open Wenv
 open Why3.Task
 
-type prover
+type prover = {
+  config : Why3.Whyconf.config_prover ;
+  driver : Why3.Driver.driver ;
+}
+
 type result =
   | NoResult | Failed | Unknown of float | Timeout of float | Valid of float
 

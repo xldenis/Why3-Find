@@ -593,18 +593,16 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
         end
         (Utils.failwith "don't known what to do with %S")
         "USAGE:\n\
-         \n  why3find calibrate [OPTIONS]\n\n\
+         \n  why3find config [OPTIONS]\n\n\
          DESCRIPTION:\n\
-         \n  Calibrate your machine.\
-         \n  By default, report local velocity with respect to\
-         \n  the master calibration profile, if available (same as -v).\
-         \n  Otherwize, compute the local calibration profile (without -m).\
+         \n  Configuration of the local package.\
+         \n  By default, report on the current configuration.\
          \n\n\
          OPTIONS:\n" ;
       Wenv.load () ;
       (* --- Packages ---- *)
+      let env = Wenv.init () in
       let pkgs = Wenv.packages () in
-      let env = Wenv.init ~pkgs in
       if !list && pkgs <> [] then
         begin
           Format.printf "Package Dependencies:@." ;
@@ -682,14 +680,11 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
          DESCRIPTION:\n\
          \n  Prove why3 files.\n\n\
          OPTIONS:\n" ;
-      let pkgs = Wenv.packages () in
-      let provers = Wenv.provers () in
-      let transfs = Wenv.transfs () in
       let session = !session || !ide in
       let files = Wenv.argv @@ List.rev !files in
       let tofix = Prove.prove_files
           ~mode:!mode ~session ~log:!log
-          ~time:1.0 ~provers ~transfs ~pkgs ~files
+          ~time:1.0 ~files
       in match tofix with
       | [] -> ()
       | f::_ ->
@@ -697,6 +692,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
           exit 1
         else
           begin
+            let pkgs = Wenv.packages () in
             Format.printf "proof failed: running why3 ide %s@." f ;
             let hammer = Meta.shared "hammer.cfg" in
             exec ~prefix:["ide";"--extra-config";hammer] ~pkgs ~skip:0 [| f |]
@@ -709,10 +705,8 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
 
 let () = register ~name:"doc" ~args:"[-p PKG] FILE..."
     begin fun argv ->
-      let pkgs = ref [] in
       let files = ref [] in
       let out = ref "" in
-      let add r p = r := p :: !r in
       Arg.parse_argv argv
         begin
           Wenv.pkg_options () @ [
@@ -720,16 +714,15 @@ let () = register ~name:"doc" ~args:"[-p PKG] FILE..."
             "destination directory (default \"html\")" ;
           ]
         end
-        (add files)
+        (fun f -> files := f :: !files)
         "USAGE:\n\
          \n  why3find query [PKG...]\n\n\
          DESCRIPTION:\n\
          \n  Query why3 package location.\n\n\
          OPTIONS:\n" ;
-      let pkgs = Wenv.packages () @ List.rev !pkgs in
       let files = Wenv.argv @@ List.rev !files in
       let out = if !out = "" then "html" else Wenv.arg1 !out in
-      Docgen.main ~pkgs ~files ~out
+      Docgen.generate ~out ~files
     end
 
 (* -------------------------------------------------------------------------- *)

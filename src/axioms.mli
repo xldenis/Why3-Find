@@ -20,60 +20,10 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Global References                                                  --- *)
+(* --- Compute Axioms                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-val init : unit -> Wenv.env
-
-module Mstr = Why3.Wstdlib.Mstr
-
-type ident = Why3.Ident.ident
-
-type section = {
-  cloned_path : string ;
-  cloned_order : int ;
-}
-
-type clone = {
-  id_section : section ;
-  id_source : Why3.Ident.ident ;
-  id_target : Why3.Ident.ident ;
-}
-
-type theory = {
-  theory: Why3.Theory.theory;
-  clones: clone list ;
-  proofs: Crc.crc Mstr.t ;
-}
-
-type source = {
-  url: string;
-  lib: string list;
-  profile: Calibration.profile;
-  theories: theory Mstr.t;
-}
-
-val parse : why3env:Why3.Env.env -> string -> source
-val derived : source -> string -> string (* URL name *)
-
-val is_keyword : string -> bool
-
-type href =
-  | NoRef
-  | Ref of Id.id
-  | Def of Id.id * Crc.crc option
-
-type position = Lexing.position * Lexing.position
-
-val find_proof : ident -> theory option -> Crc.crc option
-
-val resolve :
-  src:source -> theory:theory option -> infix:bool ->
-  position -> href
-
-val reference :
-  why3env:Why3.Env.env ->
-  src:source -> scope:string option ->
-  string -> string * ident
+type henv
+val init : Wenv.env -> henv
 
 (* -------------------------------------------------------------------------- *)

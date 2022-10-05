@@ -180,13 +180,16 @@ let iter_cloned_theory ~order ~path f thy =
 (* --- Environment                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-let init ~pkgs =
+let init () =
   begin
     (* Parser config *)
     Why3.Debug.set_flag Why3.Glob.flag ;
     List.iter (fun k -> Hashtbl.add keywords k ()) Why3.Keywords.keywords ;
     (* Package config *)
-    Wenv.init ~pkgs
+    let wenv = Wenv.init () in
+    (* Axioms config *)
+    let _ = Axioms.init wenv in
+    wenv
   end
 
 (* -------------------------------------------------------------------------- *)

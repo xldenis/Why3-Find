@@ -152,18 +152,19 @@ let save () =
 type env = {
   wconfig : Why3.Whyconf.config ;
   wenv : Why3.Env.env ;
+  pkgs : Meta.pkg list ;
 }
 
-let init ~pkgs =
+let init () =
   let open Why3 in
   begin
-    let pkgs = Meta.find_all pkgs in
+    let pkgs = Meta.find_all @@ packages () in
     let pkg_path = List.map (fun m -> m.Meta.path) pkgs in
     let wconfig = Whyconf.init_config None in
     let wmain = Whyconf.get_main wconfig in
     let wpath = Whyconf.loadpath wmain in
     let wenv = Why3.Env.create_env ("." :: pkg_path @ wpath) in
-    { wconfig ; wenv }
+    { wconfig ; wenv ; pkgs }
   end
 
 (* -------------------------------------------------------------------------- *)
