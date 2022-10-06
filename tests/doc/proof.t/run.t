@@ -10,7 +10,7 @@
   <body>
   <header>Module <code class="src"><a href="clones.html">clones</a>.A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="">A</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+  <span class="keyword">module</span> <a id="">A</a><span title="3 parameters, 2 hypotheses" class="icon remark icofont-question-circle"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span>
   
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
     <span class="keyword">constant</span> <a id="e">e</a><span title="Parameter" class="icon remark icofont-question-circle"></span> : <a title="clones.A.t" href="#t">t</a>
@@ -35,7 +35,7 @@
   <body>
   <header>Module <code class="src"><a href="clones.html">clones</a>.B</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="">B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+  <span class="keyword">module</span> <a id="">B</a><span title="1 parameter, 1 hypothesis" class="icon remark icofont-question-circle"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
     <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>

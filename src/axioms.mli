@@ -46,6 +46,7 @@ type parameter = {
 val ident : kind -> Ident.ident
 val assumed : signature -> kind list
 val parameter : signature -> Ident.ident -> parameter option
+val parameters : signature -> parameter list
 val dependencies : henv -> Theory.theory -> Theory.theory list
 
 (* -------------------------------------------------------------------------- *)

@@ -198,10 +198,10 @@ let signature henv (thy : Theory.theory) =
       with Not_found -> theory_signature henv thy
     in Hid.add sigs id hs ; hs
 
-let parameter signature id =
-  Mid.find_opt id signature.locals
+let parameter s id = Mid.find_opt id s.locals
+let parameters s = Mid.values s.locals
 
-let assumed (s : signature) =
+let assumed s =
   List.filter_map
     (function
       | { kind ; builtin = None ; extern = None } -> Some kind

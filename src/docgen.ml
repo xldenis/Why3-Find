@@ -174,7 +174,7 @@ let pp_verdict = pp_vlink ?href:None
 
 let href_proofs env path fmt = Format.fprintf fmt "_%s#%s" env.src.url path
 
-let process_proofs env ?path = function
+let process_proofs_summary env ?path = function
   | None -> ()
   | Some Docref.{ proofs } ->
     let stuck,proved =
@@ -302,6 +302,12 @@ let pp_axioms fmt { ext ; prm ; hyp } =
         text ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
       ] in
     pp_mark ~cla ~title fmt
+
+let process_axioms_summary env = function
+  | None -> ()
+  | Some Docref.{ signature } ->
+    let hs = List.fold_left add_axiom free @@ Axioms.parameters signature in
+    Pdoc.pp env.out pp_axioms hs
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -532,6 +538,7 @@ let process_clone_axioms env clones =
            | Some p -> add_axiom hs p
         ) free clones in
     Pdoc.pp env.out pp_axioms hs
+
 let process_clone_section env (th : Docref.theory) =
   let cloned =
     List.sort by_source_line @@
@@ -619,7 +626,8 @@ let process_open_module env key =
     Pdoc.printf env.crc
       "<pre class=\"src\">%a <a href=\"%s\">%s.%s</a>"
       Pdoc.pp_keyword key url path id ;
-    process_proofs env ~path theory ;
+    process_axioms_summary env theory ;
+    process_proofs_summary env ~path theory ;
     Pdoc.printf env.out "</pre>@." ;
     Pdoc.printf env.crc "</pre>@." ;
     let file = Filename.concat env.dir url in
@@ -639,7 +647,8 @@ let process_open_module env key =
     Pdoc.pp env.out Pdoc.pp_keyword key ;
     Pdoc.pp_print_char env.out ' ' ;
     process_href env href id ;
-    process_proofs env theory ;
+    process_axioms_summary env theory ;
+    process_proofs_summary env theory ;
   end
 
 let process_close_module env key =
