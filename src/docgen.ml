@@ -639,11 +639,11 @@ let process_newline env =
 (* --- References                                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_reference ~why3env ~env r =
+let process_reference ~wenv ~env r =
   try
     let src = env.src in
     let scope = env.scope in
-    let name, id = Docref.reference ~why3env ~src ~scope r in
+    let name, id = Docref.reference ~wenv ~src ~scope r in
     let r = Id.resolve ~lib:src.lib id in
     text env ;
     Pdoc.printf env.out
@@ -657,8 +657,8 @@ let process_reference ~why3env ~env r =
 (* --- File Processing                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_file ~why3env ~out:dir file =
-  let src = Docref.parse ~why3env file in
+let process_file ~wenv ~henv ~out:dir file =
+  let src = Docref.parse ~henv ~wenv file in
   let path = String.concat "." src.lib in
   let title = Printf.sprintf "Library %s" path in
   let out = Pdoc.output ~file:(Filename.concat dir src.url) ~title in
@@ -701,7 +701,7 @@ let process_file ~why3env ~out:dir file =
       | Verb s ->
         text env ;
         Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
-      | Ref s -> process_reference ~why3env ~env s
+      | Ref s -> process_reference ~wenv ~env s
       | Style(Emph,_) -> process_style env Emph
       | Style(Bold,_) -> process_style env Bold
       | Style(Head,h) -> process_header env h
@@ -746,14 +746,14 @@ let shared ~out ~file =
 
 let generate ~out ~files =
   begin
-    let Wenv.{ wenv = why3env } = Docref.init () in
+    let wenv, henv = Docref.init () in
     Utils.mkdirs @@ Filename.concat out "fonts" ;
     shared ~out ~file:"style.css" ;
     shared ~out ~file:"script.js" ;
     shared ~out ~file:"icofont.min.css" ;
     shared ~out ~file:"fonts/icofont.woff" ;
     shared ~out ~file:"fonts/icofont.woff2" ;
-    List.iter (process_file ~why3env ~out) files
+    List.iter (process_file ~wenv ~henv ~out) files
   end
 
 (* -------------------------------------------------------------------------- *)
