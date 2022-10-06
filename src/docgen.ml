@@ -277,6 +277,32 @@ let process_module_axioms env =
            (process_assumed env)
            (Axioms.assumed @@ Axioms.signature env.henv thy)
       ) (Axioms.dependencies env.henv theory)
+
+type axioms = { ext : int ; prm : int ; hyp :  int }
+let free = { ext = 0 ; prm = 0 ; hyp = 0 }
+
+let add_axiom hs (p : Axioms.parameter) =
+  match p with
+  | { builtin = None ; extern = None ; kind = Axiom _ } ->
+    { hs with hyp = succ hs.hyp }
+  | { builtin = None ; extern = None } ->
+    { hs with prm = succ hs.prm }
+  | _ ->
+    { hs with ext = succ hs.ext }
+
+let pp_axioms fmt { ext ; prm ; hyp } =
+  if ext+prm+hyp > 0 then
+    let cla = if prm + hyp > 0 then icon_parameter else icon_external in
+    let title =
+      let text k single msg =
+        if k = 0 then [] else if k = 1 then [single] else [msg k] in
+      String.concat ", " @@ List.concat [
+        text prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
+        text hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
+        text ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
+      ] in
+    pp_mark ~cla ~title fmt
+
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
 (* -------------------------------------------------------------------------- *)
@@ -499,28 +525,13 @@ let process_clone_axioms env clones =
   match env.theory with
   | None -> ()
   | Some { signature } ->
-    let ext,prm,hyp = List.fold_left
-        (fun (e,p,h) clone ->
+    let hs = List.fold_left
+        (fun hs clone ->
            match Axioms.parameter signature clone.Docref.id_target with
-           | None -> (e,p,h)
-           | Some { builtin = None ; extern = None ; kind = Axiom _ } ->
-             (e,p,succ h)
-           | Some { builtin = None ; extern = None } ->
-             (e,succ p,h)
-           | _ -> (succ e,p,h)
-        ) (0,0,0) clones in
-    if ext+prm+hyp > 0 then
-      let cla = if prm + hyp > 0 then icon_parameter else icon_external in
-      let title =
-        let text k single msg =
-          if k = 0 then [] else if k = 1 then [single] else [msg k] in
-        String.concat ", " @@ List.concat [
-          text prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
-          text hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
-          text ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
-        ] in
-      Pdoc.ppt env.out @@ pp_mark ~cla ~title
-
+           | None -> hs
+           | Some p -> add_axiom hs p
+        ) free clones in
+    Pdoc.pp env.out pp_axioms hs
 let process_clone_section env (th : Docref.theory) =
   let cloned =
     List.sort by_source_line @@
