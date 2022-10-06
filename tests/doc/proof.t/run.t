@@ -36,8 +36,8 @@
   <header>Module <code class="src"><a href="clones.html">clones</a>.B</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
-    <span class="keyword">use</span> int.<a title="int.Int." href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
-    <span class="keyword">clone</span> <a title="clones.A." href="clones.A.html#">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
+    <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
+    <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">function</span> <a id="A.e">A.e</a> : int {<a class="attribute" title="clones.A.e" href="clones.A.html#e">def.</a>}
         <span class="keyword">axiom</span> <a id="A.neutral">A.neutral</a> {<a class="attribute" title="clones.A.neutral" href="clones.A.html#neutral">def.</a>}
@@ -64,10 +64,10 @@
   <pre class="src">
   <span class="keyword">module</span> <a id="">S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span>
   
-    <span class="keyword">use</span> int.<a title="int.Int." href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
-    <span class="keyword">use</span> int.<a title="int.MinMax." href="https://why3.lri.fr/stdlib/int.MinMax.html#MinMax_">MinMax</a>
-    <span class="keyword">use</span> option.<a title="option.Option." href="https://why3.lri.fr/stdlib/option.Option.html#Option_">Option</a>
-    <span class="keyword">use</span> list.<a title="list.ListRich." href="https://why3.lri.fr/stdlib/list.ListRich.html#ListRich_">ListRich</a> <span class="keyword">as</span> L
+    <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
+    <span class="keyword">use</span> int.<a title="int.MinMax" href="https://why3.lri.fr/stdlib/int.MinMax.html#MinMax_">MinMax</a>
+    <span class="keyword">use</span> option.<a title="option.Option" href="https://why3.lri.fr/stdlib/option.Option.html#Option_">Option</a>
+    <span class="keyword">use</span> list.<a title="list.ListRich" href="https://why3.lri.fr/stdlib/list.ListRich.html#ListRich_">ListRich</a> <span class="keyword">as</span> L
   
     <span class="keyword">type</span> <a id="seq">seq</a> &#39;a = L.<a title="list.List.list" href="https://why3.lri.fr/stdlib/list.List.html#list_8">list</a> &#39;a
   

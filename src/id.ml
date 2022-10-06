@@ -123,8 +123,13 @@ let pp_local fmt r =
 
 let pp_title fmt r =
   List.iter (pp_prefix fmt) r.id_lib ;
-  pp_prefix fmt r.id_mod ;
-  pp_local fmt r
+  if r.id_qid = [] then
+    Format.pp_print_string fmt r.id_mod
+  else
+    begin
+      pp_prefix fmt r.id_mod ;
+      pp_local fmt r
+    end
 
 (* URI Encoding *)
 
