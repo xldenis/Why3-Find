@@ -140,6 +140,7 @@ let icon_partial = "icon warning icofont-exclamation-tringle"
 let icon_failed = "icon failed icofont-exclamation-circle"
 let icon_external = "icon remark icofont-exclamation-circle"
 let icon_parameter = "icon remark icofont-question-circle"
+let icon_assumed = "icon warning icofont-question-circle"
 
 let pp_mark ?href ~title ~cla fmt =
   match href with
@@ -248,6 +249,34 @@ let process_axioms env (id : Id.id) =
         in
         Pdoc.ppt env.out (pp_mark ~cla:icon_parameter ~title)
 
+let process_assumed env kind =
+  try
+    let id = Id.resolve ~lib:env.src.lib @@ Axioms.ident kind in
+    let key = match kind with
+      | Type _ -> "type"
+      | Logic _ -> "logic"
+      | Value _ -> "value"
+      | Axiom _ -> "axiom"
+    in
+    Pdoc.printf env.crc
+      "<pre class=\"src\"> %a <a id=\"%a\" href=\"%a\">%a</a>%t</pre>"
+      Pdoc.pp_keyword key
+      Id.pp_proof_aname id
+      (Id.pp_ahref ~scope:None) id
+      Id.pp_local id
+      (fun fmt -> pp_mark ~title:"Assumed" ~cla:icon_assumed fmt)
+  with Not_found -> ()
+
+let process_module_axioms env =
+  match env.theory with
+  | None -> ()
+  | Some { theory } ->
+    List.iter
+      (fun thy ->
+         List.iter
+           (process_assumed env)
+           (Axioms.assumed @@ Axioms.signature env.henv thy)
+      ) (Axioms.dependencies env.henv theory)
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
 (* -------------------------------------------------------------------------- *)
@@ -562,7 +591,7 @@ let process_close_section env title =
 (* --- Module & Theory Processing                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_module env key =
+let process_open_module env key =
   begin
     if not (env.mode = Body && env.opened = 0) then
       Token.error env.input "unexpected module or theory" ;
@@ -602,9 +631,10 @@ let process_module env key =
     process_proofs env theory ;
   end
 
-let process_close env key =
+let process_close_module env key =
   begin
     Pdoc.printf env.out "%a@\n</pre>@\n" Pdoc.pp_keyword key ;
+    process_module_axioms env ;
     env.mode <- Body ;
     env.file <- Body ;
     env.scope <- None ;
@@ -619,8 +649,8 @@ let process_close env key =
 let process_ident env s =
   if Docref.is_keyword s then
     begin match s with
-      | "module" | "theory" -> process_module env s
-      | "end" when env.opened = 0 -> process_close env s
+      | "module" | "theory" -> process_open_module env s
+      | "end" when env.opened = 0 -> process_close_module env s
       | _ ->
         if is_opening s then env.opened <- succ env.opened ;
         if is_closing s then env.opened <- pred env.opened ;
@@ -731,7 +761,8 @@ let process_file ~wenv ~henv ~out:dir file =
   let src = Docref.parse ~henv ~wenv file in
   let path = String.concat "." src.lib in
   let title = Printf.sprintf "Library %s" path in
-  let out = Pdoc.output ~file:(Filename.concat dir src.url) ~title in
+  let ofile = Filename.concat dir src.url in
+  let out = Pdoc.output ~file:ofile ~title in
   let crc = Pdoc.output
       ~file:(Filename.concat dir ("_" ^ src.url))
       ~title:(Printf.sprintf "Proofs %s" path) in

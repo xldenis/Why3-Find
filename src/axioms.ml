@@ -83,7 +83,6 @@ type parameter = {
   builtin : string option ;
   extern : string option ;
 }
-type hypotheses = { parameters : int ; assumed : int }
 
 type signature = {
   params : int ;
@@ -185,11 +184,10 @@ let module_signature henv (pm : Pmodule.pmodule) : signature =
   List.fold_left (add_munit henv) empty pm.mod_units
 
 (* -------------------------------------------------------------------------- *)
-(* --- Signatute & Hypotheses                                             --- *)
+(* --- Signatute                                                          --- *)
 (* -------------------------------------------------------------------------- *)
 
 let sigs = Hid.create 0
-let hyps = Hid.create 0
 
 let signature henv (thy : Theory.theory) =
   let id = thy.th_name in
@@ -203,29 +201,31 @@ let signature henv (thy : Theory.theory) =
 let parameter signature id =
   Mid.find_opt id signature.locals
 
-let hypotheses henv (thy : Theory.theory) =
-  let th = thy.th_name in
-  try Hid.find hyps th
-  with Not_found ->
-    let ths = ref Mid.empty in
-    let rec add ~locals (thy : Theory.theory) =
-      let id = thy.th_name in
-      if not @@ Mid.mem id !ths then
-        begin
-          let s = signature henv thy in
-          if locals then
-            ths := Mid.add id s !ths ;
-          add_signature s ;
-        end
-    and add_signature s =
-      List.iter (add ~locals:true) s.used_theories ;
-      List.iter (add ~locals:false) s.cloned_theories ;
-    in
-    let s = signature henv thy in
-    add_signature s ;
-    let parameters = s.params in
-    let assumed = Mid.fold (fun _ s n -> n + s.params) !ths 0 in
-    let hs = { parameters ; assumed } in
-    Hid.add hyps th hs ; hs
+let assumed (s : signature) =
+  List.filter_map
+    (function
+      | { kind ; builtin = None ; extern = None } -> Some kind
+      | _ -> None
+    ) (Mid.values s.locals)
+
+(* -------------------------------------------------------------------------- *)
+(* --- Consolidated Hypotheses                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let dependencies henv (thy : Theory.theory) =
+  let deps = ref Mid.empty in
+  let rec add (thy : Theory.theory) =
+    let id = thy.th_name in
+    if not @@ Mid.mem id !deps then
+      begin
+        deps := Mid.add id thy !deps ;
+        add_signature thy
+      end
+  and add_signature thy =
+    add_depends (signature henv thy)
+  and add_depends s =
+    List.iter add s.used_theories ;
+    List.iter add_signature s.cloned_theories ;
+  in add_signature thy ; Mid.values !deps
 
 (* -------------------------------------------------------------------------- *)

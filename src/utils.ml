@@ -73,6 +73,11 @@ let chdir dir =
   Sys.chdir dir ;
   Format.printf "Entering directory '%s'@." @@ Sys.getcwd ()
 
+let absolute file =
+  if Filename.is_relative file
+  then Filename.concat (Sys.getcwd ()) file
+  else file
+
 (* -------------------------------------------------------------------------- *)
 (* --- Time Printing                                                      --- *)
 (* -------------------------------------------------------------------------- *)

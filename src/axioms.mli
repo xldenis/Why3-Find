@@ -43,9 +43,9 @@ type parameter = {
   extern : string option ;
 }
 
+val ident : kind -> Ident.ident
+val assumed : signature -> kind list
 val parameter : signature -> Ident.ident -> parameter option
-
-type hypotheses = { parameters : int ; assumed : int }
-val hypotheses : henv -> Theory.theory -> hypotheses
+val dependencies : henv -> Theory.theory -> Theory.theory list
 
 (* -------------------------------------------------------------------------- *)
