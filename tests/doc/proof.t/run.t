@@ -112,9 +112,11 @@
   </head>
   <body>
   <header>Proofs (<code>clones</code>)</header>
-  <pre class="src"><span class="keyword">prover calibration</span>
+  <h1>Prover Calibration</h1>
+  <pre class="src">
     alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)
   </pre>
+  <h1>Proof Certificates</h1>
   <pre class="src"><span class="keyword">module</span> <a href="clones.A.html">clones.A</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
   <pre class="src"> <span class="keyword">goal</span> <a id="A.neutral_com" href="clones.A.html#neutral_com">neutral_com</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
       alt-ergo 500ns</pre><pre class="src"><span class="keyword">module</span> <a href="clones.B.html">clones.B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
@@ -132,11 +134,13 @@
   </head>
   <body>
   <header>Proofs (<code>certif</code>)</header>
-  <pre class="src"><span class="keyword">prover calibration</span>
+  <h1>Prover Calibration</h1>
+  <pre class="src">
     alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)
     cvc4       n=42 550ms (CVC4,1.8)
     z3         n=33 570ms (Z3,4.8.6)
   </pre>
+  <h1>Proof Certificates</h1>
   <pre class="src"><span class="keyword">module</span> <a href="certif.S.html">certif.S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span></pre>
   <pre class="src"> <span class="keyword">goal</span> <a id="S.mixfix%20%5B%5D" href="certif.S.html#mixfix%20%5B%5D">([])</a><span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
       split_vc<span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>

@@ -749,16 +749,15 @@ let process_file ~wenv ~henv ~out:dir file =
   } in
   begin
     Pdoc.printf out "<header>Library <code>%s</code></header>@\n" path ;
+    Pdoc.flush out ;
     Pdoc.printf crc "<header>Proofs (<code>%s</code>)</header>@\n" path ;
-    Pdoc.printf crc "<pre class=\"src\">%a@\n"
-      Pdoc.pp_keyword "prover calibration" ;
+    Pdoc.printf crc "<h1>Prover Calibration</h1>@\n<pre class=\"src\">@\n" ;
     Calibration.iter
       (fun p n t ->
          Pdoc.printf crc "  %-10s n=%d %a (%s)@\n"
            (Crc.shortname p) n Utils.pp_time t p
       ) src.profile ;
-    Pdoc.printf crc "</pre>@." ;
-    Pdoc.flush out ;
+    Pdoc.printf crc "</pre>@\n<h1>Proof Certificates</h1>@\n" ;
     Pdoc.flush crc ;
     while not (Token.eof env.input) do
       match Token.token env.input with
