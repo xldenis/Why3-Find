@@ -39,7 +39,7 @@ val cat : string list -> string
 type package = [ `Local | `Stdlib | `Package of Meta.pkg ]
 
 type id = {
-  id : t ;
+  self : t ;
   id_pkg : package ;
   id_lib : string list ;
   id_mod : string ;

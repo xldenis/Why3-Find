@@ -37,8 +37,8 @@ module Hid = Ident.Hid
 (* -------------------------------------------------------------------------- *)
 
 type henv = {
-  builtins : Sid.t ;
-  externals : Sid.t ;
+  builtins : string Mid.t ;
+  externals : string Mid.t ;
 }
 
 let ocaml64 =
@@ -48,15 +48,18 @@ let ocaml64 =
 let drivers (pkg : Meta.pkg) =
   List.map (Filename.concat pkg.path) pkg.drivers
 
+let smap = Mid.map (fun (x,_) -> x)
+let union = Mid.merge (fun _ a b -> if a = None then b else a)
+
 let init (wenv : Wenv.env) =
   let provers = Runner.select wenv @@ Wenv.provers () in
   let builtins = List.fold_left
       (fun s Runner.{ driver } ->
-         Sid.union s @@ Mid.domain @@ Driver.syntax_map driver)
-      Sid.empty provers in
+         union s @@ smap @@ Driver.syntax_map driver)
+      Mid.empty provers in
   let drivers = List.concat_map drivers wenv.pkgs in
   let pdriver = Pdriver.load_driver wenv.wenv ocaml64 drivers in
-  let externals = Mid.domain @@ pdriver.drv_syntax in
+  let externals = smap pdriver.drv_syntax in
   { builtins ; externals }
 
 (* -------------------------------------------------------------------------- *)
@@ -75,7 +78,11 @@ let ident = function
   | Value rs -> rs.rs_name
   | Axiom pr -> pr.pr_name
 
-type parameter = { kind : kind ; builtin : bool ; extern : bool }
+type parameter = {
+  kind : kind ;
+  builtin : string option ;
+  extern : string option ;
+}
 type hypotheses = { parameters : int ; assumed : int }
 
 type signature = {
@@ -94,10 +101,11 @@ let empty = {
 
 let add henv hs kind =
   let id = ident kind in
-  let builtin = Sid.mem id henv.builtins in
-  let extern = Sid.mem id henv.externals in
+  let builtin = Mid.find_opt id henv.builtins in
+  let extern = Mid.find_opt id henv.externals in
   let prm = { kind ; builtin ; extern } in
-  let params = if builtin || extern then hs.params else succ hs.params in
+  let extracted = builtin <> None || extern <> None in
+  let params = if extracted then hs.params else succ hs.params in
   { hs with params ; locals = Mid.add id prm hs.locals }
 
 let add_used hs (thy : Theory.theory) =

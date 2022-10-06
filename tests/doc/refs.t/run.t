@@ -54,8 +54,8 @@
   <header>Theory <code class="src"><a href="a.html">a</a>.A</code></header>
   <pre class="src">
   <span class="keyword">theory</span> <a id="">A</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
-    <span class="keyword">type</span> <a id="t">t</a>
-    <span class="keyword">function</span> <a id="op">op</a> <a title="a.A.t" href="#t">t</a> <a title="a.A.t" href="#t">t</a> : <a title="a.A.t" href="#t">t</a>
+    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
+    <span class="keyword">function</span> <a id="op">op</a><span title="Parameter" class="icon remark icofont-question-circle"></span> <a title="a.A.t" href="#t">t</a> <a title="a.A.t" href="#t">t</a> : <a title="a.A.t" href="#t">t</a>
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
@@ -76,8 +76,8 @@
   <header>Module <code class="src"><a href="a.html">a</a>.B</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">B</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
-    <span class="keyword">type</span> <a id="t">t</a>
-    <span class="keyword">val</span> <a id="binop">binop</a> <a title="a.B.t" href="#t">t</a> <a title="a.B.t" href="#t">t</a> : <a title="a.B.t" href="#t">t</a>
+    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
+    <span class="keyword">val</span> <a id="binop">binop</a><span title="Constrained Parameter" class="icon remark icofont-question-circle"></span> <a title="a.B.t" href="#t">t</a> <a title="a.B.t" href="#t">t</a> : <a title="a.B.t" href="#t">t</a>
   
   </pre>
   <div class="doc">

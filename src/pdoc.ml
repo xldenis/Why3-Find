@@ -155,7 +155,8 @@ let fork out ~file ~title =
   }
 
 let printf out msg = Format.fprintf out.current.fmt msg
-let pp out pp v = pp out.current.fmt v
+let pp out p v = p out.current.fmt v
+let ppt out k = k out.current.fmt
 
 let pp_print_char out c = pp out Format.pp_print_char c
 let pp_print_string out s = pp out Format.pp_print_string s

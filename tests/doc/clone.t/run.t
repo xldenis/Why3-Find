@@ -18,9 +18,9 @@
   <pre class="src">
   <span class="keyword">module</span> <a id="">A</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>
-    <span class="keyword">type</span> <a id="t">t</a>
+    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
     <span class="keyword">val</span> <span class="keyword">constant</span> <a id="neutral">neutral</a> : <a title="a.A.t" href="#t">t</a>
-    <span class="keyword">val</span> <a id="op">op</a> <a title="a.A.t" href="#t">t</a> <a title="a.A.t" href="#t">t</a> : <a title="a.A.t" href="#t">t</a>
+    <span class="keyword">val</span> <a id="op">op</a><span title="Constrained Parameter" class="icon remark icofont-question-circle"></span> <a title="a.A.t" href="#t">t</a> <a title="a.A.t" href="#t">t</a> : <a title="a.A.t" href="#t">t</a>
     <span class="keyword">let</span> <a id="square">square</a> (x : <a title="a.A.t" href="#t">t</a>) : <a title="a.A.t" href="#t">t</a> = <a title="a.A.op" href="#op">op</a> x x
     <span class="keyword">let</span> <span class="keyword">rec</span> <a id="assoc">assoc</a><a href="_a.html#A.assoc" title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></a> (xs : <a title="list.List.list" href="https://why3.lri.fr/stdlib/list.List.html#list_8">list</a> <a title="a.A.t" href="#t">t</a>) : <a title="a.A.t" href="#t">t</a> =
       <span class="keyword">variant</span> { xs }

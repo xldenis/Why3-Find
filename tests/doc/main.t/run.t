@@ -63,7 +63,7 @@
   <pre class="src">
   <span class="keyword">module</span> <a id="">A</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
   
-    <span class="keyword">type</span> <a id="t">t</a> = <a id="A">A</a> | <a id="B">B</a>
+    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span> = <a id="A">A</a> | <a id="B">B</a>
   
   </pre>
   <div class="doc">
@@ -103,7 +103,7 @@
   
     <span class="keyword">exception</span> <a id="Error">Error</a>
   
-    <span class="keyword">val</span> <a id="wrong">wrong</a> () : unit
+    <span class="keyword">val</span> <a id="wrong">wrong</a><span title="Constrained Parameter" class="icon remark icofont-question-circle"></span> () : unit
       <span class="keyword">raises</span> { <a title="p.a.B.Error" href="#Error">Error</a> }
   
   </pre>

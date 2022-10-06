@@ -99,6 +99,9 @@ val pp_print_char : output -> char -> unit
 (** Print the data with the pretty printer. *)
 val pp : output -> 'a fmt -> 'a -> unit
 
+(** Prints with the printer. *)
+val ppt : output -> (Format.formatter -> unit) -> unit
+
 (** Sanitize then print the string with the optional class. *)
 val pp_html_s : output -> ?className:string -> string -> unit
 

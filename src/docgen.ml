@@ -61,6 +61,7 @@ type env = {
   input : Token.input ; (* input lexer *)
   out : Pdoc.output ; (* output buffer *)
   crc : Pdoc.output ; (* proofs buffer *)
+  henv : Axioms.henv ; (* axioms *)
   mutable proof_href : int ; (* proof href *)
   mutable clone_decl : int ; (* clone decl indent (when > 0) *)
   mutable clone_path : string ; (* clone path *)
@@ -131,12 +132,14 @@ let rec close env =
   | Div | Par | List _ | Item _ | Pre | Head _ -> pop env ; close env
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Report                                                       --- *)
+(* --- Icons                                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
 let icon_valid = "icon valid icofont-check"
 let icon_partial = "icon warning icofont-exclamation-tringle"
 let icon_failed = "icon failed icofont-exclamation-circle"
+let icon_external = "icon remark icofont-exclamation-circle"
+let icon_parameter = "icon remark icofont-question-circle"
 
 let pp_mark ?href ~title ~cla fmt =
   match href with
@@ -146,6 +149,10 @@ let pp_mark ?href ~title ~cla fmt =
   | Some href ->
     Format.fprintf fmt "<a href=\"%t\" title=\"%s\" class=\"%s\"></a>"
       href title cla
+
+(* -------------------------------------------------------------------------- *)
+(* --- Proof Report                                                       --- *)
+(* -------------------------------------------------------------------------- *)
 
 let pp_vlink ?href fmt r =
   match r with
@@ -175,8 +182,8 @@ let process_proofs env ?path = function
         proofs (0,0) in
     let href = Option.map (href_proofs env) path in
     let r = Crc.nverdict ~stuck ~proved in
-    Pdoc.printf env.out "%a" (pp_vlink ?href) r ;
-    if path <> None then Pdoc.printf env.crc "%a" pp_verdict r
+    Pdoc.pp env.out (pp_vlink ?href) r ;
+    if path <> None then Pdoc.pp env.crc pp_verdict r
 
 let rec child n fmt crc =
   Format.fprintf fmt "@\n%a" Pdoc.pp_spaces n ;
@@ -207,8 +214,39 @@ let process_proof env id = function
   | None -> ()
   | Some crc ->
     let href fmt = Id.pp_proof_ahref fmt id in
-    Pdoc.printf env.out "%a" (pp_vlink ~href) (Crc.verdict crc) ;
+    Pdoc.pp env.out (pp_vlink ~href) (Crc.verdict crc) ;
     process_certif env id crc
+
+(* -------------------------------------------------------------------------- *)
+(* --- Axioms & Parameter                                                 --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process_axioms env (id : Id.id) =
+  match env.theory with
+  | None -> ()
+  | Some { signature } ->
+    match Axioms.parameter signature id.self with
+    | None -> ()
+    | Some { kind ; builtin ; extern } ->
+      match builtin, extern with
+      | Some op, None ->
+        let title = Printf.sprintf "Built-in symbol (%s)" op in
+        Pdoc.ppt env.out (pp_mark ~cla:icon_external ~title)
+      | None, Some ext ->
+        let title = Printf.sprintf "External OCaml symbol (%s)" ext in
+        Pdoc.ppt env.out (pp_mark ~cla:icon_external ~title)
+      | Some op, Some ext ->
+        let title = Printf.sprintf
+            "Built-in symbol (%s), extracted to OCaml (%s)" op ext in
+        Pdoc.ppt env.out (pp_mark ~cla:icon_external ~title)
+      | None,None ->
+        let title =
+          match kind with
+          | Type _ | Logic _ -> "Parameter"
+          | Value _ -> "Constrained Parameter"
+          | Axiom _ -> "Hypothesis"
+        in
+        Pdoc.ppt env.out (pp_mark ~cla:icon_parameter ~title)
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -229,8 +267,9 @@ let process_href env (href : Docref.href) s =
   match href with
 
   | Docref.Def(id,proof) ->
-    env.declared <- Sid.add id.id env.declared ;
+    env.declared <- Sid.add id.self env.declared ;
     Pdoc.printf env.out "<a id=\"%a\">%a</a>" Id.pp_aname id Pdoc.pp_html s ;
+    process_axioms env id ;
     process_proof env id proof
 
   | Docref.Ref id ->
@@ -299,11 +338,14 @@ let defkind = function
   | _ -> "let"," = "
 
 let declare env n kwd ?(attr=[]) id =
-  let r = Id.resolve ~lib:env.src.lib id in
-  Pdoc.printf env.out "%a%a" Pdoc.pp_spaces n Pdoc.pp_keyword kwd ;
-  List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
-  Pdoc.printf env.out " <a id=\"%a\">%a</a>" Id.pp_aname r Id.pp_local r ;
-  process_proof env r @@ Docref.find_proof r.id env.theory
+  begin
+    let r = Id.resolve ~lib:env.src.lib id in
+    Pdoc.printf env.out "%a%a" Pdoc.pp_spaces n Pdoc.pp_keyword kwd ;
+    List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
+    Pdoc.printf env.out " <a id=\"%a\">%a</a>" Id.pp_aname r Id.pp_local r ;
+    process_axioms env r ;
+    process_proof env r @@ Docref.find_proof r.self env.theory ;
+  end
 
 let definition env ?(op=" = ") def =
   Pdoc.printf env.out "%s{%a}@\n" op
@@ -421,7 +463,34 @@ let process_clone_proofs env clones =
          | None -> (s,p)
          | Some c -> s + Crc.stuck c, p + Crc.proved c
       ) (0,0) clones
-  in Pdoc.printf env.out "%a" pp_verdict (Crc.nverdict ~stuck ~proved)
+  in
+  Pdoc.pp env.out pp_verdict (Crc.nverdict ~stuck ~proved)
+
+let process_clone_axioms env clones =
+  match env.theory with
+  | None -> ()
+  | Some { signature } ->
+    let ext,prm,hyp = List.fold_left
+        (fun (e,p,h) clone ->
+           match Axioms.parameter signature clone.Docref.id_target with
+           | None -> (e,p,h)
+           | Some { builtin = None ; extern = None ; kind = Axiom _ } ->
+             (e,p,succ h)
+           | Some { builtin = None ; extern = None } ->
+             (e,succ p,h)
+           | _ -> (succ e,p,h)
+        ) (0,0,0) clones in
+    if ext+prm+hyp > 0 then
+      let cla = if prm + hyp > 0 then icon_parameter else icon_external in
+      let title =
+        let text k single msg =
+          if k = 0 then [] else if k = 1 then [single] else [msg k] in
+        String.concat ", " @@ List.concat [
+          text prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
+          text hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
+          text ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
+        ] in
+      Pdoc.ppt env.out @@ pp_mark ~cla ~title
 
 let process_clone_section env (th : Docref.theory) =
   let cloned =
@@ -447,6 +516,7 @@ let process_clone_section env (th : Docref.theory) =
         "%a<span class=\"comment section-toggle\">end</span>@\n\
          %a</span>}</span>"
         Pdoc.pp_spaces n Pdoc.pp_spaces n0 ;
+      process_clone_axioms env cloned ;
       process_clone_proofs env cloned ;
     end
 
@@ -667,7 +737,7 @@ let process_file ~wenv ~henv ~out:dir file =
       ~title:(Printf.sprintf "Proofs %s" path) in
   let input = Token.input file in
   let env = {
-    dir ; src ; input ; out ; crc ; space = false ;
+    dir ; src ; input ; out ; crc ; space = false ; henv ;
     scope = None ; theory = None ;
     mode = Body ; file = Body ; stack = [] ;
     clone_decl = 0 ;

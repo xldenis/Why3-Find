@@ -37,7 +37,12 @@ type kind =
   | Value of Expr.rsymbol
   | Axiom of Decl.prsymbol
 
-type parameter = { kind : kind ; builtin : bool ; extern : bool }
+type parameter = {
+  kind : kind ;
+  builtin : string option ;
+  extern : string option ;
+}
+
 val parameter : signature -> Ident.ident -> parameter option
 
 type hypotheses = { parameters : int ; assumed : int }
