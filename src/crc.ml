@@ -124,6 +124,40 @@ let rec merge a b =
     apply f (List.map2 merge xs ys)
   | _ -> b
 
+let fixed = ref 0
+let broken = ref 0
+let updated = ref 0
+let minimized = ref 0
+
+let rec stats a b =
+  match a, b with
+  | Prover _, Prover _ -> if a <> b then incr updated
+  | Stuck, _ -> if complete b then incr fixed
+  | _, Stuck -> if complete a then incr broken
+  | Transf _ , Prover _ -> if complete a then incr minimized else incr fixed
+  | Transf { id = f0 ; children = cs0 } ,
+    Transf { id = f1 ; children = cs1 }
+    when f0 = f1 && List.length cs0 = List.length cs1 ->
+    List.iter2 stats cs0 cs1
+  | _ ->
+    match complete a, complete b with
+    | true, true | false, false -> incr updated
+    | true, false -> incr broken
+    | false, true -> incr fixed
+
+let print_stats () =
+  begin
+    Utils.flush () ;
+    if !fixed > 0 then
+      Format.printf "Fixed @{<green>%d@}@." !fixed ;
+    if !broken > 0 then
+      Format.printf "Broken @{<red>%d@} broken goal(s)@." !broken ;
+    if !minimized > 0 then
+      Format.printf "Minimized @{<orange>%d@}@." !minimized ;
+    if !updated > 0 then
+      Format.printf "Updated @{<orange>%d@}@." !updated ;
+  end
+
 (* -------------------------------------------------------------------------- *)
 (* --- Dump                                                               --- *)
 (* -------------------------------------------------------------------------- *)

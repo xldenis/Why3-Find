@@ -127,6 +127,7 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
                     | `Update | `Minimize ->
                       Crc.merge hint @+ Hammer.schedule profile task hint
                   in
+                  if Utils.tty then Crc.stats hint crc ;
                   stuck := !stuck + Crc.stuck crc ;
                   proved := !proved + Crc.proved crc ;
                   if not (Crc.complete crc) then
@@ -201,7 +202,11 @@ let prove_files ~time ~mode ~session ~log ~files =
       | #log0 as l -> l in
     List.iter (process ~env ~mode ~session ~log ~unsuccess) files ;
     Hammer.run { env ; time ; provers ; transfs ; minimize } ;
-    if Utils.tty then Runner.report_stats () ;
+    if Utils.tty then
+      begin
+        Runner.print_stats () ;
+        Crc.print_stats () ;
+      end ;
     List.rev !unsuccess ;
   end
 
