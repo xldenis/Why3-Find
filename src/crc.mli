@@ -51,4 +51,7 @@ val merge : crc -> crc -> crc
 val of_json : Json.t -> crc
 val to_json : crc -> Json.t
 
+val stats : crc -> crc -> unit
+val print_stats : unit -> unit
+
 (* -------------------------------------------------------------------------- *)

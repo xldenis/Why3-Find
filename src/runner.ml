@@ -393,7 +393,7 @@ let options = [
   "-j", Arg.Set_int jobs, "JOBS max parallel provers";
 ]
 
-let report_stats () =
+let print_stats () =
   let h = !hits in
   let m = !miss in
   Format.printf "Cache %d/%d@." h (h+m)
