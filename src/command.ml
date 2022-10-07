@@ -609,9 +609,9 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
           List.iter (Format.printf " - %s@.") pkgs ;
         end ;
       (* --- Provers ----- *)
-      let list_provers = !list || !relax || !strict in
-      if list_provers then Format.printf "Provers Configuration:@." ;
       let pconfig = Wenv.provers () in
+      let list_provers = !list || !relax || !strict || pconfig = [] in
+      if list_provers then Format.printf "Provers Configuration:@." ;
       let pconfig =
         if !relax then List.map Runner.relax pconfig else pconfig in
       let provers = Runner.select env @@ pconfig in
@@ -620,9 +620,14 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       else
       if !velocity then
         Calibration.velocity_provers env provers ;
-      let provers = if !strict then List.map Runner.id provers else pconfig in
+      let provers =
+        if !strict then List.map Runner.id provers else
+        if pconfig = [] then List.map Runner.name provers else
+          pconfig in
       if list_provers && not !velocity && not !calibrate then
         List.iter (Format.printf " - %s@.") provers ;
+      if provers = [] then
+        Format.printf "  (no provers, use -P or why3 config detect)@." ;
       (* --- Transformations ----- *)
       let transfs = Wenv.transfs () in
       if !list && transfs <> [] then

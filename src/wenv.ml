@@ -128,6 +128,7 @@ let argv files = load () ; List.map arg0 files
 (* -------------------------------------------------------------------------- *)
 
 let is_modified () = !modified
+let set_modified () = modified := true
 
 let save () =
   if !modified then
