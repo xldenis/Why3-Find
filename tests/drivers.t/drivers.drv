@@ -1,4 +1,4 @@
-module A
-  syntax type t = "int"
-  syntax function add = "%1+%2"
+module drivers.A
+  syntax type t "int"
+  syntax val add "%1+%2"
 end

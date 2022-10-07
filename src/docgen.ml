@@ -303,9 +303,9 @@ let pp_axioms fmt { ext ; prm ; hyp ; pvs } =
       let text k single msg =
         if k = 0 then [] else if k = 1 then [single] else [msg k] in
       String.concat ", " @@ List.concat [
+        text pvs "1 value" @@ Printf.sprintf "%d values" ;
         text prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
         text hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
-        text ext "1 value" @@ Printf.sprintf "%d values" ;
         text ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
       ] in
     pp_mark ~cla ~title fmt

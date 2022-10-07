@@ -65,10 +65,8 @@ let main () =
     Format.eprintf "why3find: assertion failure (%s:%d:%d)@." f a b ;
     exit 2
   | exn ->
-    Printexc.print_backtrace stdout ;
-    Format.eprintf "why3find: fatal error (%s)@."
-      (Printexc.to_string exn) ;
-    exit 2
+    Format.eprintf "%a@." Why3.Exn_printer.exn_printer exn ;
+    exit 1
 
 let () = Printexc.catch main ()
 
