@@ -40,6 +40,7 @@ let help () : unit =
 
 let main () =
   try
+    Utils.flush () ;
     let n = Array.length Sys.argv in
     if n < 2 then help () else
       match Sys.argv.(1) with
