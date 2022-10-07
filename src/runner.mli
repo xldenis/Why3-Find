@@ -26,7 +26,11 @@
 open Wenv
 open Why3.Task
 
-type prover
+type prover = {
+  config : Why3.Whyconf.config_prover ;
+  driver : Why3.Driver.driver ;
+}
+
 type result =
   | NoResult | Failed | Unknown of float | Timeout of float | Valid of float
 
@@ -61,6 +65,9 @@ val options : (string * Arg.spec * string) list
 val pending : unit -> int
 val running : unit -> int
 val pp_goals : Format.formatter -> unit
+
+val is_modified : unit -> bool
+val save_config : env -> unit
 val report_stats : unit -> unit
 
 (* -------------------------------------------------------------------------- *)

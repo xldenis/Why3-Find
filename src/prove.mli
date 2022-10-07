@@ -31,8 +31,5 @@ val prove_files :
   mode:mode ->
   session:bool ->
   log:log ->
-  pkgs:string list ->
-  provers:string list ->
-  transfs:string list ->
   files:string list ->
   string list

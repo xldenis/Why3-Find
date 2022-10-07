@@ -24,21 +24,23 @@
 (* -------------------------------------------------------------------------- *)
 
 val options : (string * Arg.spec * string) list
-val pkg_options : unit -> (string * Arg.spec * string) list
 val get : string -> of_json:(Json.t -> 'a) -> 'a
 val set : string -> to_json:('a -> Json.t) -> 'a -> unit
 val arg1 : string -> string
 val argv : string list -> string list
 
+val set_modified : unit -> unit
 val is_modified : unit -> bool
 
 val packages : unit -> string list
 val provers : unit -> string list
 val transfs : unit -> string list
+val drivers : unit -> string list
 
 val set_packages : string list -> unit
 val set_provers : string list -> unit
 val set_transfs : string list -> unit
+val set_drivers : string list -> unit
 
 val load : unit -> unit
 val save : unit -> unit
@@ -46,6 +48,7 @@ val save : unit -> unit
 type env = {
   wconfig : Why3.Whyconf.config ;
   wenv : Why3.Env.env ;
+  pkgs : Meta.pkg list ;
 }
 
-val init : pkgs:string list -> env
+val init : unit -> env

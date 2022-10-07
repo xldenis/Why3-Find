@@ -62,7 +62,7 @@ let cat = String.concat "."
 type package = [ `Local | `Stdlib | `Package of Meta.pkg ]
 
 type id = {
-  id : t ;
+  self : t ;
   id_pkg : package ;
   id_lib : string list ;
   id_mod : string ;
@@ -72,13 +72,13 @@ type id = {
 let resolve ~lib id =
   let lp,id_mod,id_qid = path id in
   if lp = [] then
-    { id ; id_pkg = `Local ; id_lib = lib ; id_mod ; id_qid }
+    { self = id ; id_pkg = `Local ; id_lib = lib ; id_mod ; id_qid }
   else
     let id_pkg =
       if Filename.is_relative (file id) then `Local else
         try `Package (Meta.find (List.hd lp))
         with _ -> `Stdlib
-    in { id ; id_pkg ; id_lib = lp ; id_mod ; id_qid }
+    in { self = id ; id_pkg ; id_lib = lp ; id_mod ; id_qid }
 
 (* List Printing *)
 
@@ -123,8 +123,13 @@ let pp_local fmt r =
 
 let pp_title fmt r =
   List.iter (pp_prefix fmt) r.id_lib ;
-  pp_prefix fmt r.id_mod ;
-  pp_local fmt r
+  if r.id_qid = [] then
+    Format.pp_print_string fmt r.id_mod
+  else
+    begin
+      pp_prefix fmt r.id_mod ;
+      pp_local fmt r
+    end
 
 (* URI Encoding *)
 
@@ -184,7 +189,7 @@ let pp_ahref ~scope fmt r =
   | `Stdlib ->
     Format.pp_print_string fmt "https://why3.lri.fr/stdlib/" ;
     pp_htmlfile fmt r ;
-    let id = r.id in
+    let id = r.self in
     let name = id.id_string in
     if r.id_qid = [] then
       Format.fprintf fmt "#%a_" encode_why3 name

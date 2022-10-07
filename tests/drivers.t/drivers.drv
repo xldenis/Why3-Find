@@ -1,0 +1,4 @@
+module drivers.A
+  syntax type t "int"
+  syntax val add "%1+%2"
+end

@@ -20,43 +20,34 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 Identifiers                                                   --- *)
+(* --- Compute Axioms                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-type t = Why3.Ident.ident
+type henv
+val init : Wenv.env -> henv
 
-val hash : t -> int
-val equal : t -> t -> bool
-val compare : t -> t -> int
-val pp : Format.formatter -> t -> unit
+open Why3
 
-val loc : t -> Why3.Loc.position
-val file : t -> string
-val line : t -> int
-val path : ?lib:string list -> t -> string list * string * string list
-val cat : string list -> string
+type signature
+val signature : henv -> Theory.theory -> signature
 
-type package = [ `Local | `Stdlib | `Package of Meta.pkg ]
+type kind =
+  | Type of Ty.tysymbol
+  | Logic of Term.lsymbol
+  | Value of Expr.rsymbol
+  | Axiom of Decl.prsymbol
 
-type id = {
-  self : t ;
-  id_pkg : package ;
-  id_lib : string list ;
-  id_mod : string ;
-  id_qid : string list ;
+type parameter = {
+  kind : kind ;
+  builtin : (Runner.prover * string) list ;
+  extern : string option ;
 }
 
-val resolve : lib:string list -> t -> id
-
-val of_infix : string -> string
-val to_infix : string -> string
-
-val pp_local : Format.formatter -> id -> unit
-val pp_title : Format.formatter -> id -> unit
-val pp_aname : Format.formatter -> id -> unit
-val pp_ahref : scope:string option -> Format.formatter -> id -> unit
-
-val pp_proof_aname : Format.formatter -> id -> unit
-val pp_proof_ahref : Format.formatter -> id -> unit
+val ident : kind -> Ident.ident
+val is_external : parameter -> bool
+val assumed : signature -> kind list
+val parameter : signature -> Ident.ident -> parameter option
+val parameters : signature -> parameter list
+val dependencies : henv -> Theory.theory -> Theory.theory list
 
 (* -------------------------------------------------------------------------- *)

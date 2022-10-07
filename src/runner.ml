@@ -59,8 +59,7 @@ let find_exact (env : Wenv.env) s =
         Format.eprintf "Failed to load driver for %s@."
           (prover_parseable_format config.prover) ;
         exit 2
-    in
-    Some { config ; driver }
+    in Some { config ; driver }
   with _ -> None
 
 let find_default env name =
@@ -188,6 +187,7 @@ let set e r =
 (* -------------------------------------------------------------------------- *)
 
 let jobs = ref 0
+let clients = ref 0
 let pending = ref 0
 let running = ref 0
 let goals = ref []
@@ -232,7 +232,27 @@ let pp_goals fmt =
          Format.fprintf fmt " %s" a
     ) !goals
 
-let p prover = prover.config.prover
+let update_client () =
+  let nj = !jobs in
+  if nj > 0 && nj <> !clients then
+    begin
+      clients := nj ;
+      Why3.Prove_client.set_max_running_provers nj ;
+    end
+
+let is_modified () = !jobs > 0
+
+let save_config (env : Wenv.env) =
+  let open Why3 in
+  let file = Whyconf.get_conf_file env.wconfig in
+  if file <> "" then
+    let j = !jobs in
+    let main = Whyconf.get_main env.wconfig in
+    let time = Whyconf.timelimit main in
+    let mem = Whyconf.memlimit main in
+    let config = Whyconf.User.set_limits ~time ~mem ~j env.wconfig in
+    Whyconf.save_config config ;
+    Format.printf "Why3 config. saved to %s@." file
 
 let limit env t =
   {
@@ -240,6 +260,9 @@ let limit env t =
     limit_mem = memlimit (get_main env.Wenv.wconfig) ;
     limit_steps = (-1) ;
   }
+
+let notify callback prv limit pr =
+  Option.iter (fun f -> f prv.config.prover limit pr) callback
 
 let call_prover (env : Wenv.env)
     ?(name : string option)
@@ -252,9 +275,7 @@ let call_prover (env : Wenv.env)
   let started = ref false in
   let killed = ref false in
   let canceled = ref false in
-  let np = !jobs in
-  if np > 0 then
-    (jobs := 0 ; Why3.Prove_client.set_max_running_provers np) ;
+  update_client () ;
   schedule () ;
   let cancel = match cancel with None -> Fibers.signal () | Some s -> s in
   let call = prove_task
@@ -290,7 +311,7 @@ let call_prover (env : Wenv.env)
             start ?name () ;
             timeout := Unix.gettimeofday () +. time ;
             started := true ;
-         end ;
+          end ;
         None
       | InternalFailure _ ->
         begin
@@ -310,7 +331,7 @@ let call_prover (env : Wenv.env)
             if !killed then Timeout pr.pr_time else Failed
         in
         if !started then stop ?name () else unschedule () ;
-        (match callback with None -> () | Some f -> f (p prover) limit pr) ;
+        notify callback prover limit pr ;
         Some result
     end
 
@@ -331,16 +352,17 @@ let pr ~s ?(t = 0.0) ans =
     pr_models = [] ;
   }
 
-let notify env prover (callback : callback option) cached =
+let notify_cached env prover (callback : callback option) cached =
   match callback with
   | None -> ()
   | Some f ->
+    let fire f p l r = f p.config.prover l r in
     match cached with
     | NoResult -> ()
-    | Valid t -> f (p prover) (limit env t) (pr ~s:0  ~t Valid)
-    | Timeout t -> f (p prover) (limit env t) (pr ~s:1  ~t Timeout)
-    | Unknown t -> f (p prover) (limit env t) (pr ~s:1  ~t (Unknown "cached"))
-    | Failed -> f (p prover) (limit env 1.0) (pr ~s:2 (Failure "cached"))
+    | Valid t -> fire f prover (limit env t) (pr ~s:0  ~t Valid)
+    | Timeout t -> fire f prover (limit env t) (pr ~s:1  ~t Timeout)
+    | Unknown t -> fire f prover (limit env t) (pr ~s:1  ~t (Unknown "cached"))
+    | Failed -> fire f prover (limit env 1.0) (pr ~s:2 (Failure "cached"))
 
 let prove env ?name ?cancel ?callback task prover time =
   let entry = task,prover in
@@ -354,7 +376,7 @@ let prove env ?name ?cancel ?callback task prover time =
   in
   if promote then
     (incr hits ;
-     notify env prover callback cached ;
+     notify_cached env prover callback cached ;
      Fibers.return cached)
   else
     (incr miss ;

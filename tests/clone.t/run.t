@@ -16,11 +16,11 @@
   <body>
   <header>Module <code class="src"><a href="a.html">a</a>.A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="">A</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span>
-    <span class="keyword">use</span> list.<a title="list.List." href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>
-    <span class="keyword">type</span> <a id="t">t</a>
+  <span class="keyword">module</span> <a id="">A</a><span title="1 value, 1 parameter" class="icon warning icofont-question-circle"></span><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span>
+    <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>
+    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
     <span class="keyword">val</span> <span class="keyword">constant</span> <a id="neutral">neutral</a> : <a title="a.A.t" href="#t">t</a>
-    <span class="keyword">val</span> <a id="op">op</a> <a title="a.A.t" href="#t">t</a> <a title="a.A.t" href="#t">t</a> : <a title="a.A.t" href="#t">t</a>
+    <span class="keyword">val</span> <a id="op">op</a><span title="Value Parameter" class="icon warning icofont-question-circle"></span> <a title="a.A.t" href="#t">t</a> <a title="a.A.t" href="#t">t</a> : <a title="a.A.t" href="#t">t</a>
     <span class="keyword">let</span> <a id="square">square</a> (x : <a title="a.A.t" href="#t">t</a>) : <a title="a.A.t" href="#t">t</a> = <a title="a.A.op" href="#op">op</a> x x
     <span class="keyword">let</span> <span class="keyword">rec</span> <a id="assoc">assoc</a><a href="_a.html#A.assoc" title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></a> (xs : <a title="list.List.list" href="https://why3.lri.fr/stdlib/list.List.html#list_8">list</a> <a title="a.A.t" href="#t">t</a>) : <a title="a.A.t" href="#t">t</a> =
       <span class="keyword">variant</span> { xs }
@@ -48,10 +48,10 @@
   <header>Module <code class="src"><a href="a.html">a</a>.B</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">B</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
-    <span class="keyword">use</span> int.<a title="int.Int." href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
-    <span class="keyword">use</span> list.<a title="list.List." href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>
+    <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
+    <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>
     <span class="keyword">let</span> <span class="keyword">constant</span> <a id="zero">zero</a> = 0
-    <span class="keyword">clone</span> <span class="keyword">export</span> <a title="a.A." href="a.A.html#">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
+    <span class="keyword">clone</span> <span class="keyword">export</span> <a title="a.A" href="a.A.html#">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">let</span> <a id="square">square</a> int : int = {<a class="attribute" title="a.A.square" href="a.A.html#square">def.</a>}
         <span class="keyword">let</span> <a id="assoc">assoc</a> (<a title="list.List.list" href="https://why3.lri.fr/stdlib/list.List.html#list_8">list</a> int) : int = {<a class="attribute" title="a.A.assoc" href="a.A.html#assoc">def.</a>}
@@ -78,8 +78,8 @@
   <header>Module <code class="src"><a href="a.html">a</a>.E</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">E</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
-    <span class="keyword">use</span> <a title="a.B." href="a.B.html#">B</a>
-    <span class="keyword">use</span> list.<a title="list.List." href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>
+    <span class="keyword">use</span> <a title="a.B" href="a.B.html#">B</a>
+    <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>
     <span class="keyword">let</span> <a id="single">single</a> (x : int) : int = <a title="a.B.assoc" href="a.B.html#assoc">assoc</a> (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.List.html#Cons_8">Cons</a> x <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.List.html#Nil_8">Nil</a>)
   <span class="keyword">end</span>
   </pre>
@@ -101,8 +101,8 @@
   <header>Module <code class="src"><a href="b.html">b</a>.C</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">C</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
-    <span class="keyword">use</span> a.<a title="a.B." href="a.B.html#">B</a>
-    <span class="keyword">use</span> list.<a title="list.List." href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>
+    <span class="keyword">use</span> a.<a title="a.B" href="a.B.html#">B</a>
+    <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>
     <span class="keyword">let</span> <a id="single">single</a> (x : int) : int = <a title="a.B.assoc" href="a.B.html#assoc">assoc</a> (<a title="list.List.Cons" href="https://why3.lri.fr/stdlib/list.List.html#Cons_8">Cons</a> x <a title="list.List.Nil" href="https://why3.lri.fr/stdlib/list.List.html#Nil_8">Nil</a>)
   <span class="keyword">end</span>
   </pre>

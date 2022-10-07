@@ -59,7 +59,8 @@ type clone = {
 }
 
 type theory = {
-  theory: Thy.theory;
+  theory: Thy.theory ;
+  signature : Axioms.signature ;
   clones: clone list ;
   proofs: Crc.crc Mstr.t ;
 }
@@ -180,13 +181,16 @@ let iter_cloned_theory ~order ~path f thy =
 (* --- Environment                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-let init ~pkgs =
+let init () =
   begin
     (* Parser config *)
     Why3.Debug.set_flag Why3.Glob.flag ;
     List.iter (fun k -> Hashtbl.add keywords k ()) Why3.Keywords.keywords ;
     (* Package config *)
-    Wenv.init ~pkgs
+    let wenv = Wenv.init () in
+    (* Axioms config *)
+    let henv = Axioms.init wenv in
+    wenv.wenv, henv
   end
 
 (* -------------------------------------------------------------------------- *)
@@ -225,7 +229,7 @@ let library_path file =
     else scan (Filename.basename p :: r) d
   in scan [] (Filename.chop_extension file)
 
-let parse ~why3env file =
+let parse ~wenv ~henv file =
   if not @@ String.ends_with ~suffix:".mlw" file then
     begin
       Format.eprintf "Invalid file name: %S@." file ;
@@ -235,7 +239,7 @@ let parse ~why3env file =
   let lib = library_path file in
   let path = String.concat "." lib in
   let thys =
-    try fst @@ Why3.Env.read_file Why3.Env.base_language why3env file
+    try fst @@ Why3.Env.read_file Why3.Env.base_language wenv file
     with exn ->
       Format.eprintf "%s@." (Printexc.to_string exn) ;
       exit 1
@@ -255,7 +259,8 @@ let parse ~why3env file =
               } :: !clones
            ) theory ;
          let proofs = zip_goals theory proofs in
-         { theory ; clones = !clones ; proofs }
+         let signature = Axioms.signature henv theory in
+         { theory ; signature ; clones = !clones ; proofs }
       ) thys
   in
   let url = Printf.sprintf "%s.html" path in
@@ -353,7 +358,7 @@ let select ~name ids =
 
 (* Global reference resolution *)
 
-let reference ~why3env ~src ~scope r =
+let reference ~wenv ~src ~scope r =
   let kind,name =
     let n = String.length r in
     if n >= 2 && r.[1] = ':'
@@ -371,7 +376,7 @@ let reference ~why3env ~src ~scope r =
     select ~name @@ lookup ~scope ~theories:src.theories kind m qid
   else
     let thy =
-      try Why3.Env.read_theory why3env lp m
+      try Why3.Env.read_theory wenv lp m
       with Not_found ->
         Utils.failwith "unknown theory or module '%s.%s'"
           (String.concat "." lp) m

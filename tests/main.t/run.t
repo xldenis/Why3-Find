@@ -33,11 +33,11 @@
   <div class="doc">
   <p>Before A</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a><a href="_p.a.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a><span title="1 parameter" class="icon remark icofont-question-circle"></span><a href="_p.a.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
   <div class="doc">
   <p>Before B</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><a href="_p.a.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><span title="1 value" class="icon warning icofont-question-circle"></span><a href="_p.a.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
   <div class="doc">
   <p>After B</p>
   </div>
@@ -61,9 +61,9 @@
   <p>Introducing A</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> <a id="">A</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
+  <span class="keyword">module</span> <a id="">A</a><span title="1 parameter" class="icon remark icofont-question-circle"></span><span title="Valid (no goals)" class="icon valid icofont-check"></span>
   
-    <span class="keyword">type</span> <a id="t">t</a> = <a id="A">A</a> | <a id="B">B</a>
+    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span> = <a id="A">A</a> | <a id="B">B</a>
   
   </pre>
   <div class="doc">
@@ -99,11 +99,11 @@
   <p>Introducing B</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> <a id="">B</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
+  <span class="keyword">module</span> <a id="">B</a><span title="1 value" class="icon warning icofont-question-circle"></span><span title="Valid (no goals)" class="icon valid icofont-check"></span>
   
     <span class="keyword">exception</span> <a id="Error">Error</a>
   
-    <span class="keyword">val</span> <a id="wrong">wrong</a> () : unit
+    <span class="keyword">val</span> <a id="wrong">wrong</a><span title="Value Parameter" class="icon warning icofont-question-circle"></span> () : unit
       <span class="keyword">raises</span> { <a title="p.a.B.Error" href="#Error">Error</a> }
   
   </pre>

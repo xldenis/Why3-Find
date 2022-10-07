@@ -593,27 +593,25 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
         end
         (Utils.failwith "don't known what to do with %S")
         "USAGE:\n\
-         \n  why3find calibrate [OPTIONS]\n\n\
+         \n  why3find config [OPTIONS]\n\n\
          DESCRIPTION:\n\
-         \n  Calibrate your machine.\
-         \n  By default, report local velocity with respect to\
-         \n  the master calibration profile, if available (same as -v).\
-         \n  Otherwize, compute the local calibration profile (without -m).\
+         \n  Configuration of the local package.\
+         \n  By default, report on the current configuration.\
          \n\n\
          OPTIONS:\n" ;
       Wenv.load () ;
       (* --- Packages ---- *)
+      let env = Wenv.init () in
       let pkgs = Wenv.packages () in
-      let env = Wenv.init ~pkgs in
       if !list && pkgs <> [] then
         begin
           Format.printf "Package Dependencies:@." ;
           List.iter (Format.printf " - %s@.") pkgs ;
         end ;
       (* --- Provers ----- *)
-      let list_provers = !list || !relax || !strict in
-      if list_provers then Format.printf "Provers Configuration:@." ;
       let pconfig = Wenv.provers () in
+      let list_provers = !list || !relax || !strict || pconfig = [] in
+      if list_provers then Format.printf "Provers Configuration:@." ;
       let pconfig =
         if !relax then List.map Runner.relax pconfig else pconfig in
       let provers = Runner.select env @@ pconfig in
@@ -622,9 +620,14 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       else
       if !velocity then
         Calibration.velocity_provers env provers ;
-      let provers = if !strict then List.map Runner.id provers else pconfig in
+      let provers =
+        if !strict then List.map Runner.id provers else
+        if pconfig = [] then List.map Runner.name provers else
+          pconfig in
       if list_provers && not !velocity && not !calibrate then
         List.iter (Format.printf " - %s@.") provers ;
+      if provers = [] then
+        Format.printf "  (no provers, use -P or why3 config detect)@." ;
       (* --- Transformations ----- *)
       let transfs = Wenv.transfs () in
       if !list && transfs <> [] then
@@ -632,14 +635,29 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
           Format.printf "Proof Transformations:@." ;
           List.iter (Format.printf " - %s@.") transfs ;
         end ;
+      (* --- Drivers ----- *)
+      let drivers = Wenv.drivers () in
+      if !list && drivers <> [] then
+        begin
+          Format.printf "Extraction Drivers:@." ;
+          List.iter (Format.printf " - %s@.") drivers ;
+        end ;
+      (* --- Updating -------------- *)
       if !save then
         begin
-          Wenv.set_packages pkgs ;
-          Wenv.set_provers provers ;
-          Wenv.set_transfs transfs ;
-          Wenv.save () ;
+          if Runner.is_modified () then
+            Runner.save_config env ;
+          if Wenv.is_modified () then
+            begin
+              Wenv.set_packages pkgs ;
+              Wenv.set_provers provers ;
+              Wenv.set_transfs transfs ;
+              Wenv.set_drivers drivers ;
+              Wenv.save () ;
+            end ;
         end
-      else if !strict || !relax || Wenv.is_modified () then
+      else if !strict || !relax ||
+        Wenv.is_modified () || Runner.is_modified () then
         Format.printf "Use '-s' to save project configuration.@." ;
     end
 
@@ -682,14 +700,11 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
          DESCRIPTION:\n\
          \n  Prove why3 files.\n\n\
          OPTIONS:\n" ;
-      let pkgs = Wenv.packages () in
-      let provers = Wenv.provers () in
-      let transfs = Wenv.transfs () in
       let session = !session || !ide in
       let files = Wenv.argv @@ List.rev !files in
       let tofix = Prove.prove_files
           ~mode:!mode ~session ~log:!log
-          ~time:1.0 ~provers ~transfs ~pkgs ~files
+          ~time:1.0 ~files
       in match tofix with
       | [] -> ()
       | f::_ ->
@@ -697,6 +712,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
           exit 1
         else
           begin
+            let pkgs = Wenv.packages () in
             Format.printf "proof failed: running why3 ide %s@." f ;
             let hammer = Meta.shared "hammer.cfg" in
             exec ~prefix:["ide";"--extra-config";hammer] ~pkgs ~skip:0 [| f |]
@@ -709,27 +725,24 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
 
 let () = register ~name:"doc" ~args:"[-p PKG] FILE..."
     begin fun argv ->
-      let pkgs = ref [] in
       let files = ref [] in
       let out = ref "" in
-      let add r p = r := p :: !r in
       Arg.parse_argv argv
         begin
-          Wenv.pkg_options () @ [
+          Wenv.options @ [
             "-o", Arg.Set_string out,
             "destination directory (default \"html\")" ;
           ]
         end
-        (add files)
+        (fun f -> files := f :: !files)
         "USAGE:\n\
          \n  why3find query [PKG...]\n\n\
          DESCRIPTION:\n\
          \n  Query why3 package location.\n\n\
          OPTIONS:\n" ;
-      let pkgs = Wenv.packages () @ List.rev !pkgs in
       let files = Wenv.argv @@ List.rev !files in
       let out = if !out = "" then "html" else Wenv.arg1 !out in
-      Docgen.main ~pkgs ~files ~out
+      Docgen.generate ~out ~files
     end
 
 (* -------------------------------------------------------------------------- *)

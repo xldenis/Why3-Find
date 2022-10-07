@@ -23,7 +23,7 @@
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-val init : pkgs:string list -> Wenv.env
+val init : unit -> Why3.Env.env * Axioms.henv
 
 module Mstr = Why3.Wstdlib.Mstr
 
@@ -42,6 +42,7 @@ type clone = {
 
 type theory = {
   theory: Why3.Theory.theory;
+  signature: Axioms.signature;
   clones: clone list ;
   proofs: Crc.crc Mstr.t ;
 }
@@ -53,7 +54,7 @@ type source = {
   theories: theory Mstr.t;
 }
 
-val parse : why3env:Why3.Env.env -> string -> source
+val parse : wenv:Why3.Env.env -> henv:Axioms.henv -> string -> source
 val derived : source -> string -> string (* URL name *)
 
 val is_keyword : string -> bool
@@ -72,7 +73,7 @@ val resolve :
   position -> href
 
 val reference :
-  why3env:Why3.Env.env ->
+  wenv:Why3.Env.env ->
   src:source -> scope:string option ->
   string -> string * ident
 
