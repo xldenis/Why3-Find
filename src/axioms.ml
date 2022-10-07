@@ -28,10 +28,6 @@ module Sid = Ident.Sid
 module Mid = Ident.Mid
 module Hid = Ident.Hid
 
-(* module Thy = Theory *)
-(* module Mod = Pmodule *)
-(* module Extract = Pdriver *)
-
 (* -------------------------------------------------------------------------- *)
 (* --- Builtin & Extracted Environments                                   --- *)
 (* -------------------------------------------------------------------------- *)
@@ -61,7 +57,7 @@ let add_builtins bmap p =
 let init (wenv : Wenv.env) =
   let provers = Runner.select wenv @@ Wenv.provers () in
   let builtins = List.fold_left add_builtins Mid.empty provers in
-  let drivers = List.concat_map drivers wenv.pkgs in
+  let drivers = List.concat_map drivers wenv.pkgs @ Wenv.drivers () in
   let pdriver = Pdriver.load_driver wenv.wenv ocaml64 drivers in
   let externals = Mid.map (fun (x,_) -> x) pdriver.drv_syntax in
   { builtins ; externals }

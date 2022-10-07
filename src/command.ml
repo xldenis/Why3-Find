@@ -630,6 +630,14 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
           Format.printf "Proof Transformations:@." ;
           List.iter (Format.printf " - %s@.") transfs ;
         end ;
+      (* --- Drivers ----- *)
+      let drivers = Wenv.drivers () in
+      if !list && drivers <> [] then
+        begin
+          Format.printf "Extraction Drivers:@." ;
+          List.iter (Format.printf " - %s@.") drivers ;
+        end ;
+      (* --- Updating -------------- *)
       if !save then
         begin
           if Runner.is_modified () then
@@ -639,6 +647,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
               Wenv.set_packages pkgs ;
               Wenv.set_provers provers ;
               Wenv.set_transfs transfs ;
+              Wenv.set_drivers drivers ;
               Wenv.save () ;
             end ;
         end
@@ -715,7 +724,7 @@ let () = register ~name:"doc" ~args:"[-p PKG] FILE..."
       let out = ref "" in
       Arg.parse_argv argv
         begin
-          Wenv.pkg_options () @ [
+          Wenv.options @ [
             "-o", Arg.Set_string out,
             "destination directory (default \"html\")" ;
           ]

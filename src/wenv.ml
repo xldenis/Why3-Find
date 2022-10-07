@@ -56,9 +56,10 @@ let set fd ~to_json value =
   modified := true
 
 (* -------------------------------------------------------------------------- *)
-(* --- Packages                                                           --- *)
+(* --- Command Line Options                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
+let drvs = ref []
 let pkgs = ref []
 let prvs = ref []
 let trfs = ref []
@@ -94,23 +95,19 @@ let options = [
   "--package", Arg.String (add pkgs), "PKG add package dependency";
   "--prover", Arg.String (add prvs), "PRV add automated prover";
   "--transf", Arg.String (add trfs), "TRANS add transformation ";
+  "--driver", Arg.String (add drvs), "DRV add extraction driver";
   "--remove", Arg.Set removal, "remove all specified packages, provers\
                                 and transformations";
   "-p", Arg.String (add pkgs), " same as --package";
   "-P", Arg.String (add prvs), " same as --prover";
   "-T", Arg.String (add trfs), " same as --transf";
+  "-D", Arg.String (add drvs), " same as --driver";
 ]
-
-let pkg_options () =
-  List.filter
-    (fun (opt,_,_) -> match opt with
-       | "--rot" | "-p" | "--package" -> true
-       | _ -> false
-    ) options
 
 let packages () = gets "packages" pkgs
 let provers () = gets "provers" ~prefix:true prvs
 let transfs () = gets "transfs" ~default:["split_vc";"inline_goal" ] trfs
+let drivers () = gets "drivers" drvs
 
 let sets fd xs =
   set fd ~to_json:Fun.id (`List (List.map (fun x -> `String x) xs))
@@ -118,6 +115,7 @@ let sets fd xs =
 let set_packages = sets "packages"
 let set_provers = sets "provers"
 let set_transfs = sets "transfs"
+let set_drivers = sets "drivers"
 
 let arg0 file =
   if Filename.is_relative file then Filename.concat !prefix file else file
