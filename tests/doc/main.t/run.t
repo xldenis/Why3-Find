@@ -37,7 +37,7 @@
   <div class="doc">
   <p>Before B</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><span title="1 parameter" class="icon remark icofont-question-circle"></span><a href="_p.a.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><span title="" class="icon warning icofont-question-circle"></span><a href="_p.a.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
   <div class="doc">
   <p>After B</p>
   </div>
@@ -99,7 +99,7 @@
   <p>Introducing B</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> <a id="">B</a><span title="1 parameter" class="icon remark icofont-question-circle"></span><span title="Valid (no goals)" class="icon valid icofont-check"></span>
+  <span class="keyword">module</span> <a id="">B</a><span title="" class="icon warning icofont-question-circle"></span><span title="Valid (no goals)" class="icon valid icofont-check"></span>
   
     <span class="keyword">exception</span> <a id="Error">Error</a>
   

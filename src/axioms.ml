@@ -37,7 +37,7 @@ module Hid = Ident.Hid
 (* -------------------------------------------------------------------------- *)
 
 type henv = {
-  builtins : string Mid.t ;
+  builtins : (Runner.prover * string) list Mid.t ;
   externals : string Mid.t ;
 }
 
@@ -48,18 +48,22 @@ let ocaml64 =
 let drivers (pkg : Meta.pkg) =
   List.map (Filename.concat pkg.path) pkg.drivers
 
-let smap = Mid.map (fun (x,_) -> x)
-let union = Mid.merge (fun _ a b -> if a = None then b else a)
+let add_builtins bmap p =
+  Mid.merge
+    (fun _ a b ->
+       match a,b with
+       | None, None -> None
+       | Some _, None -> a
+       | None, Some (m,_) -> Some [p,m]
+       | Some xs, Some (m,_) -> Some ((p,m) :: xs)
+    ) bmap @@ Driver.syntax_map p.Runner.driver
 
 let init (wenv : Wenv.env) =
   let provers = Runner.select wenv @@ Wenv.provers () in
-  let builtins = List.fold_left
-      (fun s Runner.{ driver } ->
-         union s @@ smap @@ Driver.syntax_map driver)
-      Mid.empty provers in
+  let builtins = List.fold_left add_builtins Mid.empty provers in
   let drivers = List.concat_map drivers wenv.pkgs in
   let pdriver = Pdriver.load_driver wenv.wenv ocaml64 drivers in
-  let externals = smap pdriver.drv_syntax in
+  let externals = Mid.map (fun (x,_) -> x) pdriver.drv_syntax in
   { builtins ; externals }
 
 (* -------------------------------------------------------------------------- *)
@@ -80,9 +84,12 @@ let ident = function
 
 type parameter = {
   kind : kind ;
-  builtin : string option ;
+  builtin : (Runner.prover * string) list ;
   extern : string option ;
 }
+
+let is_external { builtin ; extern } =
+  builtin <> [] || extern <> None
 
 type signature = {
   params : int ;
@@ -100,11 +107,10 @@ let empty = {
 
 let add henv hs kind =
   let id = ident kind in
-  let builtin = Mid.find_opt id henv.builtins in
+  let builtin = Mid.find_def [] id henv.builtins in
   let extern = Mid.find_opt id henv.externals in
   let prm = { kind ; builtin ; extern } in
-  let extracted = builtin <> None || extern <> None in
-  let params = if extracted then hs.params else succ hs.params in
+  let params = if is_external prm then hs.params else succ hs.params in
   { hs with params ; locals = Mid.add id prm hs.locals }
 
 let add_used hs (thy : Theory.theory) =
@@ -203,10 +209,8 @@ let parameters s = Mid.values s.locals
 
 let assumed s =
   List.filter_map
-    (function
-      | { kind ; builtin = None ; extern = None } -> Some kind
-      | _ -> None
-    ) (Mid.values s.locals)
+    (fun p -> if is_external p then None else Some p.kind)
+    (Mid.values s.locals)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Consolidated Hypotheses                                            --- *)

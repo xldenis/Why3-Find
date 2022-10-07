@@ -138,8 +138,8 @@ let rec close env =
 let icon_valid = "icon valid icofont-check"
 let icon_partial = "icon warning icofont-exclamation-tringle"
 let icon_failed = "icon failed icofont-exclamation-circle"
-let icon_external = "icon remark icofont-exclamation-circle"
-let icon_parameter = "icon remark icofont-question-circle"
+let icon_externals = "icon remark icofont-exclamation-circle"
+let icon_parameters = "icon remark icofont-question-circle"
 let icon_assumed = "icon warning icofont-question-circle"
 
 let pp_mark ?href ~title ~cla fmt =
@@ -222,6 +222,8 @@ let process_proof env id = function
 (* --- Axioms & Parameter                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
+let provers ops = String.concat "," (List.map (fun (p,_) -> Runner.name p) ops)
+
 let process_axioms env (id : Id.id) =
   match env.theory with
   | None -> ()
@@ -230,24 +232,25 @@ let process_axioms env (id : Id.id) =
     | None -> ()
     | Some { kind ; builtin ; extern } ->
       match builtin, extern with
-      | Some op, None ->
-        let title = Printf.sprintf "Built-in symbol (%s)" op in
-        Pdoc.ppt env.out (pp_mark ~cla:icon_external ~title)
-      | None, Some ext ->
-        let title = Printf.sprintf "External OCaml symbol (%s)" ext in
-        Pdoc.ppt env.out (pp_mark ~cla:icon_external ~title)
-      | Some op, Some ext ->
-        let title = Printf.sprintf
-            "Built-in symbol (%s), extracted to OCaml (%s)" op ext in
-        Pdoc.ppt env.out (pp_mark ~cla:icon_external ~title)
-      | None,None ->
+      | [],None ->
         let title =
           match kind with
           | Type _ | Logic _ -> "Parameter"
           | Value _ -> "Constrained Parameter"
           | Axiom _ -> "Hypothesis"
         in
-        Pdoc.ppt env.out (pp_mark ~cla:icon_parameter ~title)
+        Pdoc.ppt env.out (pp_mark ~cla:icon_parameters ~title)
+      | [], Some ext ->
+        let title = Printf.sprintf "External OCaml symbol (%s)" ext in
+        Pdoc.ppt env.out (pp_mark ~cla:icon_externals ~title)
+      | ops, None ->
+        let title = Printf.sprintf "Built-in symbol (%s)" (provers ops) in
+        Pdoc.ppt env.out (pp_mark ~cla:icon_externals ~title)
+      | ops, Some ext ->
+        let title = Printf.sprintf
+            "Built-in symbol (%s), extracted to OCaml (%s)" (provers ops) ext
+        in
+        Pdoc.ppt env.out (pp_mark ~cla:icon_externals ~title)
 
 let process_assumed env kind =
   try
@@ -278,27 +281,31 @@ let process_module_axioms env =
            (Axioms.assumed @@ Axioms.signature env.henv thy)
       ) (Axioms.dependencies env.henv theory)
 
-type axioms = { ext : int ; prm : int ; hyp :  int }
-let free = { ext = 0 ; prm = 0 ; hyp = 0 }
+type axioms = { ext : int ; prm : int ; hyp :  int ; pvs : int }
+let free = { ext = 0 ; prm = 0 ; hyp = 0 ; pvs = 0 }
 
 let add_axiom hs (p : Axioms.parameter) =
-  match p with
-  | { builtin = None ; extern = None ; kind = Axiom _ } ->
-    { hs with hyp = succ hs.hyp }
-  | { builtin = None ; extern = None } ->
-    { hs with prm = succ hs.prm }
-  | _ ->
+  if Axioms.is_external p then
     { hs with ext = succ hs.ext }
+  else
+    match p.kind with
+    | Axiom _ -> { hs with hyp = succ hs.hyp }
+    | Value _ -> { hs with pvs = succ hs.pvs }
+    | Type _ | Logic _ -> { hs with prm = succ hs.prm }
 
-let pp_axioms fmt { ext ; prm ; hyp } =
-  if ext+prm+hyp > 0 then
-    let cla = if prm + hyp > 0 then icon_parameter else icon_external in
+let pp_axioms fmt { ext ; prm ; hyp ; pvs } =
+  if ext+prm+hyp+pvs > 0 then
+    let cla =
+      if hyp + pvs > 0 then icon_assumed else
+      if prm > 0 then icon_parameters else
+        icon_externals in
     let title =
       let text k single msg =
         if k = 0 then [] else if k = 1 then [single] else [msg k] in
       String.concat ", " @@ List.concat [
         text prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
         text hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
+        text ext "1 value" @@ Printf.sprintf "%d values" ;
         text ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
       ] in
     pp_mark ~cla ~title fmt

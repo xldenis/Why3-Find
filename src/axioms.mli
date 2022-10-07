@@ -39,11 +39,12 @@ type kind =
 
 type parameter = {
   kind : kind ;
-  builtin : string option ;
+  builtin : (Runner.prover * string) list ;
   extern : string option ;
 }
 
 val ident : kind -> Ident.ident
+val is_external : parameter -> bool
 val assumed : signature -> kind list
 val parameter : signature -> Ident.ident -> parameter option
 val parameters : signature -> parameter list
