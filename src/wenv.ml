@@ -126,7 +126,7 @@ let arg1 file = load () ; arg0 file
 let argv files = load () ; List.map arg0 files
 
 (* -------------------------------------------------------------------------- *)
-(* --- Saving Config                                                      --- *)
+(* --- Saving Project Config                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
 let is_modified () = !modified

@@ -632,12 +632,18 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
         end ;
       if !save then
         begin
-          Wenv.set_packages pkgs ;
-          Wenv.set_provers provers ;
-          Wenv.set_transfs transfs ;
-          Wenv.save () ;
+          if Runner.is_modified () then
+            Runner.save_config env ;
+          if Wenv.is_modified () then
+            begin
+              Wenv.set_packages pkgs ;
+              Wenv.set_provers provers ;
+              Wenv.set_transfs transfs ;
+              Wenv.save () ;
+            end ;
         end
-      else if !strict || !relax || Wenv.is_modified () then
+      else if !strict || !relax ||
+        Wenv.is_modified () || Runner.is_modified () then
         Format.printf "Use '-s' to save project configuration.@." ;
     end
 

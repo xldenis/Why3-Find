@@ -65,6 +65,9 @@ val options : (string * Arg.spec * string) list
 val pending : unit -> int
 val running : unit -> int
 val pp_goals : Format.formatter -> unit
+
+val is_modified : unit -> bool
+val save_config : env -> unit
 val report_stats : unit -> unit
 
 (* -------------------------------------------------------------------------- *)
