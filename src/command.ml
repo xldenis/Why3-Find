@@ -174,7 +174,7 @@ let register ~name ?(args="") process =
   commands := (name,(args,process)) :: !commands
 
 (* -------------------------------------------------------------------------- *)
-(* --- why3find where                                                     --- *)
+(* --- WHERE                                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
 let () = register ~name:"where"
@@ -191,7 +191,7 @@ let () = register ~name:"where"
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- why3find shared                                                    --- *)
+(* --- SHARED                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
 let () = register ~name:"shared"
@@ -208,7 +208,7 @@ let () = register ~name:"shared"
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- why3find init                                                      --- *)
+(* --- INIT                                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
 let () = register ~name:"init"
@@ -217,10 +217,8 @@ let () = register ~name:"init"
         "USAGE:\n\
          \n  why3find init PKG [DIR]\n\n\
          DESCRIPTION:\n\
-         \n  Create templates for dune and make for package PKG.\
+         \n  Create templates for dune and git for package PKG.\
          \n  Files are created in directory DIR (default ./PKG).\
-         \n\
-         \n  See 'why3find makefile -h' for instructions.\
          \n" ;
       let pkg = get argv 1 "missing PKG name" in
       let dir =
@@ -236,71 +234,10 @@ let () = register ~name:"init"
         ~subst
         ~src:(Meta.shared "dune.template")
         ~tgt:(Filename.concat dir "dune-project") ;
-      template
-        ~subst
-        ~src:(Meta.shared "make.template")
-        ~tgt:(Filename.concat dir "Makefile") ;
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- why3find makefile                                                  --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"makefile"
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find makefile\n\n\
-         DESCRIPTION:\n\
-         \n  Prints shared makefile location.\n\n\
-         MAKEFILE USAGE:\n\
-         \n  WHY3_PACKAGE=PKG       package name\
-         \n  WHY3_DEPENDS=PKG...    package dependencies\
-         \n  WHY3_OPTIONS=OPTION... general why3find or why3 options\
-         \n  WHY3_HAMMERS=OPTION... hammer options\
-         \n  WHY3_CONFIGS=**/*.cfg  extra configuration files \
-         \n  WHY3_DRIVERS=**/*.drv  extraction drivers \
-         \n  WHY3_EXTRACT=MODULE... extracted modules\
-         \n  WHY3_LIBRARIES=PKG...  extra OCaml package dependencies\
-         \n\
-         \n  include $(shell why3find makefile)
-         \n\
-         MAKEFILE TARGETS:\n\
-         \n  make all        build (default, extensible)\
-         \n  make build      generate dune file(s) (extensible)\
-         \n  make install    install the why3 package (extensible)\
-         \n  make uninstall  remove the why3 package (extensible)\
-         \n\
-         \n  make compile | file.cc      compile file(s)\
-         \n  make prove   | file.prove   hammer file(s)\
-         \n  make ide     | file.ide     open ide\
-         \n  make fix     | file.fix     hammer file(s) and open ide if needed\
-         \n  make check   | file.check   replay session (obsolete only)\
-         \n  make replay  | file.replay  replay session\
-         \n" ;
-      Format.printf "%s@\n" @@ Meta.shared "makefile"
-    end
-
-let () = register ~name:"make"
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find make [ARGS...]\n\n\
-         DESCRIPTION:\n\
-         \n  run make -C DIR ARGS... from the closest\
-         \n  directory DIR that contains a Makefile.\
-         \n" ;
-      let dir =
-        match Utils.locate "Makefile" with
-        | None -> failwith "Makefile not found"
-        | Some(dir,_) -> Utils.chdir dir ; dir in
-      let args = Array.sub argv 1 (Array.length argv - 1) in
-      let argv = Array.append [| "make" ; "-C" ; dir |] args in
-      Unix.execvp "make" argv
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- why3find list                                                      --- *)
+(* --- LIST                                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
 let () = register ~name:"list"
@@ -321,7 +258,7 @@ let () = register ~name:"list"
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- why3find query                                                     --- *)
+(* --- QUERY                                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
 let () = register ~name:"query" ~args:"[PKG...]"
@@ -378,7 +315,7 @@ let () = register ~name:"query" ~args:"[PKG...]"
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- Install/Remove commands                                            --- *)
+(* --- UNINSTALL                                                          --- *)
 (* -------------------------------------------------------------------------- *)
 
 let () = register ~name:"uninstall" ~args:"[PKG...]"
@@ -399,6 +336,10 @@ let () = register ~name:"uninstall" ~args:"[PKG...]"
           end
       done
     end
+
+(* -------------------------------------------------------------------------- *)
+(* --- INSTALL                                                            --- *)
+(* -------------------------------------------------------------------------- *)
 
 let () = register ~name:"install" ~args:"PKG [ARG...]"
     begin fun argv ->
@@ -487,7 +428,7 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- compile                                                            --- *)
+(* --- COMPILE                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
 let () = register ~name:"compile" ~args:"[-p PKG] FILE"
@@ -723,7 +664,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
 (* --- DOC                                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = register ~name:"doc" ~args:"[-p PKG] FILE..."
+let () = register ~name:"doc" ~args:"[OPTIONS] FILE..."
     begin fun argv ->
       let files = ref [] in
       let out = ref "" in

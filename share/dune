@@ -1,11 +1,9 @@
 (install
   (section (site (why3find resources)))
   (files
-    makefile
     hammer.cfg
     git.template
     dune.template
-    make.template
     style.css
     script.js
     icofont.min.css

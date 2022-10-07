@@ -7,7 +7,7 @@
 (authors "Author Name(s)")
 (maintainers "Maintainer Name(s)")
 (license LICENSE)
-
+g
 (package
  (name %{pkg})
  (synopsis "short synopsis")
