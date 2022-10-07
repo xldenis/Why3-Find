@@ -15,8 +15,8 @@
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
     <span class="keyword">constant</span> <a id="e">e</a><span title="Parameter" class="icon remark icofont-question-circle"></span> : <a title="clones.A.t" href="#t">t</a>
     <span class="keyword">function</span> <a id="op">op</a><span title="Parameter" class="icon remark icofont-question-circle"></span> <a title="clones.A.t" href="#t">t</a> <a title="clones.A.t" href="#t">t</a> : <a title="clones.A.t" href="#t">t</a>
-    <span class="keyword">axiom</span> <a id="neutral">neutral</a><span title="Hypothesis" class="icon remark icofont-question-circle"></span>: <span class="keyword">forall</span> x. <a title="clones.A.op" href="#op">op</a> x <a title="clones.A.e" href="#e">e</a> = x
-    <span class="keyword">axiom</span> <a id="commutative">commutative</a><span title="Hypothesis" class="icon remark icofont-question-circle"></span>: <span class="keyword">forall</span> x y. <a title="clones.A.op" href="#op">op</a> x y = <a title="clones.A.op" href="#op">op</a> y x
+    <span class="keyword">axiom</span> <a id="neutral">neutral</a><span title="Hypothesis" class="icon warning icofont-question-circle"></span>: <span class="keyword">forall</span> x. <a title="clones.A.op" href="#op">op</a> x <a title="clones.A.e" href="#e">e</a> = x
+    <span class="keyword">axiom</span> <a id="commutative">commutative</a><span title="Hypothesis" class="icon warning icofont-question-circle"></span>: <span class="keyword">forall</span> x y. <a title="clones.A.op" href="#op">op</a> x y = <a title="clones.A.op" href="#op">op</a> y x
     <span class="keyword">lemma</span> <a id="neutral_com">neutral_com</a><a href="_clones.html#A.neutral_com" title="Valid (one goal)" class="icon valid icofont-check"></a>: <span class="keyword">forall</span> x. <a title="clones.A.op" href="#op">op</a> <a title="clones.A.e" href="#e">e</a> x = x
   
   <span class="keyword">end</span>
@@ -40,12 +40,11 @@
     <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">function</span> <a id="A.e">A.e</a><span title="Parameter" class="icon remark icofont-question-circle"></span> : int {<a class="attribute" title="clones.A.e" href="clones.A.html#e">def.</a>}
-        <span class="keyword">axiom</span> <a id="A.neutral">A.neutral</a><span title="Hypothesis" class="icon remark icofont-question-circle"></span> {<a class="attribute" title="clones.A.neutral" href="clones.A.html#neutral">def.</a>}
+        <span class="keyword">axiom</span> <a id="A.neutral">A.neutral</a><span title="Hypothesis" class="icon warning icofont-question-circle"></span> {<a class="attribute" title="clones.A.neutral" href="clones.A.html#neutral">def.</a>}
         <span class="keyword">lemma</span> <a id="A.commutative">A.commutative</a><a href="_clones.html#B.A.commutative" title="Valid (one goal)" class="icon valid icofont-check"></a> {<a class="attribute" title="clones.A.commutative" href="clones.A.html#commutative">def.</a>}
         <span class="keyword">lemma</span> <a id="A.neutral_com">A.neutral_com</a> {<a class="attribute" title="clones.A.neutral_com" href="clones.A.html#neutral_com">def.</a>}
       <span class="comment section-toggle">end</span>
     </span>}</span><span title="1 parameter, 1 hypothesis" class="icon warning icofont-question-circle"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.A.t" href="clones.A.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.A.op" href="clones.A.html#op">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20+_19">+</a>), <span class="keyword">axiom</span> <a title="clones.A.neutral" href="clones.A.html#neutral">neutral</a>
-    <span class="comment">(* End *)</span>
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>

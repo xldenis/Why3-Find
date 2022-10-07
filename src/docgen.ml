@@ -233,13 +233,13 @@ let process_axioms env (id : Id.id) =
     | Some { kind ; builtin ; extern } ->
       match builtin, extern with
       | [],None ->
-        let title =
+        let cla,title =
           match kind with
-          | Type _ | Logic _ -> "Parameter"
-          | Value _ -> "Constrained Parameter"
-          | Axiom _ -> "Hypothesis"
+          | Type _ | Logic _ -> icon_parameters, "Parameter"
+          | Value _ -> icon_assumed, "Value Parameter"
+          | Axiom _ -> icon_assumed, "Hypothesis"
         in
-        Pdoc.ppt env.out (pp_mark ~cla:icon_parameters ~title)
+        Pdoc.ppt env.out (pp_mark ~cla ~title)
       | [], Some ext ->
         let title = Printf.sprintf "External OCaml symbol (%s)" ext in
         Pdoc.ppt env.out (pp_mark ~cla:icon_externals ~title)

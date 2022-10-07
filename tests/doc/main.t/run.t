@@ -103,7 +103,7 @@
   
     <span class="keyword">exception</span> <a id="Error">Error</a>
   
-    <span class="keyword">val</span> <a id="wrong">wrong</a><span title="Constrained Parameter" class="icon remark icofont-question-circle"></span> () : unit
+    <span class="keyword">val</span> <a id="wrong">wrong</a><span title="Value Parameter" class="icon warning icofont-question-circle"></span> () : unit
       <span class="keyword">raises</span> { <a title="p.a.B.Error" href="#Error">Error</a> }
   
   </pre>

@@ -1,0 +1,4 @@
+module A
+  syntax type t = "int"
+  syntax function add = "%1+%2"
+end

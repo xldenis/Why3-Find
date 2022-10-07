@@ -77,7 +77,7 @@
   <pre class="src">
   <span class="keyword">module</span> <a id="">B</a><span title="1 parameter" class="icon warning icofont-question-circle"></span><span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
-    <span class="keyword">val</span> <a id="binop">binop</a><span title="Constrained Parameter" class="icon remark icofont-question-circle"></span> <a title="a.B.t" href="#t">t</a> <a title="a.B.t" href="#t">t</a> : <a title="a.B.t" href="#t">t</a>
+    <span class="keyword">val</span> <a id="binop">binop</a><span title="Value Parameter" class="icon warning icofont-question-circle"></span> <a title="a.B.t" href="#t">t</a> <a title="a.B.t" href="#t">t</a> : <a title="a.B.t" href="#t">t</a>
   
   </pre>
   <div class="doc">
