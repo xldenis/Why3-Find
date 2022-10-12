@@ -70,8 +70,9 @@ let verdict crc = nverdict ~stuck:(stuck crc) ~proved:(proved crc)
 
 let pp_result fmt ~stuck:s ~proved:p =
   if s = 0 then
-    if p <= 1 then Utils.pp_ok fmt
-    else Format.fprintf fmt "%t (%d)" Utils.pp_ok p
+    if p > 0
+    then Format.fprintf fmt "%t (%d)" Utils.pp_ok p
+    else Format.fprintf fmt "%t (-)" Utils.pp_ok
   else
   if p = 0 then Utils.pp_ko fmt
   else Format.fprintf fmt "%t (%d/%d)" Utils.pp_weak p (s+p)
@@ -128,34 +129,41 @@ let fixed = ref 0
 let broken = ref 0
 let updated = ref 0
 let minimized = ref 0
+let unchanged = ref 0
 
 let rec stats a b =
   match a, b with
-  | Prover _, Prover _ -> if a <> b then incr updated
-  | Stuck, _ -> if complete b then incr fixed
-  | _, Stuck -> if complete a then incr broken
-  | Transf _ , Prover _ -> if complete a then incr minimized else incr fixed
+  | Stuck, Stuck -> incr unchanged
+  | Stuck, _ -> incr (if complete b then fixed else updated)
+  | _, Stuck -> incr (if complete a then broken else updated)
+  | Prover _, Prover _ -> incr (if a = b then unchanged else updated)
+  | Transf _ , Prover _ -> incr (if complete a then minimized else fixed)
   | Transf { id = f0 ; children = cs0 } ,
     Transf { id = f1 ; children = cs1 }
     when f0 = f1 && List.length cs0 = List.length cs1 ->
     List.iter2 stats cs0 cs1
   | _ ->
-    match complete a, complete b with
-    | true, true | false, false -> incr updated
-    | true, false -> incr broken
-    | false, true -> incr fixed
+    let r =
+      match complete a, complete b with
+      | true, true | false, false -> updated
+      | true, false -> broken
+      | false, true -> fixed
+    in incr r
 
 let print_stats () =
   begin
     Utils.flush () ;
+    Format.printf "Proof Certificates:@." ;
     if !fixed > 0 then
-      Format.printf "Fixed @{<green>%d@}@." !fixed ;
+      Format.printf " - fixed: @{<green>%d@}@." !fixed ;
     if !broken > 0 then
-      Format.printf "Broken @{<red>%d@} broken goal(s)@." !broken ;
+      Format.printf " - broken: @{<red>%d@} broken goal(s)@." !broken ;
     if !minimized > 0 then
-      Format.printf "Minimized @{<orange>%d@}@." !minimized ;
+      Format.printf " - minimized: @{<orange>%d@}@." !minimized ;
     if !updated > 0 then
-      Format.printf "Updated @{<orange>%d@}@." !updated ;
+      Format.printf " - updated: @{<orange>%d@}@." !updated ;
+    if !fixed + !broken + !minimized + !updated = 0 then
+      Format.printf " => Unchanged (%d)@." !unchanged ;
   end
 
 (* -------------------------------------------------------------------------- *)
