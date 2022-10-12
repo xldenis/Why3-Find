@@ -4,7 +4,7 @@
   Theory foo.T: ✔ (2)
   $ cat foo/proof.json
   {
-    "profile": [],
+    "profile": [ { "prover": "Alt-Ergo,2.2.0", "size": 16, "time": 0.1852 } ],
     "proofs": {
       "S": {},
       "T": {
