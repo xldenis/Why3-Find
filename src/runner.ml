@@ -265,7 +265,9 @@ let call_prover (env : Wenv.env)
     ?(name : string option)
     ?(cancel : unit Fibers.signal option)
     ?(callback : callback option)
-    (task : Task.task) (prover : prover) (time : float) =
+    ~(prepared : Task.task)
+    ~(prover : prover)
+    ~(time : float) () =
   let main = Whyconf.get_main env.wconfig in
   let limit = limit env time in
   let timeout = ref 0.0 in
@@ -277,9 +279,9 @@ let call_prover (env : Wenv.env)
   let cancel = match cancel with None -> Fibers.signal () | Some s -> s in
   let libdir = Whyconf.libdir main in
   let datadir = Whyconf.datadir main in
-  let call = Driver.prove_task
+  let call = Driver.prove_task_prepared
       ~command:(Whyconf.get_complete_command prover.config ~with_steps:false)
-      ~libdir ~datadir ~limit prover.driver task in
+      ~libdir ~datadir ~limit prover.driver prepared in
   let kill () =
     if not !killed then
       begin
@@ -363,7 +365,8 @@ let notify_cached env prover (callback : callback option) cached =
     | Failed -> fire f prover (limit env 1.0) (pr ~s:2 (Failure "cached"))
 
 let prove env ?name ?cancel ?callback task prover time =
-  let entry = task,prover in
+  let prepared = Driver.prepare_task prover.driver task in
+  let entry = prepared,prover in
   let cached = get entry in
   let promote = match cached with
     | NoResult -> false
@@ -380,7 +383,7 @@ let prove env ?name ?cancel ?callback task prover time =
     (incr miss ;
      Fibers.map
        (fun result -> set entry result ; result)
-       (call_prover env ?name ?cancel ?callback task prover time))
+       (call_prover env ?name ?cancel ?callback ~prepared ~prover ~time ()))
 
 (* -------------------------------------------------------------------------- *)
 (* --- Options                                                            --- *)
