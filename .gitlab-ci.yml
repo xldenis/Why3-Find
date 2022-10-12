@@ -2,4 +2,4 @@ build:
   script:
     - nix-build nix/pkgs.nix -A why3find
   tags:
-    - nix
+    - nix-v2
