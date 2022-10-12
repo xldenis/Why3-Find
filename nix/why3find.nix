@@ -8,6 +8,7 @@
 buildDunePackage {
   pname = "why3find";
   version = "dev";
+  duneVersion = "3";
 
   src = gitignoreSource ./..;
 
