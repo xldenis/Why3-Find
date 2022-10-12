@@ -142,6 +142,38 @@ let to_json (r : result) : Json.t =
 (* --- Prover Cache                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
+let cachedir = ".why3find"
+let version = ".why3find/v1"
+
+let destroycache () =
+  begin
+    if Utils.tty then
+      begin
+        Utils.flush () ;
+        Format.printf "Upgrading cache (%s)@." (Filename.basename version) ;
+      end ;
+    Utils.rmpath cachedir ;
+  end
+
+let preparecache () =
+  begin
+    Utils.mkdirs cachedir ;
+    let out = open_out version in
+    output_string out "why3find cache " ;
+    output_string out (Filename.basename version) ;
+    output_string out "\n" ;
+    close_out out ;
+  end
+
+let checkcache = lazy
+  begin
+    let cd = Sys.file_exists cachedir in
+    let cv = Sys.file_exists version in
+    Utils.flush () ;
+    if cd && not cv then destroycache () ;
+    if not cd || not cv then preparecache () ;
+  end
+
 module Cache = Hashtbl.Make
     (struct
       type t = Task.task * prover
@@ -150,9 +182,10 @@ module Cache = Hashtbl.Make
     end)
 
 let file (t,p) =
+  Lazy.force checkcache ;
   let hash = Why3.Termcode.(task_checksum t |> string_of_checksum) in
   let h2 = String.sub hash 0 2 in
-  Printf.sprintf ".why3find/%s/%s/%s.json" h2 hash (id p)
+  Printf.sprintf ".why3find/%s/%s/%s.json" (id p) h2 hash
 
 let read e =
   let f = file e in

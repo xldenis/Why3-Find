@@ -25,12 +25,12 @@
 
 module F = Filename
 
-let rec cleanup path =
+let rec rmpath path =
   if Sys.file_exists path then
     if Sys.is_directory path then
       begin
         Array.iter
-          (fun d -> cleanup (F.concat path d))
+          (fun d -> rmpath (F.concat path d))
           (Sys.readdir path) ;
         Sys.rmdir path
       end
@@ -99,6 +99,7 @@ let pp_ok fmt = Format.fprintf fmt "@{<green>\u{2714}@}"
 let pp_ko fmt = Format.fprintf fmt "@{<red>\u{2718}@}"
 let pp_weak fmt = Format.fprintf fmt "@{<orange>\u{2718}@}"
 let pp_mark fmt b = if b then pp_ok fmt else pp_ko fmt
+let pp_plural fmt n = if n > 0 then Format.pp_print_char fmt 's'
 
 (* -------------------------------------------------------------------------- *)
 (* --- Failures                                                           --- *)
