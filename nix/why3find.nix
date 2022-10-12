@@ -1,6 +1,7 @@
 { buildDunePackage,
   gitignoreSource,
   dune_3,
+  dune-site,
   why3,
   yojson }:
 
@@ -12,5 +13,5 @@ buildDunePackage {
 
   doCheck = true;
 
-  buildInputs = [ dune_3 why3 yojson ];
+  buildInputs = [ dune_3 dune-site why3 yojson ];
 }
