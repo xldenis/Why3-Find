@@ -1,0 +1,10 @@
+module S
+  function op int int : int
+  axiom thm: forall x,y. op x y = op y x
+end
+
+module T
+  use int.Int
+  clone S as Add with function op = (+)
+  clone S as Mul with function op = (*)
+end

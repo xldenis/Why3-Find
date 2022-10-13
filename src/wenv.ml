@@ -59,6 +59,7 @@ let set fd ~to_json value =
 (* --- Command Line Options                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
+let cfgs = ref []
 let drvs = ref []
 let pkgs = ref []
 let prvs = ref []
@@ -91,20 +92,46 @@ let gets fd ?(prefix=false) ?(default=[]) r =
   else
     cfg @ List.filter (filter ~prefix cfg) @@ List.rev !r
 
-let options = [
-  "--root", Arg.Set_string chdir, "DIR change to directory";
-  "--package", Arg.String (add pkgs), "PKG add package dependency";
-  "--prover", Arg.String (add prvs), "PRV add automated prover";
-  "--transf", Arg.String (add trfs), "TRANS add transformation ";
-  "--driver", Arg.String (add drvs), "DRV add extraction driver";
-  "--remove", Arg.Set removal, "remove all specified packages, provers\
-                                and transformations";
-  "-p", Arg.String (add pkgs), " same as --package";
-  "-P", Arg.String (add prvs), " same as --prover";
-  "-T", Arg.String (add trfs), " same as --transf";
-  "-D", Arg.String (add drvs), " same as --driver";
+type opt = [
+  | `All
+  | `Package
+  | `Prover
+  | `Driver
 ]
 
+let alloptions : (opt * string * Arg.spec * string) list = [
+  `All, "--root", Arg.Set_string chdir, "DIR change to directory";
+  `All, "--extra-config", Arg.String (add cfgs), "CFG extra why3 config";
+  `Package, "--package", Arg.String (add pkgs), "PKG add package dependency";
+  `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
+  `Prover,  "--transf", Arg.String (add trfs), "TRANS add transformation ";
+  `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
+  `All, "--remove", Arg.Set removal, "remove all specified packages, provers\
+                                      and transformations";
+  `Package, "-p", Arg.String (add pkgs), " same as --package";
+  `Prover,  "-P", Arg.String (add prvs), " same as --prover";
+  `Prover,  "-T", Arg.String (add trfs), " same as --transf";
+  `Driver,  "-D", Arg.String (add drvs), " same as --driver";
+]
+
+let options ?(packages=false) ?(provers=false) ?(drivers=false) () =
+  let default = not packages && not provers && not drivers in
+  List.filter_map
+    (fun (opt,name,spec,descr) ->
+       if default ||
+          match opt with
+          | `All -> true
+          | `Package -> packages
+          | `Prover -> provers
+          | `Driver -> drivers
+       then Some(name,spec,descr)
+       else None
+    ) alloptions
+
+let add_config = add cfgs
+let add_driver = add drvs
+
+let configs () = gets "configs" cfgs
 let packages () = gets "packages" pkgs
 let provers () = gets "provers" ~prefix:true prvs
 let transfs () = gets "transfs" ~default:["split_vc";"inline_goal" ] trfs
@@ -113,6 +140,7 @@ let drivers () = gets "drivers" drvs
 let sets fd xs =
   set fd ~to_json:Fun.id (`List (List.map (fun x -> `String x) xs))
 
+let set_configs = sets "configs"
 let set_packages = sets "packages"
 let set_provers = sets "provers"
 let set_transfs = sets "transfs"
@@ -122,7 +150,25 @@ let arg0 file =
   if Filename.is_relative file then Filename.concat !prefix file else file
 
 let arg1 file = load () ; arg0 file
-let argv files = load () ; List.map arg0 files
+let argv files = load () ; List.map arg1 files
+
+let is_mlw p = Filename.extension p = ".mlw"
+
+let allmlw f path =
+  if not (Sys.file_exists path) then
+    Utils.failwith "Unknown file or directory %S" path ;
+  if not (is_mlw path || Sys.is_directory path) then
+    Utils.failwith "File %S is not a Why-3 source neither a directory" path ;
+  Utils.iterpath
+    ~file:(fun p -> if is_mlw p then f p)
+    path
+
+let argmlw files = load () ;
+  let paths = ref [] in
+  List.iter
+    (fun f -> allmlw (fun p -> paths := p :: !paths) (arg1 f))
+    files ;
+  List.rev !paths
 
 (* -------------------------------------------------------------------------- *)
 (* --- Saving Project Config                                              --- *)
@@ -160,7 +206,8 @@ let init () =
   begin
     let pkgs = Meta.find_all @@ packages () in
     let pkg_path = List.map (fun m -> m.Meta.path) pkgs in
-    let wconfig = Whyconf.init_config None in
+    let extra_config = configs () in
+    let wconfig = Whyconf.init_config ~extra_config None in
     let wmain = Whyconf.get_main wconfig in
     let wpath = Whyconf.loadpath wmain in
     let wenv = Why3.Env.create_env ("." :: pkg_path @ wpath) in

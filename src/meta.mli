@@ -26,7 +26,6 @@
 type pkg = {
   name: string ;
   path: string ;
-  library: bool ;
   depends: string list ;
   configs: string list ;
   drivers: string list ;
