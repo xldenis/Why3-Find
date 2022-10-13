@@ -16,6 +16,7 @@
   why3find install PKG PATH...
   why3find uninstall [PKG...]
   why3find CMD [ARGS...]
+
   $ why3find where --help
   USAGE:
   
@@ -269,9 +270,10 @@
   
   OPTIONS:
   
-    --dune Generate dune installer
+    --dune Generate dune installer (default)
+    --shared Install in shared repository (why3find shared)
+    --doc DIR Doc output directory (why3find doc -o DIR)
     --no-doc Do not install documentation
-    --doc DIR Documentation directory
     -help  Display this list of options
     --help  Display this list of options
   

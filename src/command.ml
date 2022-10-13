@@ -582,13 +582,14 @@ let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
 let () = register ~name:"install" ~args:"PKG PATH..."
     begin fun argv ->
       let args = ref [] in
-      let dune = ref false in
+      let dune = ref true in
       let html = ref "html" in
       let nodoc () = html := "" in
       Arg.parse_argv argv [
-        "--dune", Arg.Set dune,"Generate dune installer" ;
+        "--dune", Arg.Set dune,"Generate dune installer (default)" ;
+        "--shared", Arg.Clear dune,"Install in shared repository (why3find shared)" ;
+        "--doc", Arg.Set_string html,"DIR Doc output directory (why3find doc -o DIR)";
         "--no-doc", Arg.Unit nodoc,"Do not install documentation";
-        "--doc", Arg.Set_string html,"DIR Documentation directory";
       ] (fun f -> args := f :: !args)
         "USAGE:\n\
          \n  why3find install [OPTIONS] PKG PATH...\n\n\
