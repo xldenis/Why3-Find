@@ -8,8 +8,8 @@
     "proofs": {
       "S": {},
       "T": {
-        "Add.com": { "prover": "alt-ergo", "time": 0.0005 },
-        "Mul.com": { "prover": "alt-ergo", "time": 0.0005 }
+        "Add.com": { "prover": "alt-ergo", "time": 0.0004 },
+        "Mul.com": { "prover": "alt-ergo", "time": 0.0004 }
       }
     }
   }
