@@ -1,0 +1,7 @@
+{
+  "drivers": [],
+  "packages": [],
+  "profile": [ { "prover": "Alt-Ergo,2.2.0", "size": 16, "time": 0.1852 } ],
+  "provers": [ "alt-ergo" ],
+  "transfs": [ "split_vc", "inline_goal" ]
+}

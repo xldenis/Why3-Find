@@ -74,6 +74,12 @@ let add r a =
   modified := true ;
   r := a :: !r
 
+let filter ~prefix a =
+  if prefix then
+    fun x -> not @@ List.exists (String.starts_with ~prefix:x) a
+  else
+    fun x -> not @@ List.mem x a
+
 let gets fd ?(prefix=false) ?(default=[]) r =
   load () ;
   let cfg =
@@ -81,14 +87,9 @@ let gets fd ?(prefix=false) ?(default=[]) r =
     with Not_found -> default
   in
   if !removal then
-    let filter =
-      if prefix then
-        fun x -> not @@ List.exists (String.starts_with ~prefix:x) !r
-      else
-        fun x -> not @@ List.mem x !r
-    in List.filter filter cfg
+    List.filter (filter ~prefix !r) cfg
   else
-    cfg @ List.rev !r
+    cfg @ List.filter (filter ~prefix cfg) @@ List.rev !r
 
 let options = [
   "--root", Arg.Set_string chdir, "DIR change to directory";

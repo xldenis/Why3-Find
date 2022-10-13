@@ -21,8 +21,8 @@
      packages for why3 developpers and associated \
      OCaml extracted code.")
   (depends
-     (dune (>= 3.0))
-     (why3 (>= 1.5.0))
+     (dune (>= 3.4))
+     (why3 (>= 1.5.1))
      (ocaml (>= 4.12.0)))
   (sites
     (lib packages)
