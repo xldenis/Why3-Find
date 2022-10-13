@@ -33,6 +33,9 @@ val get : string -> of_json:(Json.t -> 'a) -> 'a
 val set : string -> to_json:('a -> Json.t) -> 'a -> unit
 val arg1 : string -> string
 val argv : string list -> string list
+val argmlw : string list -> string list
+
+val allmlw : (string -> unit) -> string -> unit
 
 val set_modified : unit -> unit
 val is_modified : unit -> bool

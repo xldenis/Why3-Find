@@ -492,7 +492,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
 (* --- PROVE                                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
+let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
     begin fun argv ->
       let files = ref [] in
       let ide = ref false in
@@ -523,12 +523,12 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
         end
         (add files)
         "USAGE:\n\
-         \n  why3find prove [OPTIONS] FILES\n\n\
+         \n  why3find prove [OPTIONS] PATH...\n\n\
          DESCRIPTION:\n\
-         \n  Prove why3 files.\n\n\
+         \n  Prove all why3 files and directories accessible from PATH.\n\n\
          OPTIONS:\n" ;
       let session = !session || !ide in
-      let files = Wenv.argv @@ List.rev !files in
+      let files = Wenv.argmlw @@ List.rev !files in
       let tofix = Prove.prove_files
           ~mode:!mode ~session ~log:!log
           ~time:1.0 ~files
@@ -550,7 +550,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
 (* --- DOC                                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = register ~name:"doc" ~args:"[OPTIONS] FILE..."
+let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
     begin fun argv ->
       let files = ref [] in
       let out = ref "" in
@@ -563,11 +563,14 @@ let () = register ~name:"doc" ~args:"[OPTIONS] FILE..."
         end
         (fun f -> files := f :: !files)
         "USAGE:\n\
-         \n  why3find query [PKG...]\n\n\
+         \n  why3find doc PATH...\n\n\
          DESCRIPTION:\n\
-         \n  Query why3 package location.\n\n\
+         \n  Generate HTML documentation.\
+         \n\
+         \n  Includes all why3 files and directories accessible from PATH.\n\n\
+         \n\
          OPTIONS:\n" ;
-      let files = Wenv.argv @@ List.rev !files in
+      let files = Wenv.argmlw @@ List.rev !files in
       let out = if !out = "" then "html" else Wenv.arg1 !out in
       Docgen.generate ~out ~files
     end
@@ -576,17 +579,19 @@ let () = register ~name:"doc" ~args:"[OPTIONS] FILE..."
 (* --- INSTALL                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = register ~name:"install" ~args:"PKG [ARG...]"
+let () = register ~name:"install" ~args:"PKG PATH..."
     begin fun argv ->
       let args = ref [] in
       let dune = ref false in
-      let html = ref true in
+      let html = ref "html" in
+      let nodoc () = html := "" in
       Arg.parse_argv argv [
         "--dune", Arg.Set dune,"Generate dune installer" ;
-        "--no-doc", Arg.Clear html,"Do not install documentation";
+        "--no-doc", Arg.Unit nodoc,"Do not install documentation";
+        "--doc", Arg.Set_string html,"DIR Documentation directory";
       ] (fun f -> args := f :: !args)
         "USAGE:\n\
-         \n  why3find install [OPTIONS] PKG [FILE...]\n\n\
+         \n  why3find install [OPTIONS] PKG PATH...\n\n\
          DESCRIPTION:\n\
          \n  Install the package PKG at the topmost installation site.\
          \n\
@@ -595,6 +600,7 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
          \n\
          \n    **/*.cfg extra why3 configuration\
          \n    **/*.drv OCaml extraction drivers\
+         \n    DIR all why3 source files in DIR\
          \n    PKG/**/*.mlw why3 source files\
          \n\
          \n  If no source file is given, all why3 source files\
@@ -604,7 +610,10 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
          \n  directory is also installed.
          \n\n\
          OPTIONS:\n" ;
-      let pkg = get argv 0 "Missing PKG name" in
+      let pkg,paths =
+        match List.rev !args with
+        | pkg::paths -> pkg, Wenv.argv paths
+        | [] -> failwith "Missing PKG name" in
       let dune = !dune in
       let path = if dune then "." else Meta.path pkg in
       if not dune && Sys.file_exists path then
@@ -614,60 +623,80 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
         end ;
       if not dune then Utils.mkdirs path ;
       let dunefiles = ref [] in
-      let files = Wenv.argv @@ List.rev !args in
       let log ~kind src = Format.printf "install %-10s %s@." kind src in
-      let install ~kind src =
-        log ~kind src ;
+      let install ~kind ?tgt src =
+        let tgt = match tgt with Some p -> p | None -> src in
+        log ~kind tgt ;
         if dune
-        then dunefiles := src :: !dunefiles
-        else Utils.copy ~src ~tgt:(Filename.concat path src)
+        then dunefiles := (src,tgt) :: !dunefiles
+        else Utils.copy ~src ~tgt:(Filename.concat path tgt)
       in
       let prefix = Filename.concat pkg "" in
       let allsrc = ref true in
       List.iter
         begin fun src ->
-          match Filename.extension src with
-          | ".mlw" ->
-            if not (String.starts_with ~prefix src) then
-              Utils.failwith "Can not install %S from outside of %S"
-                src prefix ;
-            allsrc := false ;
-            install ~kind:"(source)" src ;
-          | ".cfg" -> Wenv.add_config src
-          | ".drv" -> Wenv.add_driver src
-          | _ ->
-            Utils.failwith "don't know what to do with %S" src
-        end files ;
+          if not @@ Sys.file_exists src then
+            Utils.failwith "unknown file or directory %S" src ;
+          if Sys.is_directory src then
+            begin
+              allsrc := false ;
+              Wenv.allmlw (install ~kind:"(source)") src
+            end
+          else
+            match Filename.extension src with
+            | ".mlw" ->
+              if not (String.starts_with ~prefix src) then
+                Utils.failwith "Can not install %S from outside of %S"
+                  src prefix ;
+              allsrc := false ;
+              install ~kind:"(source)" src ;
+            | ".cfg" -> Wenv.add_config src
+            | ".drv" -> Wenv.add_driver src
+            | _ ->
+              Utils.failwith "don't know what to do with %S" src
+        end paths ;
       let depends = Wenv.packages () in
       let drivers = Wenv.drivers () in
       let configs = Wenv.configs () in
-      if !allsrc then
-        Utils.iterpath
-          ~file:(fun f ->
-              if Filename.extension f = ".mlw" then
-                install ~kind:"(source)" f
-            ) pkg ;
+      if !allsrc then Wenv.allmlw (install ~kind:"(source)") pkg ;
       List.iter (install ~kind:"(config)") configs ;
       List.iter (install ~kind:"(driver)") drivers ;
-      if !html then
-        Utils.iterpath ~file:(install ~kind:"(doc)") "html" ;
+      let doc = !html in
+      if doc <> "" then
+        begin
+          if not @@ (Sys.file_exists doc && Sys.is_directory doc) then
+            Utils.failwith "Documentation directory %S not found" doc ;
+          let rec install_doc src tgt =
+            if Sys.file_exists src then
+              if Sys.is_directory src then
+                Array.iter (fun d ->
+                    let src = Filename.concat src d in
+                    let tgt = Filename.concat tgt d in
+                    install_doc src tgt
+                  ) (Sys.readdir src)
+              else
+                install ~kind:"(html)" ~tgt src
+          in install_doc doc "html" ;
+        end ;
       log ~kind:"(meta)" "META.json" ;
       Meta.install { name = pkg ; path ; depends ; drivers ; configs } ;
       if dune then
         begin
           generate "dune"
             begin fun out ->
+              let meta = "META.json" in
               Format.fprintf out ";; generated by why3find@\n" ;
               Format.fprintf out "(install@\n" ;
               Format.fprintf out "  (package %s)@\n" pkg ;
               Format.fprintf out "  (section (site (why3find packages)))@\n" ;
               Format.fprintf out "  (files@\n" ;
               List.iter
-                (fun src -> Format.fprintf out "    (%s as %s)@\n" src src)
-                ("META.json" :: List.rev !dunefiles) ;
+                (fun (src,tgt) ->
+                   Format.fprintf out "    (%s as %s/%s)@\n" src pkg tgt)
+                ((meta,meta) :: List.rev !dunefiles) ;
               Format.fprintf out "    ))@." ;
             end ;
-          Format.printf "install (dune)   dune@." ;
+          Format.printf "Generated ./dune"
         end
     end
 
