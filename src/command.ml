@@ -263,14 +263,12 @@ let () = register ~name:"list"
 
 let () = register ~name:"query" ~args:"[PKG...]"
     begin fun argv ->
-      let libs = ref false in
       let path = ref false in
       let load = ref false in
       let deps = ref false in
       let query = ref [] in
       Arg.parse_argv argv
         [ "-p", Arg.Set path, "print package paths only"
-        ; "-l", Arg.Set libs, "print extracted ocaml libraries"
         ; "-L", Arg.Set load, "prints -L <path> for all dependencies"
         ; "-r", Arg.Set deps, "recursive mode, query also dependencies" ]
         (fun pkg -> query := pkg :: !query)
@@ -292,11 +290,6 @@ let () = register ~name:"query" ~args:"[PKG...]"
         List.iter
           (fun (p : Meta.pkg) -> Format.printf "-L %s@\n" p.path)
           pkgs
-      else if !libs then
-        List.iter
-          (fun (p : Meta.pkg) ->
-             if p.library then Format.printf "%s@\n" p.name)
-          pkgs
       else
         let pp_opt name ps =
           Format.printf "  @[<hov 2>%s: %s@]@\n" name
@@ -306,124 +299,10 @@ let () = register ~name:"query" ~args:"[PKG...]"
           (fun (p : Meta.pkg) ->
              Format.printf "Package %s:@\n" p.name ;
              Format.printf "  path: %s@\n" p.path ;
-             Format.printf "  library: %s@\n"
-               (if p.library then "-" else p.name) ;
              pp_opt "depends" p.depends ;
              pp_opt "configs" p.configs ;
              pp_opt "drivers" p.drivers ;
           ) pkgs
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- UNINSTALL                                                          --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"uninstall" ~args:"[PKG...]"
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find uninstall [PKG...]\n\n\
-         DESCRIPTION:\n\
-         \n  Remove all specified packages from topmost installation site.\
-         \n" ;
-      for i = 1 to Array.length argv - 1 do
-        let pkg = argv.(i) in
-        let path = Meta.path pkg in
-        if Sys.file_exists path then
-          begin
-            Format.printf "remove %s@." pkg ;
-            Utils.rmpath path ;
-          end
-      done
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- INSTALL                                                            --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"install" ~args:"PKG [ARG...]"
-    begin fun argv ->
-      let rs = ref Bag.empty in
-      let dune = ref false in
-      Arg.parse_argv argv
-        ["--dune", Arg.Set dune,"Generate dune installer"]
-        (fun a -> rs := Bag.(!rs +> a))
-        "USAGE:\n\
-         \n  why3find install [OPTIONS] PKG [ARG...]\n\n\
-         DESCRIPTION:\n\
-         \n  Install the package PKG at the topmost installation site.\
-         \n  Package dependencies and configuration are taken from\
-         \n  configured local project, if any.\
-         \n
-         \n    *.cfg extra why3 configuration files\
-         \n    *.drv ocaml extraction drivers\
-         \n    PKG/**/*.mlw why3 source files\
-         \n\n\
-         OPTIONS:\n" ;
-      let pkg = get argv 0 "Missing PKG name" in
-      let dune = !dune in
-      let path = if dune then "." else Meta.path pkg in
-      if not dune && Sys.file_exists path then
-        begin
-          Format.printf "remove %s@." pkg ;
-          Utils.rmpath path ;
-        end ;
-      if not dune then Utils.mkdirs path ;
-      let dunefiles = ref ["META.json"] in
-      let depends = ref [] in
-      let drivers = ref [] in
-      let configs = ref [] in
-      let prefix = Filename.concat pkg "" in
-      let install ~src =
-        if dune
-        then dunefiles := src :: !dunefiles
-        else Utils.copy ~src ~tgt:(Filename.concat path src)
-      in
-      Bag.iter
-        begin fun src ->
-          match Filename.extension src with
-          | ".mlw" ->
-            if not (String.starts_with ~prefix src) then
-              Utils.failwith "Can not install %S from outside of %S"
-                src prefix ;
-            Format.printf "install (source) %s@." src ;
-            install ~src ;
-          | ".cfg" ->
-            Format.printf "install (config) %s@." src ;
-            install ~src ;
-            configs := src :: !configs ;
-          | ".drv" ->
-            Format.printf "install (driver) %s@." src ;
-            install ~src ;
-            drivers := src :: !drivers ;
-          | _ -> Utils.failwith "don't know what to do with %S" src
-        end !rs ;
-      Format.printf "install (meta)   META.json@." ;
-      Meta.install {
-        name = pkg ; path ;
-        library = Sys.file_exists "lib" ;
-        depends = List.rev !depends ;
-        drivers = List.rev !drivers ;
-        configs = List.rev !configs ;
-      } ;
-      if dune then
-        begin
-          generate "dune"
-            begin fun out ->
-              Format.fprintf out "; generated by why3find install@\n" ;
-              Format.fprintf out "(install@\n" ;
-              Format.fprintf out "  (package %s)@\n" pkg ;
-              Format.fprintf out "  (section (site (why3find packages)))@\n" ;
-              Format.fprintf out "  (files@\n" ;
-              List.iter
-                (fun src ->
-                   Format.fprintf out "    (%s as %s/%s)@\n"
-                     src pkg src
-                ) (List.rev !dunefiles) ;
-              Format.fprintf out "    ))@." ;
-            end ;
-          Format.printf "install (dune)   dune@." ;
-        end
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -539,9 +418,16 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
          \n  By default, report on the current configuration.\
          \n\n\
          OPTIONS:\n" ;
-      Wenv.load () ;
-      (* --- Packages ---- *)
       let env = Wenv.init () in
+      Wenv.load () ;
+      (* --- Configs ---- *)
+      let cfgs = Wenv.configs () in
+      if !list && cfgs <> [] then
+        begin
+          Format.printf "Extra Why-3 Configuration:@." ;
+          List.iter (Format.printf " - %s@.") cfgs ;
+        end ;
+      (* --- Packages ---- *)
       let pkgs = Wenv.packages () in
       if !list && pkgs <> [] then
         begin
@@ -589,6 +475,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             Runner.save_config env ;
           if Wenv.is_modified () then
             begin
+              Wenv.set_configs cfgs ;
               Wenv.set_packages pkgs ;
               Wenv.set_provers provers ;
               Wenv.set_transfs transfs ;
@@ -683,6 +570,128 @@ let () = register ~name:"doc" ~args:"[OPTIONS] FILE..."
       let files = Wenv.argv @@ List.rev !files in
       let out = if !out = "" then "html" else Wenv.arg1 !out in
       Docgen.generate ~out ~files
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- INSTALL                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"install" ~args:"PKG [ARG...]"
+    begin fun argv ->
+      let args = ref [] in
+      let dune = ref false in
+      let html = ref true in
+      Arg.parse_argv argv [
+        "--dune", Arg.Set dune,"Generate dune installer" ;
+        "--no-doc", Arg.Clear html,"Do not install documentation";
+      ] (fun f -> args := f :: !args)
+        "USAGE:\n\
+         \n  why3find install [OPTIONS] PKG [FILE...]\n\n\
+         DESCRIPTION:\n\
+         \n  Install the package PKG at the topmost installation site.\
+         \n\
+         \n  Package dependencies and configuration are taken from the\
+         \n  local project, or from the command line:\
+         \n\
+         \n    **/*.cfg extra why3 configuration\
+         \n    **/*.drv OCaml extraction drivers\
+         \n    PKG/**/*.mlw why3 source files\
+         \n\
+         \n  If no source file is given, all why3 source files\
+         \n  in directory PKG will be installed.\
+         \n\
+         \n  Unless --no-doc is specified, documentation in './html'\
+         \n  directory is also installed.
+         \n\n\
+         OPTIONS:\n" ;
+      let pkg = get argv 0 "Missing PKG name" in
+      let dune = !dune in
+      let path = if dune then "." else Meta.path pkg in
+      if not dune && Sys.file_exists path then
+        begin
+          Format.printf "remove %s@." pkg ;
+          Utils.rmpath path ;
+        end ;
+      if not dune then Utils.mkdirs path ;
+      let dunefiles = ref [] in
+      let files = Wenv.argv @@ List.rev !args in
+      let log ~kind src = Format.printf "install %-10s %s@." kind src in
+      let install ~kind src =
+        log ~kind src ;
+        if dune
+        then dunefiles := src :: !dunefiles
+        else Utils.copy ~src ~tgt:(Filename.concat path src)
+      in
+      let prefix = Filename.concat pkg "" in
+      let allsrc = ref true in
+      List.iter
+        begin fun src ->
+          match Filename.extension src with
+          | ".mlw" ->
+            if not (String.starts_with ~prefix src) then
+              Utils.failwith "Can not install %S from outside of %S"
+                src prefix ;
+            allsrc := false ;
+            install ~kind:"(source)" src ;
+          | ".cfg" -> Wenv.add_config src
+          | ".drv" -> Wenv.add_driver src
+          | _ ->
+            Utils.failwith "don't know what to do with %S" src
+        end files ;
+      let depends = Wenv.packages () in
+      let drivers = Wenv.drivers () in
+      let configs = Wenv.configs () in
+      if !allsrc then
+        Utils.iterpath
+          ~file:(fun f ->
+              if Filename.extension f = ".mlw" then
+                install ~kind:"(source)" f
+            ) pkg ;
+      List.iter (install ~kind:"(config)") configs ;
+      List.iter (install ~kind:"(driver)") drivers ;
+      if !html then
+        Utils.iterpath ~file:(install ~kind:"(doc)") "html" ;
+      log ~kind:"(meta)" "META.json" ;
+      Meta.install { name = pkg ; path ; depends ; drivers ; configs } ;
+      if dune then
+        begin
+          generate "dune"
+            begin fun out ->
+              Format.fprintf out ";; generated by why3find@\n" ;
+              Format.fprintf out "(install@\n" ;
+              Format.fprintf out "  (package %s)@\n" pkg ;
+              Format.fprintf out "  (section (site (why3find packages)))@\n" ;
+              Format.fprintf out "  (files@\n" ;
+              List.iter
+                (fun src -> Format.fprintf out "    (%s as %s)@\n" src src)
+                ("META.json" :: List.rev !dunefiles) ;
+              Format.fprintf out "    ))@." ;
+            end ;
+          Format.printf "install (dune)   dune@." ;
+        end
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- UNINSTALL                                                          --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"uninstall" ~args:"[PKG...]"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find uninstall [PKG...]\n\n\
+         DESCRIPTION:\n\
+         \n  Remove all specified packages from topmost installation site.\
+         \n" ;
+      for i = 1 to Array.length argv - 1 do
+        let pkg = argv.(i) in
+        let path = Meta.path pkg in
+        if Sys.file_exists path then
+          begin
+            Format.printf "remove %s@." pkg ;
+            Utils.rmpath path ;
+          end
+      done
     end
 
 (* -------------------------------------------------------------------------- *)

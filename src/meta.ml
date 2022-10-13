@@ -26,7 +26,6 @@
 type pkg = {
   name: string ;
   path: string ;
-  library: bool ;
   depends: string list ;
   configs: string list ;
   drivers: string list ;
@@ -51,14 +50,12 @@ let find pkg =
         if Sys.file_exists meta then
           let open Json in
           let js = of_file meta in
-          let library = jfield "library" js |> jbool in
           let depends = jfield "depends" js |> jstringlist in
           let configs = jfield "configs" js |> jstringlist in
           let drivers = jfield "drivers" js |> jstringlist in
-          { name = pkg ; path ; library ; depends ; configs ; drivers }
+          { name = pkg ; path ; depends ; configs ; drivers }
         else
-          { name = pkg ; path ; library = false ;
-            depends = [] ; configs = [] ; drivers = [] }
+          { name = pkg ; path ; depends = [] ; configs = [] ; drivers = [] }
   in lookup pkg Global.Sites.packages
 
 let find_all pkgs =
@@ -78,7 +75,6 @@ let install pkg =
   let meta = Filename.concat pkg.path "META.json" in
   let list xs = `List (List.map (fun s -> `String s) xs) in
   Json.to_file meta @@ `Assoc [
-    "library", `Bool pkg.library ;
     "depends", list pkg.depends ;
     "configs", list pkg.configs ;
     "drivers", list pkg.drivers ;

@@ -25,17 +25,21 @@
 
 module F = Filename
 
-let rec rmpath path =
-  if Sys.file_exists path then
-    if Sys.is_directory path then
+let rec iterpath ?(enter=ignore) ?(file=ignore) ?(leave=ignore) p =
+  if Sys.file_exists p then
+    if Sys.is_directory p then
       begin
+        enter p ;
         Array.iter
-          (fun d -> rmpath (F.concat path d))
-          (Sys.readdir path) ;
-        Sys.rmdir path
+          (fun d ->
+             let pd = Filename.concat p d in
+             iterpath ~enter ~file ~leave pd ;
+          ) (Sys.readdir p) ;
+        leave p ;
       end
-    else
-      Sys.remove path
+    else file p
+
+let rmpath p = iterpath ~file:Sys.remove ~leave:Sys.rmdir p
 
 let rec mkdirs = function
   | "/" | "." -> ()

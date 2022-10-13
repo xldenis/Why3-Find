@@ -28,6 +28,7 @@ val options :
   ?provers:bool ->
   ?drivers:bool ->
   unit -> (string * Arg.spec * string) list
+
 val get : string -> of_json:(Json.t -> 'a) -> 'a
 val set : string -> to_json:('a -> Json.t) -> 'a -> unit
 val arg1 : string -> string
@@ -36,11 +37,16 @@ val argv : string list -> string list
 val set_modified : unit -> unit
 val is_modified : unit -> bool
 
+val add_config : string -> unit
+val add_driver : string -> unit
+
+val configs : unit -> string list
 val packages : unit -> string list
 val provers : unit -> string list
 val transfs : unit -> string list
 val drivers : unit -> string list
 
+val set_configs : string list -> unit
 val set_packages : string list -> unit
 val set_provers : string list -> unit
 val set_transfs : string list -> unit

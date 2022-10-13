@@ -30,6 +30,12 @@ val locate : string -> (string * string) option
 val chdir : string -> unit
 val absolute : string -> string
 
+val iterpath :
+  ?enter:(string -> unit) ->
+  ?file:(string -> unit) ->
+  ?leave:(string -> unit) ->
+  string -> unit
+
 val pp_ok : Format.formatter -> unit
 val pp_ko : Format.formatter -> unit
 val pp_weak : Format.formatter -> unit

@@ -59,6 +59,7 @@ let set fd ~to_json value =
 (* --- Command Line Options                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
+let cfgs = ref []
 let drvs = ref []
 let pkgs = ref []
 let prvs = ref []
@@ -100,6 +101,7 @@ type opt = [
 
 let alloptions : (opt * string * Arg.spec * string) list = [
   `All, "--root", Arg.Set_string chdir, "DIR change to directory";
+  `All, "--extra-config", Arg.String (add cfgs), "CFG extra why3 config";
   `Package, "--package", Arg.String (add pkgs), "PKG add package dependency";
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
   `Prover,  "--transf", Arg.String (add trfs), "TRANS add transformation ";
@@ -126,6 +128,10 @@ let options ?(packages=false) ?(provers=false) ?(drivers=false) () =
        else None
     ) alloptions
 
+let add_config = add cfgs
+let add_driver = add drvs
+
+let configs () = gets "configs" cfgs
 let packages () = gets "packages" pkgs
 let provers () = gets "provers" ~prefix:true prvs
 let transfs () = gets "transfs" ~default:["split_vc";"inline_goal" ] trfs
@@ -134,6 +140,7 @@ let drivers () = gets "drivers" drvs
 let sets fd xs =
   set fd ~to_json:Fun.id (`List (List.map (fun x -> `String x) xs))
 
+let set_configs = sets "configs"
 let set_packages = sets "packages"
 let set_provers = sets "provers"
 let set_transfs = sets "transfs"
@@ -181,7 +188,8 @@ let init () =
   begin
     let pkgs = Meta.find_all @@ packages () in
     let pkg_path = List.map (fun m -> m.Meta.path) pkgs in
-    let wconfig = Whyconf.init_config None in
+    let extra_config = configs () in
+    let wconfig = Whyconf.init_config ~extra_config None in
     let wmain = Whyconf.get_main wconfig in
     let wpath = Whyconf.loadpath wmain in
     let wenv = Why3.Env.create_env ("." :: pkg_path @ wpath) in
