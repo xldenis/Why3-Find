@@ -25,16 +25,21 @@
 
 module F = Filename
 
+let readdir f p =
+  let ds = Sys.readdir p in
+  Array.sort String.compare ds ;
+  Array.iter f ds
+
 let rec iterpath ?(enter=ignore) ?(file=ignore) ?(leave=ignore) p =
   if Sys.file_exists p then
     if Sys.is_directory p then
       begin
         enter p ;
-        Array.iter
+        readdir
           (fun d ->
              let pd = Filename.concat p d in
              iterpath ~enter ~file ~leave pd ;
-          ) (Sys.readdir p) ;
+          ) p ;
         leave p ;
       end
     else file p

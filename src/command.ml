@@ -251,9 +251,9 @@ let () = register ~name:"list"
       List.iter
         (fun site ->
            if Sys.file_exists site && Sys.is_directory site then
-             Array.iter
+             Utils.readdir
                (fun pkg -> Format.printf "%s/%s@\n" site pkg)
-               (Sys.readdir site)
+               site
         ) Global.Sites.packages
     end
 
@@ -669,11 +669,11 @@ let () = register ~name:"install" ~args:"PKG PATH..."
           let rec install_doc src tgt =
             if Sys.file_exists src then
               if Sys.is_directory src then
-                Array.iter (fun d ->
+                Utils.readdir (fun d ->
                     let src = Filename.concat src d in
                     let tgt = Filename.concat tgt d in
                     install_doc src tgt
-                  ) (Sys.readdir src)
+                  ) src
               else
                 install ~kind:"(html)" ~tgt src
           in install_doc doc "html" ;

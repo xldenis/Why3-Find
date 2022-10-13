@@ -30,6 +30,7 @@ val locate : string -> (string * string) option
 val chdir : string -> unit
 val absolute : string -> string
 
+val readdir : (string -> unit) -> string -> unit
 val iterpath :
   ?enter:(string -> unit) ->
   ?file:(string -> unit) ->

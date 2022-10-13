@@ -4,14 +4,14 @@
   install (config)   foo.cfg
   install (driver)   foo.drv
   install (html)     html/_mypkg.foo.html
-  install (html)     html/icofont.min.css
-  install (html)     html/script.js
-  install (html)     html/mypkg.foo.html
-  install (html)     html/mypkg.foo.T.html
-  install (html)     html/style.css
-  install (html)     html/mypkg.foo.S.html
-  install (html)     html/fonts/icofont.woff2
   install (html)     html/fonts/icofont.woff
+  install (html)     html/fonts/icofont.woff2
+  install (html)     html/icofont.min.css
+  install (html)     html/mypkg.foo.S.html
+  install (html)     html/mypkg.foo.T.html
+  install (html)     html/mypkg.foo.html
+  install (html)     html/script.js
+  install (html)     html/style.css
   install (meta)     META.json
   Generated $TESTCASE_ROOT/META.json
   Generated $TESTCASE_ROOT/dune
@@ -28,12 +28,12 @@
       (foo.cfg as mypkg/foo.cfg)
       (foo.drv as mypkg/foo.drv)
       (foo/_mypkg.foo.html as mypkg/html/_mypkg.foo.html)
-      (foo/icofont.min.css as mypkg/html/icofont.min.css)
-      (foo/script.js as mypkg/html/script.js)
-      (foo/mypkg.foo.html as mypkg/html/mypkg.foo.html)
-      (foo/mypkg.foo.T.html as mypkg/html/mypkg.foo.T.html)
-      (foo/style.css as mypkg/html/style.css)
-      (foo/mypkg.foo.S.html as mypkg/html/mypkg.foo.S.html)
-      (foo/fonts/icofont.woff2 as mypkg/html/fonts/icofont.woff2)
       (foo/fonts/icofont.woff as mypkg/html/fonts/icofont.woff)
+      (foo/fonts/icofont.woff2 as mypkg/html/fonts/icofont.woff2)
+      (foo/icofont.min.css as mypkg/html/icofont.min.css)
+      (foo/mypkg.foo.S.html as mypkg/html/mypkg.foo.S.html)
+      (foo/mypkg.foo.T.html as mypkg/html/mypkg.foo.T.html)
+      (foo/mypkg.foo.html as mypkg/html/mypkg.foo.html)
+      (foo/script.js as mypkg/html/script.js)
+      (foo/style.css as mypkg/html/style.css)
       ))
