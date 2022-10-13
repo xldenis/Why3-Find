@@ -205,9 +205,9 @@
     -t TIME prover time (default 1.0s)
     -f force rebuild proofs
     -u update proofs (default)
-    -r check proofs (no update)
+    -r replay proofs (no update)
     -m minimize proofs (or update)
-    -i run why-3 IDE on error (implies -s)
+    -i run why-3 IDE on error(s) (implies -s)
     -s save why3 session
     --modules list results by module
     --theories list results by theory

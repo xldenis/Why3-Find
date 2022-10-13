@@ -510,9 +510,9 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
             "-t", Arg.Set_float time, "TIME prover time (default 1.0s)";
             "-f", Arg.Unit (set mode `Force), "force rebuild proofs";
             "-u", Arg.Unit (set mode `Update), "update proofs (default)";
-            "-r", Arg.Unit (set mode `Replay), "check proofs (no update)";
+            "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
             "-m", Arg.Unit (set mode `Minimize), "minimize proofs (or update)";
-            "-i", Arg.Set ide, "run why-3 IDE on error (implies -s)";
+            "-i", Arg.Set ide, "run why-3 IDE on error(s) (implies -s)";
             "-s", Arg.Set session, "save why3 session";
             "--modules",  Arg.Unit (set log `Modules), "list results by module";
             "--theories", Arg.Unit (set log `Theories), "list results by theory";

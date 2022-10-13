@@ -38,6 +38,7 @@ type node = {
   profile : Calibration.profile ;
   goal : Session.goal ;
   hint : crc ;
+  replay : bool ;
   result : crc Fibers.var ;
 }
 
@@ -48,10 +49,10 @@ type node = {
 let q1 : node Queue.t = Queue.create ()
 let q2 : node Queue.t = Queue.create ()
 
-let schedule profile goal hint =
+let schedule profile ?(replay=false) goal hint =
   let result = Fibers.var () in
   Queue.push
-    { profile ; goal ; hint ; result }
+    { profile ; goal ; hint ; replay ; result }
     (if complete hint then q2 else q1) ;
   Fibers.get result
 
@@ -105,16 +106,18 @@ let prove env ?cancel prv timeout : strategy = fun n ->
 (* --- Try Transformation on Node                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-let rec subgoals profile goals hints =
+let rec subgoals n goals hints =
   match goals, hints with
   | [], _ -> []
-  | g::gs, [] -> schedule profile g Stuck :: subgoals profile gs []
-  | g::gs, h::hs -> schedule profile g h :: subgoals profile gs hs
+  | g::gs, [] ->
+    schedule n.profile ~replay:n.replay g Stuck :: subgoals n gs []
+  | g::gs, h::hs ->
+    schedule n.profile ~replay:n.replay g h :: subgoals n gs hs
 
 let apply env tr hs : strategy = fun n ->
   match Session.apply env.Wenv.wenv tr n.goal with
   | None -> stuck
-  | Some gs -> Crc.apply tr @+ Fibers.all @@ subgoals n.profile gs hs
+  | Some gs -> Crc.apply tr @+ Fibers.all @@ subgoals n gs hs
 
 (* -------------------------------------------------------------------------- *)
 (* --- Hammer Strategy                                                    --- *)
@@ -148,8 +151,8 @@ let select p prvs = List.find (fun prv -> Runner.name prv = p) prvs
 
 let overhead t = max (t *. 2.0) 1.0
 
-let check h p t =
-  prove h.env (select p h.provers) (overhead t) >>> hammer h
+let prove h p t = prove h.env (select p h.provers) (overhead t)
+let update h p t = prove h p t >>> hammer h
 
 let transf h id cs =
   apply h.env id cs >>>
@@ -165,11 +168,17 @@ let reduce h id cs =
 
 let process h : strategy = fun n ->
   match n.hint with
-  | Stuck -> hammer h n
-  | Prover(p,t) -> check h p t n
+  | Stuck -> if n.replay then stuck else hammer h n
+  | Prover(p,t) ->
+    if n.replay then
+      prove h p t n
+    else
+      update h p t n
   | Transf { id ; children } ->
     if h.minimize then
       reduce h id children n
+    else if n.replay then
+      apply h.env id children n
     else
       transf h id children n
 
