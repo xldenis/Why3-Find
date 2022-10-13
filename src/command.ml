@@ -587,7 +587,7 @@ let () = register ~name:"install" ~args:"PKG PATH..."
       let nodoc () = html := "" in
       Arg.parse_argv argv [
         "--dune", Arg.Set dune,"Generate dune installer (default)" ;
-        "--shared", Arg.Clear dune,"Install in shared repository (why3find shared)" ;
+        "--global", Arg.Clear dune,"Install in global repository (why3find where)" ;
         "--doc", Arg.Set_string html,"DIR Doc output directory (why3find doc -o DIR)";
         "--no-doc", Arg.Unit nodoc,"Do not install documentation";
       ] (fun f -> args := f :: !args)

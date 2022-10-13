@@ -271,7 +271,7 @@
   OPTIONS:
   
     --dune Generate dune installer (default)
-    --shared Install in shared repository (why3find shared)
+    --global Install in global repository (why3find where)
     --doc DIR Doc output directory (why3find doc -o DIR)
     --no-doc Do not install documentation
     -help  Display this list of options

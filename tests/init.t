@@ -12,6 +12,8 @@
   why3shapes.gz
   .why3find
   _dune
+  /html
+  /lib
 
   $ cat mypkg/dune-project
   (lang dune 3.1)
