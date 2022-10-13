@@ -1,4 +1,4 @@
-  $ why3find prove foo.mlw --local --root . -r
+  $ why3find prove foo.mlw -r
   Entering directory '$TESTCASE_ROOT'
   Theory foo.S: ✔ (-)
   Theory foo.T: ✔ (2)
