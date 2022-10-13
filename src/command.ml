@@ -631,25 +631,28 @@ let () = register ~name:"install" ~args:"PKG PATH..."
         then dunefiles := (src,tgt) :: !dunefiles
         else Utils.copy ~src ~tgt:(Filename.concat path tgt)
       in
-      let prefix = Filename.concat pkg "" in
       let allsrc = ref true in
+      let pkg_prefix = String.starts_with ~prefix:(Filename.concat pkg "") in
+      let install_src ?(check=true) src =
+        begin
+          if check && not (pkg_prefix src) then
+            Utils.failwith "Can not install %S from outside of %s directory"
+              src pkg ;
+          allsrc := false ;
+          Wenv.allmlw (install ~kind:"(source)") src ;
+          let proofs = Filename.(concat (chop_extension src) "proof.json") in
+          if Sys.file_exists proofs then
+            install ~kind:"(proof)" proofs
+        end in
       List.iter
         begin fun src ->
           if not @@ Sys.file_exists src then
             Utils.failwith "unknown file or directory %S" src ;
           if Sys.is_directory src then
-            begin
-              allsrc := false ;
-              Wenv.allmlw (install ~kind:"(source)") src
-            end
+            Wenv.allmlw install_src src
           else
             match Filename.extension src with
-            | ".mlw" ->
-              if not (String.starts_with ~prefix src) then
-                Utils.failwith "Can not install %S from outside of %S"
-                  src prefix ;
-              allsrc := false ;
-              install ~kind:"(source)" src ;
+            | ".mlw" -> install_src src
             | ".cfg" -> Wenv.add_config src
             | ".drv" -> Wenv.add_driver src
             | _ ->
@@ -658,7 +661,7 @@ let () = register ~name:"install" ~args:"PKG PATH..."
       let depends = Wenv.packages () in
       let drivers = Wenv.drivers () in
       let configs = Wenv.configs () in
-      if !allsrc then Wenv.allmlw (install ~kind:"(source)") pkg ;
+      if !allsrc then Wenv.allmlw (install_src ~check:false) pkg ;
       List.iter (install ~kind:"(config)") configs ;
       List.iter (install ~kind:"(driver)") drivers ;
       let doc = !html in
