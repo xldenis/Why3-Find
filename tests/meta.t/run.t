@@ -1,6 +1,7 @@
   $ why3find doc mypkg -o foo
   $ why3find install --dune --doc foo mypkg foo.cfg foo.drv
   install (source)   mypkg/foo.mlw
+  install (proof)    mypkg/foo/proof.json
   install (config)   foo.cfg
   install (driver)   foo.drv
   install (html)     html/_mypkg.foo.html
@@ -25,6 +26,7 @@
     (files
       (META.json as mypkg/META.json)
       (mypkg/foo.mlw as mypkg/mypkg/foo.mlw)
+      (mypkg/foo/proof.json as mypkg/mypkg/foo/proof.json)
       (foo.cfg as mypkg/foo.cfg)
       (foo.drv as mypkg/foo.drv)
       (foo/_mypkg.foo.html as mypkg/html/_mypkg.foo.html)
