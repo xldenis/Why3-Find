@@ -1,6 +1,8 @@
 let
   sources = import ./sources.nix {};
   ocamlOverlay = oself: osuper: {
+    camlzip = oself.callPackage ./camlzip.nix {};
+    psmt2-frontend = oself.callPackage ./psmt2-frontend.nix {};
     alt-ergo = oself.callPackage ./alt-ergo.nix {};
     why3 = oself.callPackage ./why3.nix {};
     why3find = oself.callPackage ./why3find.nix {};
@@ -13,6 +15,7 @@ let
         else value
     ) super.ocaml-ng;
     inherit (super.callPackage sources."gitignore.nix" {}) gitignoreSource;
+    camlzip = throw "don't use pkgs.camlzip but ocaml-ng.ocamlPackages_4_XX.camlzip";
     why3 = throw "don't use pkgs.why3 but ocaml-ng.ocamlPackages_4_XX.why3";
     why3find = self.ocamlPackages.why3find;
   };
