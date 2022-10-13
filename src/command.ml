@@ -76,7 +76,7 @@ let template ~subst ~src ~tgt =
   in walk () ;
   close_in inc ;
   close_out out ;
-  Format.printf "Initialized %s@." tgt
+  Format.printf "Generated %s@." (Utils.absolute tgt)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Wrapper Command                                                    --- *)
@@ -217,7 +217,7 @@ let () = register ~name:"init"
         "USAGE:\n\
          \n  why3find init PKG [DIR]\n\n\
          DESCRIPTION:\n\
-         \n  Create templates for dune and git for package PKG.\
+         \n  Create templates for dune-project and git-ignore for package PKG.\
          \n  Files are created in directory DIR (default ./PKG).\
          \n" ;
       let pkg = get argv 1 "missing PKG name" in
@@ -592,7 +592,7 @@ let () = register ~name:"install" ~args:"PKG PATH..."
       ] (fun f -> args := f :: !args)
         "USAGE:\n\
          \n  why3find install [OPTIONS] PKG PATH...\n\n\
-         DESCRIPTION:\n\
+         DESCRIPTION:\n\n\
          \n  Install the package PKG at the topmost installation site.\
          \n\
          \n  Package dependencies and configuration are taken from the\
@@ -607,7 +607,7 @@ let () = register ~name:"install" ~args:"PKG PATH..."
          \n  in directory PKG will be installed.\
          \n\
          \n  Unless --no-doc is specified, documentation in './html'\
-         \n  directory is also installed.
+         \n  directory is also installed.\
          \n\n\
          OPTIONS:\n" ;
       let pkg,paths =

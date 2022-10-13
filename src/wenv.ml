@@ -104,7 +104,7 @@ let alloptions : (opt * string * Arg.spec * string) list = [
   `All, "--extra-config", Arg.String (add cfgs), "CFG extra why3 config";
   `Package, "--package", Arg.String (add pkgs), "PKG add package dependency";
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
-  `Prover,  "--transf", Arg.String (add trfs), "TRANS add transformation ";
+  `Prover,  "--transf", Arg.String (add trfs), "TRANS add transformation";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
   `All, "--remove", Arg.Set removal, "remove all specified packages, provers\
                                       and transformations";

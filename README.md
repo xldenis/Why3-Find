@@ -1,25 +1,15 @@
 # Why-3 Library Manager
 
-The `why3find` utility is dedicated to the management of interoperable Why-3
-libraries.
-
-## Usage
-
-The `why3find` command can be used as a convenient wrapper for the usual `why3` command.
-Simply type `why3find` or `why3find -h` to list all commands, and `why3find <cmd> -h`
-for detailed instructions of command `<cmd>`.
+The `why3find` utility is dedicated to the management of Why-3 packages.
 
 ## Why-3 Packages
 
 From `why3find` point of view, a why3 package is a collection of why3 source
 files, configuration files and drivers that are installed at predefined site(s).
 
-Packages are meant to have dependencies, ie. package `A` might depend on
-why3 source files from package `B`, recursively. Hence, `why3find` knowns how to
+Packages are meant to have dependencies, ie. package `A` may depend on
+why3 source files from some other package `B`. Hence, `why3find` knowns how to
 generate suitable options for `why3` to be able to find all the necessary sources.
-
-You may also extract OCaml files from your Why-3 files and make them available as
-regular `opam` or `ocamlfind` OCaml packages.
 
 ## Package Development
 
