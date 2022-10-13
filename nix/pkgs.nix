@@ -8,6 +8,7 @@ let
     why3find = oself.callPackage ./why3find.nix {};
   };
   overlay = self: super: {
+    niv = (import sources.niv {}).niv;
     ocaml-ng = super.lib.mapAttrs (
       name: value:
         if builtins.hasAttr "overrideScope'" value
