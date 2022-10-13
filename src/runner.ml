@@ -23,18 +23,15 @@
 (* --- Why3 Runner                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-open Why3.Whyconf
-open Why3.Driver
-open Why3.Task
-open Why3.Call_provers
+open Why3
 
 (* -------------------------------------------------------------------------- *)
 (* --- Provers                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
 type prover = {
-  config : config_prover ;
-  driver : driver ;
+  config : Whyconf.config_prover ;
+  driver : Driver.driver ;
 }
 
 type callback =
@@ -43,7 +40,7 @@ type callback =
   Why3.Call_provers.prover_result ->
   unit
 
-let id prv = prover_parseable_format prv.config.prover
+let id prv = Whyconf.prover_parseable_format prv.config.prover
 let name prv = String.lowercase_ascii @@ prv.config.prover.prover_name
 let title ?(strict=false) p = if strict then id p else name p
 
@@ -51,13 +48,13 @@ let pp_prover fmt prv = Format.pp_print_string fmt @@ id prv
 
 let find_exact (env : Wenv.env) s =
   try
-    let filter = parse_filter_prover s in
-    let config = filter_one_prover env.wconfig filter in
+    let filter = Whyconf.parse_filter_prover s in
+    let config = Whyconf.filter_one_prover env.wconfig filter in
     let driver =
-      try load_driver (get_main env.wconfig) env.wenv config
+      try Whyconf.load_driver (Whyconf.get_main env.wconfig) env.wenv config
       with _ ->
         Format.eprintf "Failed to load driver for %s@."
-          (prover_parseable_format config.prover) ;
+          (Whyconf.prover_parseable_format config.prover) ;
         exit 2
     in Some { config ; driver }
   with _ -> None
@@ -145,17 +142,50 @@ let to_json (r : result) : Json.t =
 (* --- Prover Cache                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
+let cachedir = ".why3find"
+let version = ".why3find/v1"
+
+let destroycache () =
+  begin
+    if Utils.tty then
+      begin
+        Utils.flush () ;
+        Format.printf "Upgrading cache (%s)@." (Filename.basename version) ;
+      end ;
+    Utils.rmpath cachedir ;
+  end
+
+let preparecache () =
+  begin
+    Utils.mkdirs cachedir ;
+    let out = open_out version in
+    output_string out "why3find cache " ;
+    output_string out (Filename.basename version) ;
+    output_string out "\n" ;
+    close_out out ;
+  end
+
+let checkcache = lazy
+  begin
+    let cd = Sys.file_exists cachedir in
+    let cv = Sys.file_exists version in
+    Utils.flush () ;
+    if cd && not cv then destroycache () ;
+    if not cd || not cv then preparecache () ;
+  end
+
 module Cache = Hashtbl.Make
     (struct
-      type t = task * prover
-      let hash (t,p) = Hashtbl.hash (task_hash t , id p)
-      let equal (t1,p1) (t2,p2) = (p1 == p2) && (task_equal t1 t2)
+      type t = Task.task * prover
+      let hash (t,p) = Hashtbl.hash (Task.task_hash t , id p)
+      let equal (t1,p1) (t2,p2) = (p1 == p2) && (Task.task_equal t1 t2)
     end)
 
 let file (t,p) =
+  Lazy.force checkcache ;
   let hash = Why3.Termcode.(task_checksum t |> string_of_checksum) in
   let h2 = String.sub hash 0 2 in
-  Printf.sprintf ".why3find/%s/%s/%s.json" h2 hash (id p)
+  Printf.sprintf ".why3find/%s/%s/%s.json" (id p) h2 hash
 
 let read e =
   let f = file e in
@@ -255,9 +285,9 @@ let save_config (env : Wenv.env) =
     Format.printf "Why3 config. saved to %s@." file
 
 let limit env t =
-  {
+  Call_provers.{
     limit_time = int_of_float (t +. 0.5) ;
-    limit_mem = memlimit (get_main env.Wenv.wconfig) ;
+    limit_mem = Whyconf.memlimit (Whyconf.get_main env.Wenv.wconfig) ;
     limit_steps = (-1) ;
   }
 
@@ -268,8 +298,10 @@ let call_prover (env : Wenv.env)
     ?(name : string option)
     ?(cancel : unit Fibers.signal option)
     ?(callback : callback option)
-    (task : task) (prover : prover) (time : float) =
-  let main = get_main env.wconfig in
+    ~(prepared : Task.task)
+    ~(prover : prover)
+    ~(time : float) () =
+  let main = Whyconf.get_main env.wconfig in
   let limit = limit env time in
   let timeout = ref 0.0 in
   let started = ref false in
@@ -278,16 +310,16 @@ let call_prover (env : Wenv.env)
   update_client () ;
   schedule () ;
   let cancel = match cancel with None -> Fibers.signal () | Some s -> s in
-  let call = prove_task
-      ~command:(get_complete_command prover.config ~with_steps:false)
-      ~libdir:(libdir main)
-      ~datadir:(datadir main)
-      ~limit prover.driver task in
+  let libdir = Whyconf.libdir main in
+  let datadir = Whyconf.datadir main in
+  let call = Driver.prove_task_prepared
+      ~command:(Whyconf.get_complete_command prover.config ~with_steps:false)
+      ~libdir ~datadir ~limit prover.driver prepared in
   let kill () =
     if not !killed then
       begin
         try
-          interrupt_call ~libdir:(libdir main) call ;
+          Call_provers.interrupt_call ~libdir call ;
           killed := true ;
         with _ -> ()
       end in
@@ -300,7 +332,8 @@ let call_prover (env : Wenv.env)
     begin fun () ->
       let t0 = Unix.gettimeofday () in
       if !started && (!canceled || !timeout < t0) then kill () ;
-      let query = try query_call call with e -> InternalFailure e in
+      let query =
+        try Call_provers.query_call call with e -> InternalFailure e in
       match query with
       | NoUpdates
       | ProverInterrupted ->
@@ -365,7 +398,8 @@ let notify_cached env prover (callback : callback option) cached =
     | Failed -> fire f prover (limit env 1.0) (pr ~s:2 (Failure "cached"))
 
 let prove env ?name ?cancel ?callback task prover time =
-  let entry = task,prover in
+  let prepared = Driver.prepare_task prover.driver task in
+  let entry = prepared,prover in
   let cached = get entry in
   let promote = match cached with
     | NoResult -> false
@@ -382,7 +416,7 @@ let prove env ?name ?cancel ?callback task prover time =
     (incr miss ;
      Fibers.map
        (fun result -> set entry result ; result)
-       (call_prover env ?name ?cancel ?callback task prover time))
+       (call_prover env ?name ?cancel ?callback ~prepared ~prover ~time ()))
 
 (* -------------------------------------------------------------------------- *)
 (* --- Options                                                            --- *)

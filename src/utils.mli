@@ -24,7 +24,7 @@
 (* -------------------------------------------------------------------------- *)
 
 val mkdirs : string -> unit
-val cleanup : string -> unit
+val rmpath : string -> unit
 val copy : src:string -> tgt:string -> unit
 val locate : string -> (string * string) option
 val chdir : string -> unit
@@ -35,6 +35,7 @@ val pp_ko : Format.formatter -> unit
 val pp_weak : Format.formatter -> unit
 val pp_mark : Format.formatter -> bool -> unit
 val pp_time : Format.formatter -> float -> unit
+val pp_plural : Format.formatter -> int -> unit
 
 val round : float -> float
 

@@ -332,7 +332,7 @@ let () = register ~name:"uninstall" ~args:"[PKG...]"
         if Sys.file_exists path then
           begin
             Format.printf "remove %s@." pkg ;
-            Utils.cleanup path ;
+            Utils.rmpath path ;
           end
       done
     end
@@ -367,7 +367,7 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
       if not dune && Sys.file_exists path then
         begin
           Format.printf "remove %s@." pkg ;
-          Utils.cleanup path ;
+          Utils.rmpath path ;
         end ;
       if not dune then Utils.mkdirs path ;
       let sources = ref ["META.json"] in
