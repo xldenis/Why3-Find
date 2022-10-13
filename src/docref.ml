@@ -332,7 +332,7 @@ let pns_find pm kind qid =
       ns_find_pr tns qid ;
     ]
   | _ -> Utils.failwith
-      "invalid reference kind '%c' (use 't', 'l', 'v', 'e' or 'p')" kind
+           "invalid reference kind '%c' (use 't', 'l', 'v', 'e' or 'p')" kind
 
 (* Reference Lookup *)
 

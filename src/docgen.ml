@@ -375,11 +375,11 @@ let pp_ident ~env ?attr ?name fmt id =
       (Id.pp_ahref ~scope:None) id
       pp_name
   with Not_found ->
-  (* Builtin *)
-  Format.pp_print_string fmt @@
-  match name with
-  | Some a -> a
-  | None -> id.id_string
+    (* Builtin *)
+    Format.pp_print_string fmt @@
+    match name with
+    | Some a -> a
+    | None -> id.id_string
 
 let rec pp_type ~env ~par fmt (ty : Why3.Ty.ty) =
   match ty.ty_node with
