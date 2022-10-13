@@ -346,21 +346,20 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
       let rs = ref Bag.empty in
       let dune = ref false in
       Arg.parse_argv argv
-        [ "--local", Arg.Set dune , "DIR generate dune files in DIR instead" ]
+        ["--dune", Arg.Set dune,"Generate dune installer"]
         (fun a -> rs := Bag.(!rs +> a))
         "USAGE:\n\
          \n  why3find install [OPTIONS] PKG [ARG...]\n\n\
          DESCRIPTION:\n\
          \n  Install the package PKG at the topmost installation site.\
-         \n  Contents of the installed package is specified by ARG extension:\
+         \n  Package dependencies and configuration are taken from\
+         \n  configured local project, if any.\
          \n
-         \n    PKG' register package PKG' as a dependency of PKG\
-         \n    PKG/**/*.mlw a why3 source file in PKG's scope\
-         \n    *.cfg extra why3 configuration file\
-         \n    *.drv ocaml extraction driver for PKG clients\
+         \n    *.cfg extra why3 configuration files\
+         \n    *.drv ocaml extraction drivers\
+         \n    PKG/**/*.mlw why3 source files\
          \n\n\
          OPTIONS:\n" ;
-      let argv = Bag.to_array !rs in
       let pkg = get argv 0 "Missing PKG name" in
       let dune = !dune in
       let path = if dune then "." else Meta.path pkg in
@@ -370,35 +369,35 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
           Utils.rmpath path ;
         end ;
       if not dune then Utils.mkdirs path ;
-      let sources = ref ["META.json"] in
+      let dunefiles = ref ["META.json"] in
       let depends = ref [] in
       let drivers = ref [] in
       let configs = ref [] in
       let prefix = Filename.concat pkg "" in
       let install ~src =
         if dune
-        then sources := src :: !sources
+        then dunefiles := src :: !dunefiles
         else Utils.copy ~src ~tgt:(Filename.concat path src)
       in
-      for i = 1 to Array.length argv - 1 do
-        let src = argv.(i) in
-        match Filename.extension src with
-        | "" -> Format.printf "depend %s@." src ; depends := src :: !depends
-        | ".mlw" ->
-          if not (String.starts_with ~prefix src) then
-            Utils.failwith "can not install %S from outside of %S" src prefix ;
-          Format.printf "install (source) %s@." src ;
-          install ~src ;
-        | ".cfg" ->
-          Format.printf "install (config) %s@." src ;
-          install ~src ;
-          configs := src :: !configs ;
-        | ".drv" ->
-          Format.printf "install (driver) %s@." src ;
-          install ~src ;
-          drivers := src :: !drivers ;
-        | _ -> Utils.failwith "don't know what to do with %S" src
-      done ;
+      Bag.iter
+        begin fun src ->
+          match Filename.extension src with
+          | ".mlw" ->
+            if not (String.starts_with ~prefix src) then
+              Utils.failwith "Can not install %S from outside of %S"
+                src prefix ;
+            Format.printf "install (source) %s@." src ;
+            install ~src ;
+          | ".cfg" ->
+            Format.printf "install (config) %s@." src ;
+            install ~src ;
+            configs := src :: !configs ;
+          | ".drv" ->
+            Format.printf "install (driver) %s@." src ;
+            install ~src ;
+            drivers := src :: !drivers ;
+          | _ -> Utils.failwith "don't know what to do with %S" src
+        end !rs ;
       Format.printf "install (meta)   META.json@." ;
       Meta.install {
         name = pkg ; path ;
@@ -420,7 +419,7 @@ let () = register ~name:"install" ~args:"PKG [ARG...]"
                 (fun src ->
                    Format.fprintf out "    (%s as %s/%s)@\n"
                      src pkg src
-                ) (List.rev !sources) ;
+                ) (List.rev !dunefiles) ;
               Format.fprintf out "    ))@." ;
             end ;
           Format.printf "install (dune)   dune@." ;
@@ -521,7 +520,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let velocity = ref false in
       Arg.parse_argv argv
         begin
-          Wenv.options @
+          Wenv.options () @
           Runner.options @
           [
             "-m", Arg.Set calibrate, "calibrate provers (master)";
@@ -598,7 +597,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             end ;
         end
       else if !strict || !relax ||
-        Wenv.is_modified () || Runner.is_modified () then
+              Wenv.is_modified () || Runner.is_modified () then
         Format.printf "Use '-s' to save project configuration.@." ;
     end
 
@@ -618,7 +617,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] FILES"
       let add r p = r := p :: !r in
       Arg.parse_argv argv
         begin
-          Wenv.options @
+          Wenv.options () @
           Runner.options @
           [
             "-t", Arg.Set_float time, "TIME prover time (default 1.0s)";
@@ -670,7 +669,7 @@ let () = register ~name:"doc" ~args:"[OPTIONS] FILE..."
       let out = ref "" in
       Arg.parse_argv argv
         begin
-          Wenv.options @ [
+          Wenv.options ~packages:true ~drivers:true () @ [
             "-o", Arg.Set_string out,
             "destination directory (default \"html\")" ;
           ]

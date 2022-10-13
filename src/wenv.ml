@@ -91,19 +91,40 @@ let gets fd ?(prefix=false) ?(default=[]) r =
   else
     cfg @ List.filter (filter ~prefix cfg) @@ List.rev !r
 
-let options = [
-  "--root", Arg.Set_string chdir, "DIR change to directory";
-  "--package", Arg.String (add pkgs), "PKG add package dependency";
-  "--prover", Arg.String (add prvs), "PRV add automated prover";
-  "--transf", Arg.String (add trfs), "TRANS add transformation ";
-  "--driver", Arg.String (add drvs), "DRV add extraction driver";
-  "--remove", Arg.Set removal, "remove all specified packages, provers\
-                                and transformations";
-  "-p", Arg.String (add pkgs), " same as --package";
-  "-P", Arg.String (add prvs), " same as --prover";
-  "-T", Arg.String (add trfs), " same as --transf";
-  "-D", Arg.String (add drvs), " same as --driver";
+type opt = [
+  | `All
+  | `Package
+  | `Prover
+  | `Driver
 ]
+
+let alloptions : (opt * string * Arg.spec * string) list = [
+  `All, "--root", Arg.Set_string chdir, "DIR change to directory";
+  `Package, "--package", Arg.String (add pkgs), "PKG add package dependency";
+  `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
+  `Prover,  "--transf", Arg.String (add trfs), "TRANS add transformation ";
+  `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
+  `All, "--remove", Arg.Set removal, "remove all specified packages, provers\
+                                      and transformations";
+  `Package, "-p", Arg.String (add pkgs), " same as --package";
+  `Prover,  "-P", Arg.String (add prvs), " same as --prover";
+  `Prover,  "-T", Arg.String (add trfs), " same as --transf";
+  `Driver,  "-D", Arg.String (add drvs), " same as --driver";
+]
+
+let options ?(packages=false) ?(provers=false) ?(drivers=false) () =
+  let default = not packages && not provers && not drivers in
+  List.filter_map
+    (fun (opt,name,spec,descr) ->
+       if default ||
+          match opt with
+          | `All -> true
+          | `Package -> packages
+          | `Prover -> provers
+          | `Driver -> drivers
+       then Some(name,spec,descr)
+       else None
+    ) alloptions
 
 let packages () = gets "packages" pkgs
 let provers () = gets "provers" ~prefix:true prvs

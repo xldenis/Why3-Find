@@ -23,7 +23,11 @@
 (* --- Why3 Environment                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-val options : (string * Arg.spec * string) list
+val options :
+  ?packages:bool ->
+  ?provers:bool ->
+  ?drivers:bool ->
+  unit -> (string * Arg.spec * string) list
 val get : string -> of_json:(Json.t -> 'a) -> 'a
 val set : string -> to_json:('a -> Json.t) -> 'a -> unit
 val arg1 : string -> string
