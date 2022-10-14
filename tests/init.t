@@ -2,10 +2,10 @@
   Generated $TESTCASE_ROOT/mypkg/.gitignore
   Generated $TESTCASE_ROOT/mypkg/dune-project
 
-  $ find mypkg
+  $ find mypkg | sort
   mypkg
-  mypkg/dune-project
   mypkg/.gitignore
+  mypkg/dune-project
 
   $ cat mypkg/.gitignore
   why3session.xml
