@@ -158,11 +158,13 @@
     --root DIR change to directory
     --extra-config CFG extra why3 config
     --package PKG add package dependency
+    --time TIME median proof time
     --prover PRV add automated prover
     --transf TRANS add transformation
     --driver DRV add extraction driver
     --remove remove all specified packages, proversand transformations
     -p  same as --package
+    -t  same as --time
     -P  same as --prover
     -T  same as --transf
     -D  same as --driver
@@ -192,17 +194,18 @@
     --root DIR change to directory
     --extra-config CFG extra why3 config
     --package PKG add package dependency
+    --time TIME median proof time
     --prover PRV add automated prover
     --transf TRANS add transformation
     --driver DRV add extraction driver
     --remove remove all specified packages, proversand transformations
     -p  same as --package
+    -t  same as --time
     -P  same as --prover
     -T  same as --transf
     -D  same as --driver
     -c force cache update
     -j JOBS max parallel provers
-    -t TIME prover time (default 1.0s)
     -f force rebuild proofs
     -u update proofs (default)
     -r replay proofs (no update)
@@ -238,6 +241,7 @@
     --driver DRV add extraction driver
     --remove remove all specified packages, proversand transformations
     -p  same as --package
+    -t  same as --time
     -D  same as --driver
     -o destination directory (default "html")
     -help  Display this list of options

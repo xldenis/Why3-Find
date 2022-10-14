@@ -437,9 +437,14 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       (* --- Provers ----- *)
       let pconfig = Wenv.provers () in
       let list_provers = !list || !relax || !strict || pconfig = [] in
-      if list_provers then Format.printf "Provers Configuration:@." ;
-      let pconfig =
-        if !relax then List.map Runner.relax pconfig else pconfig in
+      if list_provers then
+        begin
+          let jobs = Runner.maxjobs env in
+          Format.printf "Provers Configuration:@." ;
+          Format.printf " - %d parallel prover%a (local)@." jobs Utils.pp_plural jobs ;
+          Format.printf " - median time %a (project)@." Utils.pp_time (Wenv.time ()) ;
+        end ;
+      let pconfig = if !relax then List.map Runner.relax pconfig else pconfig in
       let provers = Runner.select env @@ pconfig in
       if !calibrate then
         Calibration.calibrate_provers ~saved:!save env provers
@@ -450,10 +455,14 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
         if !strict then List.map Runner.id provers else
         if pconfig = [] then List.map Runner.name provers else
           pconfig in
-      if list_provers && not !velocity && not !calibrate then
-        List.iter (Format.printf " - %s@.") provers ;
       if provers = [] then
-        Format.printf "  (no provers, use -P or why3 config detect)@." ;
+        Format.printf "  (no provers, use -P or why3 config detect)@."
+      else
+      if list_provers && not !velocity && not !calibrate then
+        if List.for_all Runner.relaxed provers then
+          Format.printf " - %s@." (String.concat ", " provers)
+        else
+          List.iter (Format.printf " - %s@.") provers ;
       (* --- Transformations ----- *)
       let transfs = Wenv.transfs () in
       if !list && transfs <> [] then
@@ -483,9 +492,16 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
               Wenv.save () ;
             end ;
         end
-      else if !strict || !relax ||
-              Wenv.is_modified () || Runner.is_modified () then
-        Format.printf "Use '-s' to save project configuration.@." ;
+      else
+        let project = !strict || !relax || Wenv.is_modified () in
+        let local = Runner.is_modified () in
+        let target =
+          match project, local with
+          | false,false -> None
+          | true,false -> Some "project configuration"
+          | false,true -> Some "local configuration"
+          | true,true -> Some "project and local configurations"
+        in Option.iter (Format.printf "Use '-s' to save %s@.") target
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -499,7 +515,6 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
       let session = ref false in
       let log = ref `Default in
       let mode = ref `Update in
-      let time = ref 1.0 in
       let set m v () = m := v in
       let add r p = r := p :: !r in
       Arg.parse_argv argv
@@ -507,7 +522,6 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
           Wenv.options () @
           Runner.options @
           [
-            "-t", Arg.Set_float time, "TIME prover time (default 1.0s)";
             "-f", Arg.Unit (set mode `Force), "force rebuild proofs";
             "-u", Arg.Unit (set mode `Update), "update proofs (default)";
             "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
@@ -529,10 +543,8 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
          OPTIONS:\n" ;
       let session = !session || !ide in
       let files = Wenv.argmlw @@ List.rev !files in
-      let tofix = Prove.prove_files
-          ~mode:!mode ~session ~log:!log
-          ~time:1.0 ~files
-      in match tofix with
+      let tofix = Prove.prove_files ~mode:!mode ~session ~log:!log ~files in
+      match tofix with
       | [] -> ()
       | f::_ ->
         if not !ide then

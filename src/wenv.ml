@@ -59,6 +59,7 @@ let set fd ~to_json value =
 (* --- Command Line Options                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
+let time = ref None
 let cfgs = ref []
 let drvs = ref []
 let pkgs = ref []
@@ -70,6 +71,19 @@ let trfs = ref []
 (* -------------------------------------------------------------------------- *)
 
 let removal = ref false
+
+let setv r v =
+  modified := true ;
+  r := Some v
+
+let getv fd ~of_json ~default r =
+  load () ;
+  match !r with
+  | Some v -> v
+  | None ->
+    load () ;
+    try get fd ~of_json
+    with Not_found -> default
 
 let add r a =
   modified := true ;
@@ -103,12 +117,14 @@ let alloptions : (opt * string * Arg.spec * string) list = [
   `All, "--root", Arg.Set_string chdir, "DIR change to directory";
   `All, "--extra-config", Arg.String (add cfgs), "CFG extra why3 config";
   `Package, "--package", Arg.String (add pkgs), "PKG add package dependency";
+  `Prover,  "--time", Arg.Float (setv time), "TIME median proof time";
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
   `Prover,  "--transf", Arg.String (add trfs), "TRANS add transformation";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
   `All, "--remove", Arg.Set removal, "remove all specified packages, provers\
                                       and transformations";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
+  `Package, "-t", Arg.Float (setv time), " same as --time";
   `Prover,  "-P", Arg.String (add prvs), " same as --prover";
   `Prover,  "-T", Arg.String (add trfs), " same as --transf";
   `Driver,  "-D", Arg.String (add drvs), " same as --driver";
@@ -131,6 +147,7 @@ let options ?(packages=false) ?(provers=false) ?(drivers=false) () =
 let add_config = add cfgs
 let add_driver = add drvs
 
+let time () = getv "time" ~of_json:Json.jfloat ~default:1.0 time
 let configs () = gets "configs" cfgs
 let packages () = gets "packages" pkgs
 let provers () = gets "provers" ~prefix:true prvs
@@ -140,6 +157,7 @@ let drivers () = gets "drivers" drvs
 let sets fd xs =
   set fd ~to_json:Fun.id (`List (List.map (fun x -> `String x) xs))
 
+let set_time = set "time" ~to_json:(fun v -> `Float v)
 let set_configs = sets "configs"
 let set_packages = sets "packages"
 let set_provers = sets "provers"

@@ -79,7 +79,7 @@ The common options are given below:
     -D|--driver DRV       # Extraction driver to be used for OCaml
 
 The command `why3find config` can be used to manage the package configuration.
-Typicall examples are:
+Typical examples are:
 
     why3find config -l               # Show current config
     why3find config […] -s           # Add packages, provers, etc. and save
@@ -114,19 +114,70 @@ updated after exiting Why-3 IDE: this interactive mode is meant for debugging
 purpose, and you will have to re-launch `why3find prove` to update the proof
 certificates when your Why-3 specifications have been fixed.
 
-*Prover Cache* is locally used to speed up prover attempts, unless option `-c`
-is provided. Number of parallel provers can be specified by option
-`-j N`.  Alternatively, you can also use `why3find config -j N -s`, in which
-case your _personal_ Why-3 configuration `~/.why3.conf` is updated accordingly.
+*Proving Strategy* for building proof certificates is a heuristic based on
+user-defined median time, registered provers and transformations.  It consists
+in several _rounds_ tried in sequence until proof completion:
+
+1. Fast sequential provers: each configured prover is tried in _sequence_ with a
+   short timeout (1/5 of the median time).
+
+2. Parallel provers: all provers are tried in _parallel_ with the median time as
+   timeout.
+
+3. Transformation: each configured or selected transformation is tried in
+   _sequence_ ; the first one that is applicable terminates the strategy for
+   this goal and the generated sub-goals are scheduled for proof completion.
+
+4. Final parallel long try: if no transformation applies, all provers are
+   finally tried in _parallel_ with a larger timeout (2 times the median time).
+
+In case the final round fails to complete the proof, the goal is marked stuck
+and all its parent goals are marked incomplete. *Remark:* incomplete proof
+certificates are also stored in order to be used as hints for further proof
+lookup. However, a transformation with all its sub-goals marked « stuck » would
+be removed.
+
+The median time is one second by default and can be modified with `-t TIME` or
+configured using `why3find config -t TIME -s`. The median time is specified in
+(fraction of) seconds relatively to the *master* machine, Cf. prover calibration
+below.
+
+*Prover Cache* is stored in hidden file `.why3find` at the root of the package
+directory.  You can bypass access to the cache with option `--no-cache`,
+however, it will still be updated for further use.
+
+*Parallel Proving* is used to run different provers parallel on the different
+cores of your machine. You can specify the number of parallel provers with
+option `-j N`.  Alternatively, you can also use `why3find config -j N -s` to
+configure it locally, in which case your _personal_ Why-3 configuration
+`~/.why3.conf` is updated accordingly. Parallel proving is also performed among
+the different goals and proof obligations to be proved. However, priority is put
+on goals that were incomplete with respect to the previously known proof
+certificates. This strategy makes detection of stuck goals faster when debugging
+proofs. During execution in a terminal, `why3find prove` displays a progression
+status with the following format:
+
+    $ why3find prove […]
+    P/Q/R goal goal …
+
+`P` is the number of complete proofs to be replayed, `Q` is the number of stuck
+or partial proofs to be complete and `R` is number of currently running provers.
+The topmost active goals for proof completion are also given for user feedback.
 
 *Prover Calibration* is a strategy used by `why3find` in order to reduce the
 instability in proof sessions introduced when using machines with different
 performances. Such differences are frequently observed between different
-packages or among several developers in the same package. Inside a given proof
-certificate, proof times and timeouts are always given _relatively_ to some
-reference computer named the _master_ machine.
+packages or among several developers in the same package. For a given proof
+certificate file, proof times and timeouts are always given _relatively_ to some
+reference computer named the _master_ machine. The velocity of a prover on a
+local machine with respect to the *master* machine is evaluated by running a
+reference problem for some parameter `n` on both machines. This velocity is then
+used to convert local times into reference times _wrt_ to the master machine or
+_vice et versa_. The `why3find` commands related to prover calibration are :
 
-*The Master Machine* is configured by using `why3find config -m -s` ; you can
-also use `why3find config -v` to evaluate the velocity of your local computer
-with respect to the master machine.
+    $ why3find config -m -s     # Calibrate provers on the master machine
+    $ why3find config -v        # Evaluate velocity of provers on a local machine
 
+It is highly recommended to update all proofs on the *master* machine with
+`why3find prove -f` after modifying the proof calibration. Usually, you calibrate
+provers once at the very beginning of the project.
