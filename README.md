@@ -184,3 +184,21 @@ provers once at the very beginning of the project.
 
 ## Package Documentation
 
+The `why3find doc` command is used to build HTML documentation for the package.
+It can be used for the entire package or only a selection of source files or
+directories. Unless specified, generated files go to the `html` sub-directory
+of the root package directory:
+
+    $ why3find doc [-o DIR] PATH...
+
+Generated documentation is structured as follows:
+
+    html/fonts                   # Icon fonts
+    html/style.css               # CSS resources
+    html/script.js               # JavaScript resources
+    html/pkg.file.index.html     # Documentation for source file
+    html/pkg.file.proof.html     # Proof documentation for source file
+    html/pkg.file.Module.html    # Documentation of module or theory
+
+The generated files for Icons, CSS and JavaScript are imported from the `why3find share` directory.
+They can be replaced by your own files for further customization.
