@@ -172,7 +172,8 @@ let pp_vlink ?href fmt r =
 
 let pp_verdict = pp_vlink ?href:None
 
-let href_proofs env path fmt = Format.fprintf fmt "_%s#%s" env.src.url path
+let href_proofs env path fmt =
+  Format.fprintf fmt "%s.proof.html#%s" env.src.urlbase path
 
 let process_proofs_summary env ?path = function
   | None -> ()
@@ -642,9 +643,9 @@ let process_open_module env key =
     Pdoc.fork env.out ~file ~title ;
     Pdoc.printf env.out
       "<header>\
-       %s <code class=\"src\"><a href=\"%s\">%s</a>.%s</code>\
+       %s <code class=\"src\"><a href=\"%s.index.html\">%s</a>.%s</code>\
        </header>@\n"
-      kind env.src.url path id ;
+      kind env.src.urlbase path id ;
     Pdoc.pp env.out Format.pp_print_string prelude ;
     push env Pre ;
     env.file <- Pre ;
@@ -788,10 +789,10 @@ let process_file ~wenv ~henv ~out:dir file =
   let src = Docref.parse ~henv ~wenv file in
   let path = String.concat "." src.lib in
   let title = Printf.sprintf "Library %s" path in
-  let ofile = Filename.concat dir src.url in
+  let ofile = Filename.concat dir (src.urlbase ^ ".index.html") in
   let out = Pdoc.output ~file:ofile ~title in
   let crc = Pdoc.output
-      ~file:(Filename.concat dir ("_" ^ src.url))
+      ~file:(Filename.concat dir (src.urlbase ^ ".proof.html"))
       ~title:(Printf.sprintf "Proofs %s" path) in
   let input = Token.input file in
   let env = {
@@ -873,6 +874,8 @@ let shared ~out ~file =
 
 let generate ~out ~files =
   begin
+    Utils.flush () ;
+    Format.printf "Generated %s@." @@ Utils.absolute out ;
     let wenv, henv = Docref.init () in
     Utils.mkdirs @@ Filename.concat out "fonts" ;
     shared ~out ~file:"style.css" ;

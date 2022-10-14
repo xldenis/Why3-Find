@@ -1,16 +1,17 @@
   $ why3find doc mypkg -o foo
+  Generated $TESTCASE_ROOT/foo
   $ why3find install --dune --doc foo mypkg foo.cfg foo.drv
   install (source)   mypkg/foo.mlw
   install (proof)    mypkg/foo/proof.json
   install (config)   foo.cfg
   install (driver)   foo.drv
-  install (html)     html/_mypkg.foo.html
   install (html)     html/fonts/icofont.woff
   install (html)     html/fonts/icofont.woff2
   install (html)     html/icofont.min.css
   install (html)     html/mypkg.foo.S.html
   install (html)     html/mypkg.foo.T.html
-  install (html)     html/mypkg.foo.html
+  install (html)     html/mypkg.foo.index.html
+  install (html)     html/mypkg.foo.proof.html
   install (html)     html/script.js
   install (html)     html/style.css
   install (meta)     META.json
@@ -29,13 +30,13 @@
       (mypkg/foo/proof.json as mypkg/mypkg/foo/proof.json)
       (foo.cfg as mypkg/foo.cfg)
       (foo.drv as mypkg/foo.drv)
-      (foo/_mypkg.foo.html as mypkg/html/_mypkg.foo.html)
       (foo/fonts/icofont.woff as mypkg/html/fonts/icofont.woff)
       (foo/fonts/icofont.woff2 as mypkg/html/fonts/icofont.woff2)
       (foo/icofont.min.css as mypkg/html/icofont.min.css)
       (foo/mypkg.foo.S.html as mypkg/html/mypkg.foo.S.html)
       (foo/mypkg.foo.T.html as mypkg/html/mypkg.foo.T.html)
-      (foo/mypkg.foo.html as mypkg/html/mypkg.foo.html)
+      (foo/mypkg.foo.index.html as mypkg/html/mypkg.foo.index.html)
+      (foo/mypkg.foo.proof.html as mypkg/html/mypkg.foo.proof.html)
       (foo/script.js as mypkg/html/script.js)
       (foo/style.css as mypkg/html/style.css)
       ))

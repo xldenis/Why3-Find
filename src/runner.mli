@@ -38,6 +38,7 @@ val id : prover -> string
 val name : prover -> string
 val title : ?strict:bool -> prover -> string
 val relax : string -> string
+val relaxed : string -> bool
 
 val default : env -> prover list
 val prover : env -> string -> prover
@@ -64,6 +65,7 @@ val prove : env ->
 val options : (string * Arg.spec * string) list
 val pending : unit -> int
 val running : unit -> int
+val maxjobs : Wenv.env -> int
 val pp_goals : Format.formatter -> unit
 
 val is_modified : unit -> bool

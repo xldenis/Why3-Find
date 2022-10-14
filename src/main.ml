@@ -33,7 +33,12 @@ let help () : unit =
   begin
     Format.printf "why3find [-h|--help]@\n" ;
     Format.printf "why3find [-v|--version]@\n" ;
-    Command.iter (Format.printf "why3find %s %s@\n") ;
+    Command.iter (fun cmd args ->
+        if args = "" then
+          Format.printf "why3find %s@\n" cmd
+        else
+          Format.printf "why3find %s %s@\n" cmd args
+      ) ;
     Format.printf "why3find CMD [ARGS...]@\n" ;
     exit 0
   end

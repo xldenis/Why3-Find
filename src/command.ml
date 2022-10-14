@@ -76,7 +76,7 @@ let template ~subst ~src ~tgt =
   in walk () ;
   close_in inc ;
   close_out out ;
-  Format.printf "Initialized %s@." tgt
+  Format.printf "Generated %s@." (Utils.absolute tgt)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Wrapper Command                                                    --- *)
@@ -217,7 +217,7 @@ let () = register ~name:"init"
         "USAGE:\n\
          \n  why3find init PKG [DIR]\n\n\
          DESCRIPTION:\n\
-         \n  Create templates for dune and git for package PKG.\
+         \n  Create templates for dune-project and git-ignore for package PKG.\
          \n  Files are created in directory DIR (default ./PKG).\
          \n" ;
       let pkg = get argv 1 "missing PKG name" in
@@ -306,86 +306,6 @@ let () = register ~name:"query" ~args:"[PKG...]"
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- COMPILE                                                            --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"compile" ~args:"[-p PKG] FILE"
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find compile [OPTIONS] FILE\n\n\
-         DESCRIPTION:\n\
-         \n  Compile the given file(s) using why3 prove command.\n\n\
-         OPTIONS:\n\
-         \n  -v|--verbose print why3 command\
-         \n  -p|--package PKG package dependency\
-         \n  --extra-config FILE additional configuration file\
-         \n";
-      exec ~prefix:["prove";"--type-only"] ~configs:true argv
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- IDE                                                                --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"ide" ~args:"[-p PKG] FILE"
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find ide [OPTIONS] FILE\n\n\
-         DESCRIPTION:\n\
-         \n  Run why3 ide on the given file.\n\
-         \n  Also loads the « hammer » strategy.\n\
-         \n\
-         OPTIONS:\n\
-         \n  -v|--verbose print why3 command\
-         \n  -p|--package PKG package dependency\
-         \n  --extra-config FILE additional configuration file\
-         \n";
-      let hammer = Meta.shared "hammer.cfg" in
-      exec ~prefix:["ide";"--extra-config";hammer] ~configs:true argv
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- REPLAY                                                             --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"replay" ~args:"[-p PKG] FILE"
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find extract [OPTIONS] MODULE...\n\n\
-         DESCRIPTION:\n\
-         \n  Executes why3 replay with the specified arguments.\n\n\
-         OPTIONS:\n\
-         \n  -v|--verbose print why3 command\
-         \n  -p|--package PKG package dependency\
-         \n  --extra-config FILE additional configuration file\
-         \n";
-      exec ~prefix:["replay"] ~configs:true argv
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- EXTRACT                                                            --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find extract [OPTIONS] MODULE...\n\n\
-         DESCRIPTION:\n\
-         \n  Executes why3 extract with the specified arguments.\n\n\
-         OPTIONS:\n\
-         \n  -v|--verbose print why3 command\
-         \n  -p|--package PKG package dependency\
-         \n  -D|--driver NAME|FILE additional extraction driver\
-         \n  --extra-config FILE additional configuration file\
-         \n";
-      exec ~prefix:["extract"] ~configs:true ~drivers:true argv
-    end
-
-(* -------------------------------------------------------------------------- *)
 (* --- CONFIGURATION                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -437,9 +357,14 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       (* --- Provers ----- *)
       let pconfig = Wenv.provers () in
       let list_provers = !list || !relax || !strict || pconfig = [] in
-      if list_provers then Format.printf "Provers Configuration:@." ;
-      let pconfig =
-        if !relax then List.map Runner.relax pconfig else pconfig in
+      if list_provers then
+        begin
+          let jobs = Runner.maxjobs env in
+          Format.printf "Provers Configuration:@." ;
+          Format.printf " - %d parallel prover%a (local)@." jobs Utils.pp_plural jobs ;
+          Format.printf " - median time %a (project)@." Utils.pp_time (Wenv.time ()) ;
+        end ;
+      let pconfig = if !relax then List.map Runner.relax pconfig else pconfig in
       let provers = Runner.select env @@ pconfig in
       if !calibrate then
         Calibration.calibrate_provers ~saved:!save env provers
@@ -450,10 +375,14 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
         if !strict then List.map Runner.id provers else
         if pconfig = [] then List.map Runner.name provers else
           pconfig in
-      if list_provers && not !velocity && not !calibrate then
-        List.iter (Format.printf " - %s@.") provers ;
       if provers = [] then
-        Format.printf "  (no provers, use -P or why3 config detect)@." ;
+        Format.printf "  (no provers, use -P or why3 config detect)@."
+      else
+      if list_provers && not !velocity && not !calibrate then
+        if List.for_all Runner.relaxed provers then
+          Format.printf " - %s@." (String.concat ", " provers)
+        else
+          List.iter (Format.printf " - %s@.") provers ;
       (* --- Transformations ----- *)
       let transfs = Wenv.transfs () in
       if !list && transfs <> [] then
@@ -483,9 +412,16 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
               Wenv.save () ;
             end ;
         end
-      else if !strict || !relax ||
-              Wenv.is_modified () || Runner.is_modified () then
-        Format.printf "Use '-s' to save project configuration.@." ;
+      else
+        let project = !strict || !relax || Wenv.is_modified () in
+        let local = Runner.is_modified () in
+        let target =
+          match project, local with
+          | false,false -> None
+          | true,false -> Some "project configuration"
+          | false,true -> Some "local configuration"
+          | true,true -> Some "project and local configurations"
+        in Option.iter (Format.printf "Use '-s' to save %s@.") target
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -499,7 +435,6 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
       let session = ref false in
       let log = ref `Default in
       let mode = ref `Update in
-      let time = ref 1.0 in
       let set m v () = m := v in
       let add r p = r := p :: !r in
       Arg.parse_argv argv
@@ -507,12 +442,11 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
           Wenv.options () @
           Runner.options @
           [
-            "-t", Arg.Set_float time, "TIME prover time (default 1.0s)";
             "-f", Arg.Unit (set mode `Force), "force rebuild proofs";
             "-u", Arg.Unit (set mode `Update), "update proofs (default)";
-            "-r", Arg.Unit (set mode `Replay), "check proofs (no update)";
+            "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
             "-m", Arg.Unit (set mode `Minimize), "minimize proofs (or update)";
-            "-i", Arg.Set ide, "run why-3 IDE on error (implies -s)";
+            "-i", Arg.Set ide, "run why-3 IDE on error(s) (implies -s)";
             "-s", Arg.Set session, "save why3 session";
             "--modules",  Arg.Unit (set log `Modules), "list results by module";
             "--theories", Arg.Unit (set log `Theories), "list results by theory";
@@ -529,10 +463,8 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
          OPTIONS:\n" ;
       let session = !session || !ide in
       let files = Wenv.argmlw @@ List.rev !files in
-      let tofix = Prove.prove_files
-          ~mode:!mode ~session ~log:!log
-          ~time:1.0 ~files
-      in match tofix with
+      let tofix = Prove.prove_files ~mode:!mode ~session ~log:!log ~files in
+      match tofix with
       | [] -> ()
       | f::_ ->
         if not !ide then
@@ -576,23 +508,44 @@ let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
     end
 
 (* -------------------------------------------------------------------------- *)
+(* --- EXTRACT                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find extract [OPTIONS] MODULE...\n\n\
+         DESCRIPTION:\n\
+         \n  Executes why3 extract with the specified arguments.\n\n\
+         OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
+         \n  -p|--package PKG package dependency\
+         \n  -D|--driver NAME|FILE additional extraction driver\
+         \n  --extra-config FILE additional configuration file\
+         \n";
+      exec ~prefix:["extract"] ~configs:true ~drivers:true argv
+    end
+
+(* -------------------------------------------------------------------------- *)
 (* --- INSTALL                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
 let () = register ~name:"install" ~args:"PKG PATH..."
     begin fun argv ->
       let args = ref [] in
-      let dune = ref false in
+      let dune = ref true in
       let html = ref "html" in
       let nodoc () = html := "" in
       Arg.parse_argv argv [
-        "--dune", Arg.Set dune,"Generate dune installer" ;
+        "--dune", Arg.Set dune,"Generate dune installer (default)" ;
+        "--global", Arg.Clear dune,"Install in global repository (why3find where)" ;
+        "--doc", Arg.Set_string html,"DIR Doc output directory (why3find doc -o DIR)";
         "--no-doc", Arg.Unit nodoc,"Do not install documentation";
-        "--doc", Arg.Set_string html,"DIR Documentation directory";
       ] (fun f -> args := f :: !args)
         "USAGE:\n\
          \n  why3find install [OPTIONS] PKG PATH...\n\n\
-         DESCRIPTION:\n\
+         DESCRIPTION:\n\n\
          \n  Install the package PKG at the topmost installation site.\
          \n\
          \n  Package dependencies and configuration are taken from the\
@@ -607,7 +560,7 @@ let () = register ~name:"install" ~args:"PKG PATH..."
          \n  in directory PKG will be installed.\
          \n\
          \n  Unless --no-doc is specified, documentation in './html'\
-         \n  directory is also installed.
+         \n  directory is also installed.\
          \n\n\
          OPTIONS:\n" ;
       let pkg,paths =
@@ -725,6 +678,66 @@ let () = register ~name:"uninstall" ~args:"[PKG...]"
             Utils.rmpath path ;
           end
       done
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- COMPILE                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"compile" ~args:"[-p PKG] FILE"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find compile [OPTIONS] FILE\n\n\
+         DESCRIPTION:\n\
+         \n  Compile the given file(s) using why3 prove command.\n\n\
+         OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
+         \n  -p|--package PKG package dependency\
+         \n  --extra-config FILE additional configuration file\
+         \n";
+      exec ~prefix:["prove";"--type-only"] ~configs:true argv
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- IDE                                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"ide" ~args:"[-p PKG] FILE"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find ide [OPTIONS] FILE\n\n\
+         DESCRIPTION:\n\
+         \n  Run why3 ide on the given file.\n\
+         \n  Also loads the « hammer » strategy.\n\
+         \n\
+         OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
+         \n  -p|--package PKG package dependency\
+         \n  --extra-config FILE additional configuration file\
+         \n";
+      let hammer = Meta.shared "hammer.cfg" in
+      exec ~prefix:["ide";"--extra-config";hammer] ~configs:true argv
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- REPLAY                                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"replay" ~args:"[-p PKG] FILE"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find extract [OPTIONS] MODULE...\n\n\
+         DESCRIPTION:\n\
+         \n  Executes why3 replay with the specified arguments.\n\n\
+         OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
+         \n  -p|--package PKG package dependency\
+         \n  --extra-config FILE additional configuration file\
+         \n";
+      exec ~prefix:["replay"] ~configs:true argv
     end
 
 (* -------------------------------------------------------------------------- *)

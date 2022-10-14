@@ -28,7 +28,7 @@ open Calibration
 open Session
 
 val local : bool ref
-val schedule : profile -> goal -> crc -> crc Fibers.t
+val schedule : profile -> ?replay:bool -> goal -> crc -> crc Fibers.t
 
 type henv = {
   env : Wenv.env ;

@@ -66,8 +66,8 @@ type theory = {
 }
 
 type source = {
-  url: string;
   lib: string list;
+  urlbase: string;
   profile: Calibration.profile ;
   theories: theory Mstr.t;
 }
@@ -227,7 +227,10 @@ let library_path file =
     if d = "." || d = "" || d = p
     then p::r
     else scan (Filename.basename p :: r) d
-  in scan [] (Filename.chop_extension file)
+  in
+  if Filename.is_relative file then
+    scan [] (Filename.chop_extension file)
+  else Filename.[chop_extension @@ basename file]
 
 let parse ~wenv ~henv file =
   if not @@ String.ends_with ~suffix:".mlw" file then
@@ -263,8 +266,7 @@ let parse ~wenv ~henv file =
          { theory ; signature ; clones = !clones ; proofs }
       ) thys
   in
-  let url = Printf.sprintf "%s.html" path in
-  { lib ; url ; profile ; theories }
+  { lib ; urlbase = path ; profile ; theories }
 
 let derived src id =
   Printf.sprintf "%s.%s.html" (String.concat "." src.lib) id

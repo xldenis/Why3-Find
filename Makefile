@@ -13,7 +13,7 @@ build:
 	dune build
 
 lint:
-	ocp-indent -i src/*.ml*
+	ocp-indent -i src/*.ml src/*.mli
 
 install:
 	dune install 2> /dev/null

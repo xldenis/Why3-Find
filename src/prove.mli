@@ -27,7 +27,6 @@ type mode = [ `Force | `Update | `Minimize | `Replay ]
 type log = [ `Default | `Modules | `Theories | `Goals | `Proofs ]
 
 val prove_files :
-  time:float ->
   mode:mode ->
   session:bool ->
   log:log ->

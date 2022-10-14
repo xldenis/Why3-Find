@@ -70,6 +70,8 @@ let relax name =
   | shortname :: _ :: _ -> shortname
   | _ -> name
 
+let relaxed p = (String.lowercase_ascii p = p)
+
 let prover env name =
   try
     match find_exact env name with
@@ -273,16 +275,22 @@ let update_client () =
 let is_modified () = !jobs > 0
 
 let save_config (env : Wenv.env) =
-  let open Why3 in
-  let file = Whyconf.get_conf_file env.wconfig in
-  if file <> "" then
-    let j = !jobs in
+  let j = !jobs in
+  if j > 0 then
+    let open Why3 in
+    let file = Whyconf.get_conf_file env.wconfig in
+    if file <> "" then
+      let main = Whyconf.get_main env.wconfig in
+      let time = Whyconf.timelimit main in
+      let mem = Whyconf.memlimit main in
+      let config = Whyconf.User.set_limits ~time ~mem ~j env.wconfig in
+      Whyconf.save_config config ;
+      Format.printf "Why3 config. saved to %s@." file
+
+let maxjobs (env : Wenv.env) =
+  if !jobs > 0 then !jobs else
     let main = Whyconf.get_main env.wconfig in
-    let time = Whyconf.timelimit main in
-    let mem = Whyconf.memlimit main in
-    let config = Whyconf.User.set_limits ~time ~mem ~j env.wconfig in
-    Whyconf.save_config config ;
-    Format.printf "Why3 config. saved to %s@." file
+    Whyconf.running_provers_max main
 
 let limit env t =
   Call_provers.{

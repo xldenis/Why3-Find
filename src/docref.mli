@@ -48,8 +48,8 @@ type theory = {
 }
 
 type source = {
-  url: string;
   lib: string list;
+  urlbase: string;
   profile: Calibration.profile;
   theories: theory Mstr.t;
 }
