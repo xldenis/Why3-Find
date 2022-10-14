@@ -306,86 +306,6 @@ let () = register ~name:"query" ~args:"[PKG...]"
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- COMPILE                                                            --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"compile" ~args:"[-p PKG] FILE"
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find compile [OPTIONS] FILE\n\n\
-         DESCRIPTION:\n\
-         \n  Compile the given file(s) using why3 prove command.\n\n\
-         OPTIONS:\n\
-         \n  -v|--verbose print why3 command\
-         \n  -p|--package PKG package dependency\
-         \n  --extra-config FILE additional configuration file\
-         \n";
-      exec ~prefix:["prove";"--type-only"] ~configs:true argv
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- IDE                                                                --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"ide" ~args:"[-p PKG] FILE"
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find ide [OPTIONS] FILE\n\n\
-         DESCRIPTION:\n\
-         \n  Run why3 ide on the given file.\n\
-         \n  Also loads the « hammer » strategy.\n\
-         \n\
-         OPTIONS:\n\
-         \n  -v|--verbose print why3 command\
-         \n  -p|--package PKG package dependency\
-         \n  --extra-config FILE additional configuration file\
-         \n";
-      let hammer = Meta.shared "hammer.cfg" in
-      exec ~prefix:["ide";"--extra-config";hammer] ~configs:true argv
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- REPLAY                                                             --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"replay" ~args:"[-p PKG] FILE"
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find extract [OPTIONS] MODULE...\n\n\
-         DESCRIPTION:\n\
-         \n  Executes why3 replay with the specified arguments.\n\n\
-         OPTIONS:\n\
-         \n  -v|--verbose print why3 command\
-         \n  -p|--package PKG package dependency\
-         \n  --extra-config FILE additional configuration file\
-         \n";
-      exec ~prefix:["replay"] ~configs:true argv
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- EXTRACT                                                            --- *)
-(* -------------------------------------------------------------------------- *)
-
-let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
-    begin fun argv ->
-      usage argv
-        "USAGE:\n\
-         \n  why3find extract [OPTIONS] MODULE...\n\n\
-         DESCRIPTION:\n\
-         \n  Executes why3 extract with the specified arguments.\n\n\
-         OPTIONS:\n\
-         \n  -v|--verbose print why3 command\
-         \n  -p|--package PKG package dependency\
-         \n  -D|--driver NAME|FILE additional extraction driver\
-         \n  --extra-config FILE additional configuration file\
-         \n";
-      exec ~prefix:["extract"] ~configs:true ~drivers:true argv
-    end
-
-(* -------------------------------------------------------------------------- *)
 (* --- CONFIGURATION                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -588,6 +508,26 @@ let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
     end
 
 (* -------------------------------------------------------------------------- *)
+(* --- EXTRACT                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find extract [OPTIONS] MODULE...\n\n\
+         DESCRIPTION:\n\
+         \n  Executes why3 extract with the specified arguments.\n\n\
+         OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
+         \n  -p|--package PKG package dependency\
+         \n  -D|--driver NAME|FILE additional extraction driver\
+         \n  --extra-config FILE additional configuration file\
+         \n";
+      exec ~prefix:["extract"] ~configs:true ~drivers:true argv
+    end
+
+(* -------------------------------------------------------------------------- *)
 (* --- INSTALL                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -738,6 +678,66 @@ let () = register ~name:"uninstall" ~args:"[PKG...]"
             Utils.rmpath path ;
           end
       done
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- COMPILE                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"compile" ~args:"[-p PKG] FILE"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find compile [OPTIONS] FILE\n\n\
+         DESCRIPTION:\n\
+         \n  Compile the given file(s) using why3 prove command.\n\n\
+         OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
+         \n  -p|--package PKG package dependency\
+         \n  --extra-config FILE additional configuration file\
+         \n";
+      exec ~prefix:["prove";"--type-only"] ~configs:true argv
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- IDE                                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"ide" ~args:"[-p PKG] FILE"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find ide [OPTIONS] FILE\n\n\
+         DESCRIPTION:\n\
+         \n  Run why3 ide on the given file.\n\
+         \n  Also loads the « hammer » strategy.\n\
+         \n\
+         OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
+         \n  -p|--package PKG package dependency\
+         \n  --extra-config FILE additional configuration file\
+         \n";
+      let hammer = Meta.shared "hammer.cfg" in
+      exec ~prefix:["ide";"--extra-config";hammer] ~configs:true argv
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- REPLAY                                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let () = register ~name:"replay" ~args:"[-p PKG] FILE"
+    begin fun argv ->
+      usage argv
+        "USAGE:\n\
+         \n  why3find extract [OPTIONS] MODULE...\n\n\
+         DESCRIPTION:\n\
+         \n  Executes why3 replay with the specified arguments.\n\n\
+         OPTIONS:\n\
+         \n  -v|--verbose print why3 command\
+         \n  -p|--package PKG package dependency\
+         \n  --extra-config FILE additional configuration file\
+         \n";
+      exec ~prefix:["replay"] ~configs:true argv
     end
 
 (* -------------------------------------------------------------------------- *)

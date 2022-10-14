@@ -1,11 +1,11 @@
 # Why-3 Library Manager
 
-The `why3find` utility is dedicated to the management of Why-3 packages.
+The `why3find` utility is dedicated to the management of Why-3 packages.  In
+short, from `why3find` point of view, a why3 package is a collection of why3
+source files and associated documentation and OCaml extracted code that are installed at
+predefined site(s). It is designed to be fully compatible with Dune and OPAM.
 
 ## Why-3 Packages
-
-From `why3find` point of view, a why3 package is a collection of why3 source
-files, configuration files and drivers that are installed at predefined site(s).
 
 Packages are meant to have dependencies. Typically package `A` may depend on
 why3 source files from some other package `B`. Hence, `why3find` knows how to
@@ -181,3 +181,6 @@ _vice et versa_. The `why3find` commands related to prover calibration are :
 It is highly recommended to update all proofs on the *master* machine with
 `why3find prove -f` after modifying the proof calibration. Usually, you calibrate
 provers once at the very beginning of the project.
+
+## Package Documentation
+
