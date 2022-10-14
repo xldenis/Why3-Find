@@ -19,6 +19,16 @@ Commands for browsing packages:
     $ why3find list        # list all installed packages
     $ why3find query PKG   # details on package PKG
 
+Packages are installed or uninstalled thanks to the following commands:
+
+    $ why3find install PKG
+    $ why3find uninstall PKG...
+
+By default, installation generates a `dune` file at the root directory
+of the package with all the necessary installation instructions.
+However, it is also possible to install files directly to the `why3find` repository,
+by using `why3find install --global PKG`, without using any `dune` intermediate file.
+
 ## Package Development
 
 A typical Why-3 package project consists of user-edited files
@@ -189,7 +199,7 @@ It can be used for the entire package or only a selection of source files or
 directories. Unless specified, generated files go to the `html` sub-directory
 of the root package directory:
 
-    $ why3find doc [-o DIR] PATH...
+    $ why3find doc PATH...
 
 Generated documentation is structured as follows:
 
@@ -280,4 +290,3 @@ also taken into account when consolidating hypotheses. Extracted symbols are
 reported but not counted as parameters. Erased axioms or builtin symbols from
 prover drivers are considered to be built-in symbols and are not counted as
 actual hypotheses or paremeters.
-
