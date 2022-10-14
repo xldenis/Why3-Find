@@ -1,4 +1,5 @@
   $ why3find doc a.mlw
+  Generated $TESTCASE_ROOT/html
   $ cat html/a.A.html
   <html>
   <head>
@@ -8,7 +9,7 @@
   <title>Module a.A</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="a.html">a</a>.A</code></header>
+  <header>Module <code class="src"><a href="a.index.html">a</a>.A</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">A</a><span title="1 value, 1 parameter" class="icon warning icofont-question-circle"></span><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>

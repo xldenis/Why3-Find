@@ -2,6 +2,7 @@
 --- Clone References
 --------------------------------------------------------------------------
   $ why3find doc a.mlw b.mlw
+  Generated $TESTCASE_ROOT/html
 --------------------------------------------------------------------------
 --- Module a.A
 --------------------------------------------------------------------------
@@ -14,7 +15,7 @@
   <title>Module a.A</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="a.html">a</a>.A</code></header>
+  <header>Module <code class="src"><a href="a.index.html">a</a>.A</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">A</a><span title="1 value, 1 parameter" class="icon warning icofont-question-circle"></span><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>
@@ -45,7 +46,7 @@
   <title>Module a.B</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="a.html">a</a>.B</code></header>
+  <header>Module <code class="src"><a href="a.index.html">a</a>.B</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">B</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
@@ -75,7 +76,7 @@
   <title>Module a.E</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="a.html">a</a>.E</code></header>
+  <header>Module <code class="src"><a href="a.index.html">a</a>.E</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">E</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">use</span> <a title="a.B" href="a.B.html#">B</a>
@@ -98,7 +99,7 @@
   <title>Module b.C</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="b.html">b</a>.C</code></header>
+  <header>Module <code class="src"><a href="b.index.html">b</a>.C</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">C</a><span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">use</span> a.<a title="a.B" href="a.B.html#">B</a>

@@ -2,25 +2,26 @@
 --- Generating Documentation
 --------------------------------------------------------------------------
   $ why3find doc p/a.mlw
+  Generated $TESTCASE_ROOT/html
 --------------------------------------------------------------------------
 --- Output Directory
 --------------------------------------------------------------------------
   $ find html | sort
   html
-  html/_p.a.html
   html/fonts
   html/fonts/icofont.woff
   html/fonts/icofont.woff2
   html/icofont.min.css
   html/p.a.A.html
   html/p.a.B.html
-  html/p.a.html
+  html/p.a.index.html
+  html/p.a.proof.html
   html/script.js
   html/style.css
 --------------------------------------------------------------------------
 --- Generated File p.a.html
 --------------------------------------------------------------------------
-  $ cat html/p.a.html
+  $ cat html/p.a.index.html
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
@@ -33,11 +34,11 @@
   <div class="doc">
   <p>Before A</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a><span title="1 parameter" class="icon remark icofont-question-circle"></span><a href="_p.a.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a><span title="1 parameter" class="icon remark icofont-question-circle"></span><a href="p.a.proof.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
   <div class="doc">
   <p>Before B</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><span title="1 value" class="icon warning icofont-question-circle"></span><a href="_p.a.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><span title="1 value" class="icon warning icofont-question-circle"></span><a href="p.a.proof.html#p.a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
   <div class="doc">
   <p>After B</p>
   </div>
@@ -56,7 +57,7 @@
   <title>Module p.a.A</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="p.a.html">p.a</a>.A</code></header>
+  <header>Module <code class="src"><a href="p.a.index.html">p.a</a>.A</code></header>
   <div class="doc">
   <p>Introducing A</p>
   </div>
@@ -94,7 +95,7 @@
   <title>Module p.a.B</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="p.a.html">p.a</a>.B</code></header>
+  <header>Module <code class="src"><a href="p.a.index.html">p.a</a>.B</code></header>
   <div class="doc">
   <p>Introducing B</p>
   </div>

@@ -2,12 +2,13 @@
 --- Testing References
 --------------------------------------------------------------------------
   $ why3find doc a.mlw
+  Generated $TESTCASE_ROOT/html
   $ find html | sort
   html
-  html/_a.html
   html/a.A.html
   html/a.B.html
-  html/a.html
+  html/a.index.html
+  html/a.proof.html
   html/fonts
   html/fonts/icofont.woff
   html/fonts/icofont.woff2
@@ -17,7 +18,7 @@
 --------------------------------------------------------------------------
 --- Library
 --------------------------------------------------------------------------
-  $ cat html/a.html
+  $ cat html/a.index.html
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
@@ -34,8 +35,8 @@
   <p>Logic reference: <code class="src"><a title="int.MinMax.max" href="https://why3.lri.fr/stdlib/int.MinMax.html#max_148">int.MinMax.max</a></code></p>
   <p>Local references <code class="src"><a title="a.A.t" href="a.A.html#t">A.t</a></code>, <code class="src"><a title="a.B.binop" href="a.B.html#binop">binop</a></code></p>
   </div>
-  <pre class="src"><span class="keyword">theory</span> <a title="a.A" href="a.A.html">A</a><span title="2 parameters" class="icon remark icofont-question-circle"></span><a href="_a.html#a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
-  <pre class="src"><span class="keyword">module</span> <a title="a.B" href="a.B.html">B</a><span title="1 value, 1 parameter" class="icon warning icofont-question-circle"></span><a href="_a.html#a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">theory</span> <a title="a.A" href="a.A.html">A</a><span title="2 parameters" class="icon remark icofont-question-circle"></span><a href="a.proof.html#a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="a.B" href="a.B.html">B</a><span title="1 value, 1 parameter" class="icon warning icofont-question-circle"></span><a href="a.proof.html#a" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
   <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
@@ -51,7 +52,7 @@
   <title>Theory a.A</title>
   </head>
   <body>
-  <header>Theory <code class="src"><a href="a.html">a</a>.A</code></header>
+  <header>Theory <code class="src"><a href="a.index.html">a</a>.A</code></header>
   <pre class="src">
   <span class="keyword">theory</span> <a id="">A</a><span title="2 parameters" class="icon remark icofont-question-circle"></span><span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
@@ -73,7 +74,7 @@
   <title>Module a.B</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="a.html">a</a>.B</code></header>
+  <header>Module <code class="src"><a href="a.index.html">a</a>.B</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">B</a><span title="1 value, 1 parameter" class="icon warning icofont-question-circle"></span><span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>

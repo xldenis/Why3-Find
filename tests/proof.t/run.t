@@ -1,4 +1,5 @@
   $ why3find doc clones.mlw certif.mlw
+  Generated $TESTCASE_ROOT/html
   $ cat html/clones.A.html
   <html>
   <head>
@@ -8,7 +9,7 @@
   <title>Module clones.A</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="clones.html">clones</a>.A</code></header>
+  <header>Module <code class="src"><a href="clones.index.html">clones</a>.A</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">A</a><span title="3 parameters, 2 hypotheses" class="icon warning icofont-question-circle"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span>
   
@@ -33,7 +34,7 @@
   <title>Module clones.B</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="clones.html">clones</a>.B</code></header>
+  <header>Module <code class="src"><a href="clones.index.html">clones</a>.B</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">B</a><span title="1 parameter, 1 hypothesis" class="icon warning icofont-question-circle"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
@@ -59,7 +60,7 @@
   <title>Module certif.S</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="certif.html">certif</a>.S</code></header>
+  <header>Module <code class="src"><a href="certif.index.html">certif</a>.S</code></header>
   <pre class="src">
   <span class="keyword">module</span> <a id="">S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span>
   
@@ -101,7 +102,7 @@
   <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
-  $ cat html/_clones.html
+  $ cat html/clones.proof.html
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
@@ -123,7 +124,7 @@
       alt-ergo 400ns</pre><script type="text/javascript" src="script.js"></script>
   </body>
   </html>
-  $ cat html/_certif.html
+  $ cat html/certif.proof.html
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
