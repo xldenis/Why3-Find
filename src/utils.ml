@@ -20,6 +20,53 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
+(* --- Terminal Facilities                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let tty = Unix.isatty Unix.stdout
+
+let progress msg =
+  let buffer = Buffer.create 80 in
+  Format.kfprintf
+    (fun fmt ->
+       Format.pp_print_flush fmt () ;
+       if tty then
+         let msg = Buffer.contents buffer in
+         let len = String.length msg in
+         if len <= 80 then
+           Format.printf "> %s\027[K\r@?" msg
+         else
+           Format.printf "> %s…\027[K\r@?" (String.sub msg 0 80)
+    ) (Format.formatter_of_buffer buffer) msg
+
+let flush () = if tty then Format.printf "\r\027[K"
+
+open Format
+
+let nop _ = ()
+
+let mark_open_stag = function
+  | String_tag "red" -> "\027[31m"
+  | String_tag "green" -> "\027[32m"
+  | String_tag "orange" -> "\027[33m"
+  | _ -> ""
+
+let mark_close_stag = function
+  | String_tag ("red"|"green"|"orange") -> "\027[39m"
+  | _ -> ""
+
+let () = if tty then
+    begin
+      set_tags true ;
+      set_formatter_stag_functions {
+        mark_open_stag ;
+        mark_close_stag ;
+        print_open_stag = nop ;
+        print_close_stag = nop ;
+      }
+    end
+
+(* -------------------------------------------------------------------------- *)
 (* --- System Utils                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -79,8 +126,17 @@ let rec lookup ~dir ~file ~path =
 let locate file = lookup ~dir:(Sys.getcwd()) ~path:"" ~file
 
 let chdir dir =
-  Sys.chdir dir ;
-  Format.printf "Entering directory '%s'@." @@ Sys.getcwd ()
+  let pwd = Sys.getcwd () in
+  if pwd <> dir then
+    begin
+      Sys.chdir dir ;
+      Format.printf "Entering directory '%s'@." @@ Sys.getcwd () ;
+      Stdlib.at_exit
+        begin fun () ->
+          flush () ;
+          Format.printf "Leaving directory '%s'@." dir
+        end
+    end
 
 let absolute file =
   if Filename.is_relative file
@@ -121,52 +177,5 @@ let failwith msg =
        Format.pp_print_flush fmt () ;
        Stdlib.failwith @@ Buffer.contents buffer
     ) (Format.formatter_of_buffer buffer) msg
-
-(* -------------------------------------------------------------------------- *)
-(* --- Terminal Facilities                                                --- *)
-(* -------------------------------------------------------------------------- *)
-
-let tty = Unix.isatty Unix.stdout
-
-let progress msg =
-  let buffer = Buffer.create 80 in
-  Format.kfprintf
-    (fun fmt ->
-       Format.pp_print_flush fmt () ;
-       if tty then
-         let msg = Buffer.contents buffer in
-         let len = String.length msg in
-         if len <= 80 then
-           Format.printf "> %s\027[K\r@?" msg
-         else
-           Format.printf "> %s…\027[K\r@?" (String.sub msg 0 80)
-    ) (Format.formatter_of_buffer buffer) msg
-
-let flush () = if tty then Format.printf "\r\027[K"
-
-open Format
-
-let nop _ = ()
-
-let mark_open_stag = function
-  | String_tag "red" -> "\027[31m"
-  | String_tag "green" -> "\027[32m"
-  | String_tag "orange" -> "\027[33m"
-  | _ -> ""
-
-let mark_close_stag = function
-  | String_tag ("red"|"green"|"orange") -> "\027[39m"
-  | _ -> ""
-
-let () = if tty then
-    begin
-      set_tags true ;
-      set_formatter_stag_functions {
-        mark_open_stag ;
-        mark_close_stag ;
-        print_open_stag = nop ;
-        print_close_stag = nop ;
-      }
-    end
 
 (* -------------------------------------------------------------------------- *)
