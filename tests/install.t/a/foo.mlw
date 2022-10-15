@@ -1,0 +1,7 @@
+module Neutral
+  type t
+  constant e : t
+  function op t t : t
+  axiom neutral: forall x. op x e = op e x = x
+  lemma inv: op e e = e
+end

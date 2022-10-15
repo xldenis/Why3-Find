@@ -127,14 +127,15 @@ let locate file = lookup ~dir:(Sys.getcwd()) ~path:"" ~file
 
 let chdir dir =
   let pwd = Sys.getcwd () in
-  if pwd <> dir then
+  Sys.chdir dir ;
+  let newdir = Sys.getcwd () in
+  if pwd <> newdir then
     begin
-      Sys.chdir dir ;
-      Format.printf "Entering directory '%s'@." @@ Sys.getcwd () ;
+      Format.printf "Entering directory '%s'@." newdir ;
       Stdlib.at_exit
         begin fun () ->
           flush () ;
-          Format.printf "Leaving directory '%s'@." dir
+          Format.printf "Leaving directory '%s'@." newdir
         end
     end
 

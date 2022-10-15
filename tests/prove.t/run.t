@@ -1,4 +1,4 @@
-  $ why3find prove foo.mlw -r
+  $ why3find prove foo.mlw -r -P alt-ergo
   Theory foo.S: ✔ (-)
   Theory foo.T: ✔ (2)
   $ cat foo/proof.json
