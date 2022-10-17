@@ -1,7 +1,4 @@
   $ export BUILD_PATH_PREFIX_MAP="WHERE=`why3find where`:$BUILD_PATH_PREFIX_MAP"
-  $ export HOME=`pwd`
-  $ why3 config detect | grep Alt-Ergo
-  Found prover Alt-Ergo version 2.2.0, OK.
   $ why3find prove -P alt-ergo a
   Theory a.foo.Neutral: ✔ (1)
   $ why3find doc a

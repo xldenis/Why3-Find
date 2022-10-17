@@ -317,6 +317,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let relax = ref false in
       let calibrate = ref false in
       let velocity = ref false in
+      let detect = ref false in
       Arg.parse_argv argv
         begin
           Wenv.options () @
@@ -328,6 +329,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             "-s", Arg.Set save, "save project configuration";
             "--relax", Arg.Set relax, "relax prover version constraints";
             "--strict", Arg.Set strict, "save strict prover versions";
+            "--detect", Arg.Set detect, "update why3 config detect";
           ]
         end
         (Utils.failwith "don't known what to do with %S")
@@ -338,9 +340,11 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
          \n  By default, report on the current configuration.\
          \n\n\
          OPTIONS:\n" ;
+      (* --- Why3 Config --- *)
+      if !detect then ignore @@ Sys.command "why3 config detect" ;
       let env = Wenv.init () in
       Wenv.load () ;
-      (* --- Configs ---- *)
+      (* --- Extra Configs ---- *)
       let cfgs = Wenv.configs () in
       if !list && cfgs <> [] then
         begin
