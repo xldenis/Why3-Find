@@ -317,6 +317,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let relax = ref false in
       let calibrate = ref false in
       let velocity = ref false in
+      let detect = ref false in
       Arg.parse_argv argv
         begin
           Wenv.options () @
@@ -328,6 +329,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             "-s", Arg.Set save, "save project configuration";
             "--relax", Arg.Set relax, "relax prover version constraints";
             "--strict", Arg.Set strict, "save strict prover versions";
+            "--detect", Arg.Set detect, "update why3 config detect";
           ]
         end
         (Utils.failwith "don't known what to do with %S")
@@ -338,9 +340,11 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
          \n  By default, report on the current configuration.\
          \n\n\
          OPTIONS:\n" ;
+      (* --- Why3 Config --- *)
+      if !detect then ignore @@ Sys.command "why3 config detect" ;
       let env = Wenv.init () in
       Wenv.load () ;
-      (* --- Configs ---- *)
+      (* --- Extra Configs ---- *)
       let cfgs = Wenv.configs () in
       if !list && cfgs <> [] then
         begin
@@ -356,13 +360,13 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
         end ;
       (* --- Provers ----- *)
       let pconfig = Wenv.provers () in
-      let list_provers = !list || !relax || !strict || pconfig = [] in
+      let list_provers = !list || !relax || !strict in
       if list_provers then
         begin
-          let jobs = Runner.maxjobs env in
+          let j = Runner.maxjobs env in
           Format.printf "Provers Configuration:@." ;
-          Format.printf " - %d parallel prover%a (local)@." jobs Utils.pp_plural jobs ;
-          Format.printf " - median time %a (project)@." Utils.pp_time (Wenv.time ()) ;
+          Format.printf " - %d parallel prover%a@." j Utils.pp_plural j ;
+          Format.printf " - median time %a@." Utils.pp_time (Wenv.time ()) ;
         end ;
       let pconfig = if !relax then List.map Runner.relax pconfig else pconfig in
       let provers = Runner.select env @@ pconfig in
@@ -570,10 +574,7 @@ let () = register ~name:"install" ~args:"PKG PATH..."
       let dune = !dune in
       let path = if dune then "." else Meta.path pkg in
       if not dune && Sys.file_exists path then
-        begin
-          Format.printf "remove %s@." pkg ;
-          Utils.rmpath path ;
-        end ;
+        Utils.rmpath path ;
       if not dune then Utils.mkdirs path ;
       let dunefiles = ref [] in
       let log ~kind src = Format.printf "install %-10s %s@." kind src in
@@ -620,8 +621,6 @@ let () = register ~name:"install" ~args:"PKG PATH..."
       let doc = !html in
       if doc <> "" then
         begin
-          if not @@ (Sys.file_exists doc && Sys.is_directory doc) then
-            Utils.failwith "Documentation directory %S not found" doc ;
           let rec install_doc src tgt =
             if Sys.file_exists src then
               if Sys.is_directory src then
@@ -655,6 +654,8 @@ let () = register ~name:"install" ~args:"PKG PATH..."
             end ;
           Format.printf "Generated %s@." (Utils.absolute "dune");
         end
+      else
+        Format.printf "Installed %s@." (Utils.absolute path)
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -674,9 +675,11 @@ let () = register ~name:"uninstall" ~args:"[PKG...]"
         let path = Meta.path pkg in
         if Sys.file_exists path then
           begin
-            Format.printf "remove %s@." pkg ;
+            Format.printf "remove %s@." path ;
             Utils.rmpath path ;
           end
+        else
+          Format.printf "Warning: package %s not found@." pkg
       done
     end
 

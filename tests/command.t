@@ -176,6 +176,7 @@
     -s save project configuration
     --relax relax prover version constraints
     --strict save strict prover versions
+    --detect update why3 config detect
     -help  Display this list of options
     --help  Display this list of options
   
