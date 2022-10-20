@@ -1,0 +1,5 @@
+(library
+ (name ppx_why3)
+ (public_name why3find)
+ (kind ppx_rewriter)
+ (libraries ppxlib))
