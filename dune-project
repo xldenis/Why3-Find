@@ -28,3 +28,15 @@
     (lib packages)
     (share resources))
   (tags (topics "why3")))
+
+(package
+  (name ppx_why3)
+  (version 1.0)
+  (synopsis "Why3 Extractor PPX")
+  (description
+    "The ppx_why3 extension provides and extension \
+     for invoking OCaml extracted code from Why3.")
+  (depends why3find)
+  (sites
+    (lib packages))
+  (tags (topics "why3" "ppx")))

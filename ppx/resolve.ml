@@ -21,12 +21,48 @@
 
 open Ppxlib
 
-type kind = Type | Value
+(* -------------------------------------------------------------------------- *)
+(* --- Symbol Maps                                                        --- *)
+(* -------------------------------------------------------------------------- *)
 
-let resolve ~kind id =
-  match kind with
+let modules : (string,unit) Hashtbl.t = Hashtbl.create 16
+let types : (string,core_type) Hashtbl.t = Hashtbl.create 256
+let values : (string,expression) Hashtbl.t = Hashtbl.create 256
+
+(* -------------------------------------------------------------------------- *)
+(* --- Symbol Resolution                                                  --- *)
+(* -------------------------------------------------------------------------- *)
+
+type scope = Type | Value
+
+let is_uident p =
+  String.length p > 0 &&
+  let c = p.[0] in Char.lowercase_ascii c = c
+
+let split id =
+  let rec unwrap rp = function
+    | [] -> failwith "module path missing"
+    | p::ps -> if is_uident p then unwrap (p::rp) ps else List.rev rp,ps
+  in unwrap [] @@ String.split_on_char '.' id
+
+let resolve ~scope id =
+  match scope with
   | Type -> "type:" ^ id
   | Value -> "value:" ^ id
+
+(* -------------------------------------------------------------------------- *)
+(* --- Errors                                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let error ~loc id exn =
+  match exn with
+  | Not_found ->
+    Location.error_extensionf ~loc "Why3 identifier %S not found" id
+  | Failure msg ->
+    Location.error_extensionf ~loc "Why3 identifier %S is invalid (%s)" id msg
+  | exn ->
+    Location.error_extensionf ~loc "Resolution error (%S, %s)" id
+      (Printexc.to_string exn)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Type Rule                                                          --- *)
@@ -34,13 +70,11 @@ let resolve ~kind id =
 
 let expand_type ~ctxt (id: string) =
   let loc = Expansion_context.Extension.extension_point_loc ctxt in
-  match resolve ~kind:Type id with
-  | value -> Ast_builder.Default.ptyp_var ~loc value
-  | exception Not_found ->
-    let ext =
-      Location.error_extensionf ~loc "Why3 identifier %S not found" id
-    in
-    Ast_builder.Default.ptyp_extension ~loc ext
+  try
+    let name = resolve ~scope:Type id in
+    Ast_builder.Default.ptyp_var ~loc name
+  with exn ->
+    Ast_builder.Default.ptyp_extension ~loc @@ error ~loc id exn
 
 let type_rule =
   Extension.V3.declare "why3"
@@ -54,13 +88,11 @@ let type_rule =
 
 let expand_expr ~ctxt (id: string) =
   let loc = Expansion_context.Extension.extension_point_loc ctxt in
-  match resolve ~kind:Value id with
-  | value -> Ast_builder.Default.estring ~loc value
-  | exception Not_found ->
-    let ext =
-      Location.error_extensionf ~loc "Why3 identifier %S not found" id
-    in
-    Ast_builder.Default.pexp_extension ~loc ext
+  try
+    let value = resolve ~scope:Value id in
+    Ast_builder.Default.estring ~loc value
+  with exn ->
+    Ast_builder.Default.pexp_extension ~loc @@ error ~loc id exn
 
 let expr_rule =
   Extension.V3.declare "why3"

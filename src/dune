@@ -1,8 +1,9 @@
 (executable
   (name main)
+  (package why3find)
   (public_name why3find)
-  (flags (:standard "-w" "-9"))
-  (libraries str unix dune-site yojson why3))
+  (flags (:standard "-w" "-9" "-open" "Why3utils"))
+  (libraries why3find.lib str unix why3))
 
 (rule
   (target config.ml)
@@ -11,7 +12,3 @@
       "let version = \"%{version:why3find}\"")))
 
 (ocamllex lexer)
-
-(generate_sites_module
-  (module global)
-  (sites why3find))
