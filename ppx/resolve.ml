@@ -32,6 +32,12 @@ let types : core_type scope = Hashtbl.create 256
 let values : expression scope = Hashtbl.create 256
 
 (* -------------------------------------------------------------------------- *)
+(* --- Symbol Loafind                                                     --- *)
+(* -------------------------------------------------------------------------- *)
+
+let load_module _js = ()
+
+(* -------------------------------------------------------------------------- *)
 (* --- Symbol Resolution                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -49,12 +55,14 @@ let resolve (type a) ~(scope: a scope) ~(loc : Location.t) (qid : string) : a =
   try Hashtbl.find scope qid @@ loc
   with Not_found ->
     let p,q = mpath qid in
-    let js = String.concat "__" p ^ ".json" in
-    if Hashtbl.mem modules js then
+    try
+      let js = String.concat "__" p ^ ".json" in
+      if Hashtbl.mem modules js then raise Not_found ;
+      load_module js ;
+      Hashtbl.find scope qid @@ loc
+    with Not_found ->
       Utils.failwith "value '%s' not found in module '%s'"
         (String.concat "." q) (String.concat "." p)
-    else
-      Hashtbl.find scope qid @@ loc
 
 (* -------------------------------------------------------------------------- *)
 (* --- Errors                                                             --- *)
