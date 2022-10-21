@@ -26,29 +26,35 @@ open Ppxlib
 (* -------------------------------------------------------------------------- *)
 
 let modules : (string,unit) Hashtbl.t = Hashtbl.create 16
-let types : (string,core_type) Hashtbl.t = Hashtbl.create 256
-let values : (string,expression) Hashtbl.t = Hashtbl.create 256
+
+type 'a scope = (string,Location.t -> 'a) Hashtbl.t
+let types : core_type scope = Hashtbl.create 256
+let values : expression scope = Hashtbl.create 256
 
 (* -------------------------------------------------------------------------- *)
 (* --- Symbol Resolution                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-type scope = Type | Value
-
 let is_uident p =
   String.length p > 0 &&
   let c = p.[0] in Char.lowercase_ascii c = c
 
-let split id =
+let mpath qid =
   let rec unwrap rp = function
     | [] -> failwith "module path missing"
     | p::ps -> if is_uident p then unwrap (p::rp) ps else List.rev rp,ps
-  in unwrap [] @@ String.split_on_char '.' id
+  in unwrap [] @@ String.split_on_char '.' qid
 
-let resolve ~scope id =
-  match scope with
-  | Type -> "type:" ^ id
-  | Value -> "value:" ^ id
+let resolve (type a) ~(scope: a scope) ~(loc : Location.t) (qid : string) : a =
+  try Hashtbl.find scope qid @@ loc
+  with Not_found ->
+    let p,q = mpath qid in
+    let js = String.concat "__" p ^ ".json" in
+    if Hashtbl.mem modules js then
+      Utils.failwith "value '%s' not found in module '%s'"
+        (String.concat "." q) (String.concat "." p)
+    else
+      Hashtbl.find scope qid @@ loc
 
 (* -------------------------------------------------------------------------- *)
 (* --- Errors                                                             --- *)
@@ -70,10 +76,7 @@ let error ~loc id exn =
 
 let expand_type ~ctxt (id: string) =
   let loc = Expansion_context.Extension.extension_point_loc ctxt in
-  try
-    let name = resolve ~scope:Type id in
-    Ast_builder.Default.ptyp_var ~loc name
-  with exn ->
+  try resolve ~scope:types ~loc id with exn ->
     Ast_builder.Default.ptyp_extension ~loc @@ error ~loc id exn
 
 let type_rule =
@@ -88,10 +91,7 @@ let type_rule =
 
 let expand_expr ~ctxt (id: string) =
   let loc = Expansion_context.Extension.extension_point_loc ctxt in
-  try
-    let value = resolve ~scope:Value id in
-    Ast_builder.Default.estring ~loc value
-  with exn ->
+  try resolve ~scope:values ~loc id with exn ->
     Ast_builder.Default.pexp_extension ~loc @@ error ~loc id exn
 
 let expr_rule =
