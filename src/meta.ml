@@ -29,6 +29,7 @@ type pkg = {
   depends: string list ;
   configs: string list ;
   drivers: string list ;
+  extracted: bool ;
 }
 
 (* -------------------------------------------------------------------------- *)
@@ -53,9 +54,11 @@ let find pkg =
           let depends = jfield "depends" js |> jstringlist in
           let configs = jfield "configs" js |> jstringlist in
           let drivers = jfield "drivers" js |> jstringlist in
-          { name = pkg ; path ; depends ; configs ; drivers }
+          let extracted = jfield "extracted" js |> jbool in
+          { name = pkg ; path ; depends ; configs ; drivers ; extracted }
         else
-          { name = pkg ; path ; depends = [] ; configs = [] ; drivers = [] }
+          { name = pkg ; path ; depends = [] ; configs = [] ; drivers = [] ;
+            extracted = false }
   in lookup pkg Global.Sites.packages
 
 let find_all pkgs =

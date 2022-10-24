@@ -1,6 +1,6 @@
 (library
-  (name ppx_why3)
-  (public_name ppx_why3)
+  (name ppx_why3find)
+  (public_name ppx_why3find)
   (kind ppx_rewriter)
   (flags (:standard "-w" "-9" "-open" "Why3utils"))
-  (libraries why3find.lib ppxlib))
+  (libraries str why3find.lib ppxlib))

@@ -29,6 +29,7 @@ type pkg = {
   depends: string list ;
   configs: string list ;
   drivers: string list ;
+  extracted: bool;
 }
 
 

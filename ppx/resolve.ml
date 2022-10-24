@@ -62,7 +62,7 @@ let load_module ~qid ?export () =
   let path = String.split_on_char '.' qid in
   let basename = String.concat "__" path in
   let pkg = List.hd path in
-  let jfile = Filename.concat pkg (basename ^ ".json") in
+  let jfile = Filename.concat pkg @@ Filename.concat "lib" basename ^ ".json" in
   let js = Json.of_file @@
     match lookup jfile with None -> raise Not_found | Some f -> f in
   let omodule = String.capitalize_ascii basename in
