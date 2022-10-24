@@ -38,5 +38,6 @@ val jlist : t -> t list
 val jmap : (t -> 'a) -> t -> 'a list
 val jfield : string -> t -> t
 val jfield_exn : string -> t -> t
+val jdefault : 'a -> (t -> 'a) -> t -> 'a
 val jmem : string -> t -> bool
 val jiter : (string -> t -> unit) -> t -> unit
