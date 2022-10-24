@@ -29,29 +29,29 @@ let modules : (string,unit) Hashtbl.t = Hashtbl.create 0
 
 type 'a scope = (string,loc:Location.t -> lid:Location.t -> 'a) Hashtbl.t
 let types : (core_type list -> core_type) scope = Hashtbl.create 0
+let values : expression scope = Hashtbl.create 0
+let fields : (expression -> expression) scope = Hashtbl.create 0
 let constr : (expression option -> expression) scope = Hashtbl.create 0
 let pattern : (pattern option -> pattern) scope = Hashtbl.create 0
-let values : expression scope = Hashtbl.create 0
 
 (* -------------------------------------------------------------------------- *)
 (* --- Symbol Loadind                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-let mk_val ~lident ~loc ~lid =
-  Ast_builder.Default.pexp_ident ~loc { loc = lid ; txt = lident }
-
 let mk_type ~lident ~loc ~lid ts =
   Ast_builder.Default.ptyp_constr ~loc { loc = lid ; txt = lident } ts
+
+let mk_value ~lident ~loc ~lid =
+  Ast_builder.Default.pexp_ident ~loc { loc = lid ; txt = lident }
+
+let mk_field ~lident ~loc ~lid exp =
+  Ast_builder.Default.pexp_field ~loc exp { loc = lid ; txt = lident }
 
 let mk_constr ~lident ~loc ~lid prm =
   Ast_builder.Default.pexp_construct ~loc { loc = lid ; txt = lident } prm
 
 let mk_pattern ~lident ~loc ~lid prm =
   Ast_builder.Default.ppat_construct ~loc { loc = lid ; txt = lident } prm
-
-let register ~package ~ident scope mk =
-  Hashtbl.replace scope ident mk ;
-  Hashtbl.replace scope (Printf.sprintf "%s.%s" package ident) mk
 
 let load_module ~package ~basename =
   let js = Json.of_file (basename ^ ".json") in
@@ -64,13 +64,15 @@ let load_module ~package ~basename =
          let oname = Json.jfield_exn "oname" js |> Json.jstring in
          let oident = Printf.sprintf "%s.%s" omodule oname in
          let lident = Astlib.Longident.parse oident in
-         let add scope mk = register ~package ~ident scope mk in
-         match kind with
-         | "val" -> add values (mk_val ~lident)
-         | "type" -> add types (mk_type ~lident)
-         | "constr" ->
-           add constr (mk_constr ~lident) ;
-           add pattern (mk_pattern ~lident)
+         let add scope mk =
+           let m = mk ~lident in
+           Hashtbl.replace scope ident m ;
+           Hashtbl.replace scope (Printf.sprintf "%s.%s" package ident) m
+         in match kind with
+         | "type" -> add types mk_type
+         | "val" -> add values mk_value
+         | "field" -> add fields mk_field
+         | "constr" -> add constr mk_constr ; add pattern mk_pattern
          | _ -> ()
        with Not_found -> ()
     ) (Json.jlist js)
@@ -136,7 +138,7 @@ let type_rule =
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- Expression Rule                                                    --- *)
+(* --- Value Rule                                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
 let value_rule =
@@ -146,6 +148,20 @@ let value_rule =
     begin fun ~ctxt lid ->
       let loc = Expansion_context.Extension.extension_point_loc ctxt in
       try resolve ~scope:values ~loc ~lid with exn ->
+        Ast_builder.Default.pexp_extension ~loc @@ error ~loc ~lid exn
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Field Rule                                                         --- *)
+(* -------------------------------------------------------------------------- *)
+
+let field_rule =
+  Extension.V3.declare "why3"
+    Extension.Context.expression
+    Ast_pattern.(single_expr_payload (pexp_field __ __'))
+    begin fun ~ctxt exp lid ->
+      let loc = Expansion_context.Extension.extension_point_loc ctxt in
+      try resolve ~scope:fields ~loc ~lid exp with exn ->
         Ast_builder.Default.pexp_extension ~loc @@ error ~loc ~lid exn
     end
 
@@ -185,6 +201,7 @@ let pattern_rule =
 let () = Driver.register_transformation ~rules:[
     Ppxlib.Context_free.Rule.extension type_rule ;
     Ppxlib.Context_free.Rule.extension value_rule ;
+    Ppxlib.Context_free.Rule.extension field_rule ;
     Ppxlib.Context_free.Rule.extension constr_rule ;
     Ppxlib.Context_free.Rule.extension pattern_rule ;
   ] "why3"
