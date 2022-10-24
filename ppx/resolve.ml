@@ -237,14 +237,15 @@ let pattern_rule =
 (* --- PPX Registration                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = Driver.register_transformation ~rules:[
-    Ppxlib.Context_free.Rule.extension use_rule_sig ;
-    Ppxlib.Context_free.Rule.extension use_rule_struct ;
-    Ppxlib.Context_free.Rule.extension type_rule ;
-    Ppxlib.Context_free.Rule.extension value_rule ;
-    Ppxlib.Context_free.Rule.extension field_rule ;
-    Ppxlib.Context_free.Rule.extension constr_rule ;
-    Ppxlib.Context_free.Rule.extension pattern_rule ;
-  ] "why3"
+let () = Driver.register_transformation
+    ~rules:(List.map Ppxlib.Context_free.Rule.extension [
+        use_rule_sig ;
+        use_rule_struct ;
+        type_rule ;
+        value_rule ;
+        field_rule ;
+        constr_rule ;
+        pattern_rule ;
+      ]) "why3"
 
 (* -------------------------------------------------------------------------- *)
