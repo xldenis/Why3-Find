@@ -25,8 +25,6 @@ open Ppxlib
 (* --- Symbol Maps                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-let modules : (string,unit) Hashtbl.t = Hashtbl.create 0
-
 type 'a scope = (string,loc:Location.t -> lid:Location.t -> 'a) Hashtbl.t
 let types : (core_type list -> core_type) scope = Hashtbl.create 0
 let values : expression scope = Hashtbl.create 0
@@ -35,7 +33,7 @@ let constr : (expression option -> expression) scope = Hashtbl.create 0
 let pattern : (pattern option -> pattern) scope = Hashtbl.create 0
 
 (* -------------------------------------------------------------------------- *)
-(* --- Symbol Loadind                                                     --- *)
+(* --- Using Module                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
 let mk_type ~lident ~loc ~lid ts =
@@ -53,10 +51,24 @@ let mk_constr ~lident ~loc ~lid prm =
 let mk_pattern ~lident ~loc ~lid prm =
   Ast_builder.Default.ppat_construct ~loc { loc = lid ; txt = lident } prm
 
-let load_module ~package ~basename =
-  let js = Json.of_file (basename ^ ".json") in
+let lookup jfile =
+  List.find_map
+    (fun d ->
+       let jfile = Filename.concat d jfile in
+       if Sys.file_exists jfile then Some jfile else None)
+  @@ Global.Sites.packages
+
+let load_module ~qid ?export () =
+  let path = String.split_on_char '.' qid in
+  let basename = String.concat "__" path in
+  let pkg = List.hd path in
+  let jfile = Filename.concat pkg (basename ^ ".json") in
+  let js = Json.of_file @@
+    match lookup jfile with None -> raise Not_found | Some f -> f in
   let omodule = String.capitalize_ascii basename in
-  List.iter
+  let emodule = match export with Some e -> e | None ->
+    String.capitalize_ascii @@ List.hd @@ List.rev path
+  in List.iter
     (fun js ->
        try
          let kind = Json.jfield_exn "kind" js |> Json.jstring in
@@ -67,7 +79,7 @@ let load_module ~package ~basename =
          let add scope mk =
            let m = mk ~lident in
            Hashtbl.replace scope ident m ;
-           Hashtbl.replace scope (Printf.sprintf "%s.%s" package ident) m
+           Hashtbl.replace scope (Printf.sprintf "%s.%s" emodule ident) m
          in match kind with
          | "type" -> add types mk_type
          | "val" -> add values mk_value
@@ -81,47 +93,74 @@ let load_module ~package ~basename =
 (* --- Symbol Resolution                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-let is_uident p =
-  String.length p > 0 &&
-  let c = p.[0] in Char.lowercase_ascii c = c
-
-let mpath qid =
-  let rec unwrap rp = function
-    | [] -> failwith "module path missing"
-    | p::ps -> if is_uident p then unwrap (p::rp) ps else List.rev rp,ps
-  in unwrap [] @@ String.split_on_char '.' qid
-
 let resolve (type a) ~(scope: a scope) ~loc ~lid : a =
   let qid = String.concat "." (Astlib.Longident.flatten lid.txt) in
-  let lid = lid.loc in
-  try Hashtbl.find scope qid ~loc ~lid
-  with Not_found ->
-    let p,q = mpath qid in
-    try
-      let package = String.concat "." p in
-      let basename = String.concat "__" p in
-      if Hashtbl.mem modules package then raise Not_found ;
-      Hashtbl.add modules package () ;
-      load_module ~package ~basename ;
-      Hashtbl.find scope qid ~loc ~lid
-    with Not_found ->
-      Utils.failwith "value '%s' not found in module '%s'"
-        (String.concat "." q) (String.concat "." p)
+  Hashtbl.find scope qid ~loc ~lid:lid.loc
 
 (* -------------------------------------------------------------------------- *)
 (* --- Errors                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-let error ~loc ~lid exn =
-  let id = String.concat "." @@ Astlib.Longident.flatten lid.txt in
+let error ~lid exn =
+  let loc = lid.loc in
+  let qid = String.concat "." @@ Astlib.Longident.flatten lid.txt in
   match exn with
   | Not_found ->
-    Location.error_extensionf ~loc "Why3 identifier %S not found" id
+    Location.error_extensionf ~loc "Why3 identifier %S not found" qid
   | Failure msg ->
-    Location.error_extensionf ~loc "Why3 identifier %S is invalid (%s)" id msg
+    Location.error_extensionf ~loc "Why3 identifier %S is invalid (%s)" qid msg
   | exn ->
-    Location.error_extensionf ~loc "Why3 identifier %S error (%s)" id
+    Location.error_extensionf ~loc "Why3 identifier %S parse error (%s)" qid
       (Printexc.to_string exn)
+
+(* -------------------------------------------------------------------------- *)
+(* --- Use Rules                                                          --- *)
+(* -------------------------------------------------------------------------- *)
+
+let re = Str.regexp " *as *"
+
+let use import =
+  match Str.split_delim re import with
+  | [qid] -> load_module ~qid ()
+  | [qid;export] -> load_module ~qid ~export ()
+  | _ -> ()
+
+let use_rule_sig =
+  Extension.V3.declare "why3use"
+    Extension.Context.signature_item
+    Ast_pattern.(single_expr_payload (estring __'))
+    begin fun ~ctxt import ->
+      let loc = Expansion_context.Extension.extension_point_loc ctxt in
+      try
+        use import.txt ;
+        Ast_builder.Default.psig_attribute ~loc {
+          attr_loc = loc ;
+          attr_name = { loc ; txt = "ignore" } ;
+          attr_payload = PSig [] ;
+        }
+      with _exn ->
+        Ast_builder.Default.psig_extension ~loc
+          (Location.error_extensionf
+             ~loc:import.loc "Invalid Why-3 use %S" import.txt) []
+    end
+
+let use_rule_struct =
+  Extension.V3.declare "why3use"
+    Extension.Context.structure_item
+    Ast_pattern.(single_expr_payload (estring __))
+    begin fun ~ctxt import ->
+      let loc = Expansion_context.Extension.extension_point_loc ctxt in
+      try
+        use import ;
+        Ast_builder.Default.pstr_attribute ~loc {
+          attr_loc = loc ;
+          attr_name = { loc ; txt = "ignore" } ;
+          attr_payload = PStr [] ;
+        }
+      with _exn ->
+        Ast_builder.Default.pstr_extension ~loc
+          (Location.error_extensionf ~loc "Invalid Why-3 use %S" import) []
+    end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Type Rule                                                          --- *)
@@ -134,7 +173,7 @@ let type_rule =
     begin fun ~ctxt lid cts ->
       let loc = Expansion_context.Extension.extension_point_loc ctxt in
       try resolve ~scope:types ~loc ~lid cts with exn ->
-        Ast_builder.Default.ptyp_extension ~loc @@ error ~loc ~lid exn
+        Ast_builder.Default.ptyp_extension ~loc @@ error ~lid exn
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -148,7 +187,7 @@ let value_rule =
     begin fun ~ctxt lid ->
       let loc = Expansion_context.Extension.extension_point_loc ctxt in
       try resolve ~scope:values ~loc ~lid with exn ->
-        Ast_builder.Default.pexp_extension ~loc @@ error ~loc ~lid exn
+        Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -162,7 +201,7 @@ let field_rule =
     begin fun ~ctxt exp lid ->
       let loc = Expansion_context.Extension.extension_point_loc ctxt in
       try resolve ~scope:fields ~loc ~lid exp with exn ->
-        Ast_builder.Default.pexp_extension ~loc @@ error ~loc ~lid exn
+        Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -176,7 +215,7 @@ let constr_rule =
     begin fun ~ctxt lid prm ->
       let loc = Expansion_context.Extension.extension_point_loc ctxt in
       try resolve ~scope:constr ~loc ~lid prm with exn ->
-        Ast_builder.Default.pexp_extension ~loc @@ error ~loc ~lid exn
+        Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -191,7 +230,7 @@ let pattern_rule =
       let loc = Expansion_context.Extension.extension_point_loc ctxt in
       let prm = Option.map snd lprm in
       try resolve ~scope:pattern ~loc ~lid prm with exn ->
-        Ast_builder.Default.ppat_extension ~loc @@ error ~loc ~lid exn
+        Ast_builder.Default.ppat_extension ~loc @@ error ~lid exn
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -199,6 +238,8 @@ let pattern_rule =
 (* -------------------------------------------------------------------------- *)
 
 let () = Driver.register_transformation ~rules:[
+    Ppxlib.Context_free.Rule.extension use_rule_sig ;
+    Ppxlib.Context_free.Rule.extension use_rule_struct ;
     Ppxlib.Context_free.Rule.extension type_rule ;
     Ppxlib.Context_free.Rule.extension value_rule ;
     Ppxlib.Context_free.Rule.extension field_rule ;
