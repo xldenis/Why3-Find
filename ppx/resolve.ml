@@ -30,6 +30,7 @@ let modules : (string,unit) Hashtbl.t = Hashtbl.create 0
 type 'a scope = (string,loc:Location.t -> lid:Location.t -> 'a) Hashtbl.t
 let types : (core_type list -> core_type) scope = Hashtbl.create 0
 let constr : (expression option -> expression) scope = Hashtbl.create 0
+let pattern : (pattern option -> pattern) scope = Hashtbl.create 0
 let values : expression scope = Hashtbl.create 0
 
 (* -------------------------------------------------------------------------- *)
@@ -45,22 +46,31 @@ let mk_type ~lident ~loc ~lid ts =
 let mk_constr ~lident ~loc ~lid prm =
   Ast_builder.Default.pexp_construct ~loc { loc = lid ; txt = lident } prm
 
+let mk_pattern ~lident ~loc ~lid prm =
+  Ast_builder.Default.ppat_construct ~loc { loc = lid ; txt = lident } prm
+
+let register ~package ~ident scope mk =
+  Hashtbl.replace scope ident mk ;
+  Hashtbl.replace scope (Printf.sprintf "%s.%s" package ident) mk
+
 let load_module ~package ~basename =
   let js = Json.of_file (basename ^ ".json") in
   let omodule = String.capitalize_ascii basename in
   List.iter
     (fun js ->
        try
-         let kind = Json.jfield "kind" js |> Json.jstring in
-         let ident = Json.jfield "ident" js |> Json.jstring in
-         let oname = Json.jfield "oname" js |> Json.jstring in
-         let wident = Printf.sprintf "%s.%s" package ident in
+         let kind = Json.jfield_exn "kind" js |> Json.jstring in
+         let ident = Json.jfield_exn "ident" js |> Json.jstring in
+         let oname = Json.jfield_exn "oname" js |> Json.jstring in
          let oident = Printf.sprintf "%s.%s" omodule oname in
          let lident = Astlib.Longident.parse oident in
+         let add scope mk = register ~package ~ident scope mk in
          match kind with
-         | "val" -> Hashtbl.replace values wident (mk_val ~lident)
-         | "type" -> Hashtbl.replace types wident (mk_type ~lident)
-         | "constr" -> Hashtbl.replace constr wident (mk_constr ~lident)
+         | "val" -> add values (mk_val ~lident)
+         | "type" -> add types (mk_type ~lident)
+         | "constr" ->
+           add constr (mk_constr ~lident) ;
+           add pattern (mk_pattern ~lident)
          | _ -> ()
        with Not_found -> ()
     ) (Json.jlist js)
@@ -100,8 +110,8 @@ let resolve (type a) ~(scope: a scope) ~loc ~lid : a =
 (* --- Errors                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-let error ~loc lid exn =
-  let id = String.concat "." @@ Astlib.Longident.flatten lid in
+let error ~loc ~lid exn =
+  let id = String.concat "." @@ Astlib.Longident.flatten lid.txt in
   match exn with
   | Not_found ->
     Location.error_extensionf ~loc "Why3 identifier %S not found" id
@@ -115,39 +125,68 @@ let error ~loc lid exn =
 (* --- Type Rule                                                          --- *)
 (* -------------------------------------------------------------------------- *)
 
-let expand_type ~ctxt lid cts =
-  let loc = Expansion_context.Extension.extension_point_loc ctxt in
-  try resolve ~scope:types ~loc lid cts with exn ->
-    Ast_builder.Default.ptyp_extension ~loc @@ error ~loc lid exn
-
 let type_rule =
   Extension.V3.declare "why3"
     Extension.Context.core_type
-    Ast_pattern.(ptyp (ptyp_constr __ __))
-    expand_type
+    Ast_pattern.(ptyp (ptyp_constr __' __))
+    begin fun ~ctxt lid cts ->
+      let loc = Expansion_context.Extension.extension_point_loc ctxt in
+      try resolve ~scope:types ~loc ~lid cts with exn ->
+        Ast_builder.Default.ptyp_extension ~loc @@ error ~loc ~lid exn
+    end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Expression Rule                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let expand_expr ~ctxt lid =
-  let loc = Expansion_context.Extension.extension_point_loc ctxt in
-  try resolve ~scope:values ~loc lid with exn ->
-    Ast_builder.Default.pexp_extension ~loc @@ error ~loc lid exn
-
-let expr_rule =
+let value_rule =
   Extension.V3.declare "why3"
     Extension.Context.expression
-    Ast_pattern.(single_expr_payload (pexp_ident __))
-    expand_expr
+    Ast_pattern.(single_expr_payload (pexp_ident __'))
+    begin fun ~ctxt lid ->
+      let loc = Expansion_context.Extension.extension_point_loc ctxt in
+      try resolve ~scope:values ~loc ~lid with exn ->
+        Ast_builder.Default.pexp_extension ~loc @@ error ~loc ~lid exn
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Constructor Rule                                                   --- *)
+(* -------------------------------------------------------------------------- *)
+
+let constr_rule =
+  Extension.V3.declare "why3"
+    Extension.Context.expression
+    Ast_pattern.(single_expr_payload (pexp_construct __' __))
+    begin fun ~ctxt lid prm ->
+      let loc = Expansion_context.Extension.extension_point_loc ctxt in
+      try resolve ~scope:constr ~loc ~lid prm with exn ->
+        Ast_builder.Default.pexp_extension ~loc @@ error ~loc ~lid exn
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Pattern Rule                                                       --- *)
+(* -------------------------------------------------------------------------- *)
+
+let pattern_rule =
+  Extension.V3.declare "why3"
+    Extension.Context.pattern
+    Ast_pattern.(ppat (ppat_construct __' __) __)
+    begin fun ~ctxt lid lprm _when ->
+      let loc = Expansion_context.Extension.extension_point_loc ctxt in
+      let prm = Option.map snd lprm in
+      try resolve ~scope:pattern ~loc ~lid prm with exn ->
+        Ast_builder.Default.ppat_extension ~loc @@ error ~loc ~lid exn
+    end
 
 (* -------------------------------------------------------------------------- *)
 (* --- PPX Registration                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
 let () = Driver.register_transformation ~rules:[
-    Ppxlib.Context_free.Rule.extension expr_rule ;
     Ppxlib.Context_free.Rule.extension type_rule ;
+    Ppxlib.Context_free.Rule.extension value_rule ;
+    Ppxlib.Context_free.Rule.extension constr_rule ;
+    Ppxlib.Context_free.Rule.extension pattern_rule ;
   ] "why3"
 
 (* -------------------------------------------------------------------------- *)
