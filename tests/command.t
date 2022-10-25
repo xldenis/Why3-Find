@@ -239,7 +239,8 @@
   
     Generate HTML documentation.
   
-    Includes all why3 files and directories accessible from PATH.
+    Includes all why3 sources and markdown pages
+    accessible from PATH.
   
   
   OPTIONS:
@@ -250,6 +251,7 @@
     --driver DRV add extraction driver
     -p  same as --package
     -D  same as --driver
+    -t document title (default none)
     -o destination directory (default "html")
     -help  Display this list of options
     --help  Display this list of options

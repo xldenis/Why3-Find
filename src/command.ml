@@ -500,10 +500,12 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
 let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
     begin fun argv ->
       let files = ref [] in
+      let title = ref "" in
       let out = ref "" in
       Arg.parse_argv argv
         begin
           Wenv.options ~packages:true ~drivers:true () @ [
+            "-t", Arg.Set_string title, "document title (default none)" ;
             "-o", Arg.Set_string out,
             "destination directory (default \"html\")" ;
           ]
@@ -514,12 +516,14 @@ let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
          DESCRIPTION:\n\
          \n  Generate HTML documentation.\
          \n\
-         \n  Includes all why3 files and directories accessible from PATH.\n\n\
+         \n  Includes all why3 sources and markdown pages\
+         \n  accessible from PATH.\n\n\
          \n\
          OPTIONS:\n" ;
+      let title = !title in
       let files = Wenv.argmlw @@ List.rev !files in
       let out = if !out = "" then "html" else Wenv.arg1 !out in
-      Docgen.generate ~out ~files
+      Docgen.generate ~out ~title ~files
     end
 
 (* -------------------------------------------------------------------------- *)

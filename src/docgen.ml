@@ -832,23 +832,36 @@ let parse env =
   done
 
 (* -------------------------------------------------------------------------- *)
+(* --- Titling Document                                                   --- *)
+(* -------------------------------------------------------------------------- *)
+
+let document_title ~title ~page =
+  if title <> "" then Printf.sprintf "%s - %s" title page else page
+
+(* -------------------------------------------------------------------------- *)
 (* --- MD File Processing                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_markdown ~out:dir file =
+let process_markdown ~title ~out:dir file =
   begin
-    ignore dir ;
-    ignore file ;
+    let src = Docref.empty () in
+    let basename = Filename.chop_extension @@ Filename.basename file in
+    let page = String.capitalize_ascii basename in
+    let title = document_title ~title ~page in
+    let file = Filename.concat dir (basename ^ ".html") in
+    let out = Pdoc.output ~file ~title in
+    ignore src ; ignore out ;
   end
 
 (* -------------------------------------------------------------------------- *)
 (* --- MLW File Processing                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_source ~wenv ~henv ~out:dir file =
+let process_source ~wenv ~henv ~out:dir ~title file =
   let src = Docref.parse ~henv ~wenv file in
   let path = String.concat "." src.lib in
-  let title = Printf.sprintf "Library %s" path in
+  let page = Printf.sprintf "Library %s" path in
+  let title = document_title ~title ~page in
   let ofile = Filename.concat dir (src.urlbase ^ ".index.html") in
   let out = Pdoc.output ~file:ofile ~title in
   let crc = Pdoc.output
@@ -892,16 +905,16 @@ let shared ~out ~file =
   let src = Meta.shared file in
   Utils.copy ~src ~tgt
 
-let process ~wenv ~henv ~out file =
+let process ~wenv ~henv ~out ~title file =
   if Filename.check_suffix file ".md" then
-    process_markdown ~out file
+    process_markdown ~out ~title file
   else
   if Filename.check_suffix file ".mlw" then
-    process_source ~wenv ~henv ~out file
+    process_source ~wenv ~henv ~out ~title file
   else
     Utils.failwith "Don't known what to do with %S" file
 
-let generate ~out ~files =
+let generate ~out ~title ~files =
   begin
     Utils.flush () ;
     Format.printf "Generated %s@." @@ Utils.absolute out ;
@@ -912,7 +925,7 @@ let generate ~out ~files =
     shared ~out ~file:"icofont.min.css" ;
     shared ~out ~file:"fonts/icofont.woff" ;
     shared ~out ~file:"fonts/icofont.woff2" ;
-    List.iter (process ~wenv ~henv ~out) files
+    List.iter (process ~wenv ~henv ~title ~out) files
   end
 
 (* -------------------------------------------------------------------------- *)
