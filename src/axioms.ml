@@ -228,4 +228,11 @@ let dependencies henv (thy : Theory.theory) =
     List.iter add_signature s.cloned_theories ;
   in add_signature thy ; Mid.values !deps
 
+let iter henv f th =
+  List.iter
+    (fun thy ->
+       let s = signature henv thy in
+       Mid.iter f s.locals
+    ) (dependencies henv th)
+
 (* -------------------------------------------------------------------------- *)
