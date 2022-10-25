@@ -111,6 +111,7 @@ type opt = [
   | `Package
   | `Prover
   | `Driver
+  | `Config
 ]
 
 let alloptions : (opt * string * Arg.spec * string) list = [
@@ -121,10 +122,9 @@ let alloptions : (opt * string * Arg.spec * string) list = [
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
   `Prover,  "--transf", Arg.String (add trfs), "TRANS add transformation";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
-  `All, "--remove", Arg.Set removal, "remove all specified packages, provers\
-                                      and transformations";
+  `Config, "--remove", Arg.Set removal, "remove items from configuration";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
-  `Package, "-t", Arg.Float (setv time), " same as --time";
+  `Prover,  "-t", Arg.Float (setv time), " same as --time";
   `Prover,  "-P", Arg.String (add prvs), " same as --prover";
   `Prover,  "-T", Arg.String (add trfs), " same as --transf";
   `Driver,  "-D", Arg.String (add drvs), " same as --driver";
@@ -140,6 +140,7 @@ let options ?(packages=false) ?(provers=false) ?(drivers=false) () =
           | `Package -> packages
           | `Prover -> provers
           | `Driver -> drivers
+          | `Config -> packages && provers && drivers
        then Some(name,spec,descr)
        else None
     ) alloptions

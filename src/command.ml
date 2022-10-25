@@ -561,7 +561,7 @@ let () = register ~name:"extract" ~args:"[OPTIONS] MODULE..."
          \n  why3find extract [OPTIONS] PKG MODULE...\n\n\
          DESCRIPTION:\n\
          \n  Extract OCaml and generate Dune file.\
-         \n\
+         \n\n\
          OPTIONS:\n" ;
       let pkgs = Wenv.packages () in
       let configs = Wenv.configs () in
