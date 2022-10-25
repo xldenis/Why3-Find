@@ -832,10 +832,20 @@ let parse env =
   done
 
 (* -------------------------------------------------------------------------- *)
+(* --- MD File Processing                                                 --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process_markdown ~out:dir file =
+  begin
+    ignore dir ;
+    ignore file ;
+  end
+
+(* -------------------------------------------------------------------------- *)
 (* --- MLW File Processing                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_file ~wenv ~henv ~out:dir file =
+let process_source ~wenv ~henv ~out:dir file =
   let src = Docref.parse ~henv ~wenv file in
   let path = String.concat "." src.lib in
   let title = Printf.sprintf "Library %s" path in
@@ -882,6 +892,15 @@ let shared ~out ~file =
   let src = Meta.shared file in
   Utils.copy ~src ~tgt
 
+let process ~wenv ~henv ~out file =
+  if Filename.check_suffix file ".md" then
+    process_markdown ~out file
+  else
+  if Filename.check_suffix file ".mlw" then
+    process_source ~wenv ~henv ~out file
+  else
+    Utils.failwith "Don't known what to do with %S" file
+
 let generate ~out ~files =
   begin
     Utils.flush () ;
@@ -893,7 +912,7 @@ let generate ~out ~files =
     shared ~out ~file:"icofont.min.css" ;
     shared ~out ~file:"fonts/icofont.woff" ;
     shared ~out ~file:"fonts/icofont.woff2" ;
-    List.iter (process_file ~wenv ~henv ~out) files
+    List.iter (process ~wenv ~henv ~out) files
   end
 
 (* -------------------------------------------------------------------------- *)
