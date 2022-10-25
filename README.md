@@ -306,13 +306,13 @@ options corresponding to the project configuration and from the `why3find extrac
 command line. Moreover, the `why3find extract` command also generates a `dune` file
 for compiling and installing the library of extracted OCaml code.
 
-You shall specify the package name (`PKG`) and the list of _all_ Why-3 modules
-(`MODULE`) to be extracted on the command line, as follows:
+You shall specify the the list of Why-3 modules (`MODULE`) to be extracted on the command line,
+as follows:
 
-    why3find extract PKG MODULE...
+    why3find extract MODULE...
 
-All modules shall belong to the `PKG` package. Options can be passed to
-`why3find extract` command to finally tune its behavior:
+All modules shall belong to the same package. Options can be passed to
+`why3find extract` command:
 
     why3find extract -d PKG   # additional OCaml package dependency
     why3find extract -o DIR   # extraction output directory (default is "lib")
@@ -323,22 +323,24 @@ From an external OCaml client code, you can easily invoke the generated types an
 values from your Why-3 package using the `ppx_why3find` module.
 
 In OCaml client code, just add `ppx_why3find` to the list of PPX rewriters to
-your `dune` configuration:
+the `dune` configuration of client code:
 
     (libray MyClientCode
         (preprocess (pps ppx_why3find ...))
         ...)
 
-Then, inside the OCaml code, you can use the following extension points:
+Inside the client OCaml code, you can use the following extension points:
 
     [%%why3use "<why3-module>" ]               (** open scope *)
     [%%why3use "<why3-module> as <uident>" ]   (** open scope *)
 
-    [%why3 !<why3-type>]                  (** type identifier *)
-    [%why3 ?<why3-constructor>(pat,...)]  (** constructor pattern *)
-    [%why3  <why3-constructor>(exp,...)]  (** construtor expression *)
-    [%why3  exp.<why3-field>]             (** field access *)
-    [%why3  <why3-value>]                 (** extracted function *)
+    [%why3! (typ,...) <why3-type> ]        (** type identifier *)
+    [%why3? <why3-constructor>(pat,...) ]  (** constructor pattern *)
+    [%why3  <why3-constructor>(exp,...) ]  (** construtor expression *)
+    [%why3  exp.<why3-field> ]             (** field access *)
+    [%why3  <why3-value> ]                 (** extracted function *)
 
 Scope rules follows the Why-3 usage. Notice that full why3 module names must be
-written into quotes since they are _not_ part of the OCaml syntax.
+written between quotes since they are _not_ part of the OCaml syntax. In other
+extension points, Why-3 (qualified) identifiers follows the OCaml syntax and
+don't need quotes.

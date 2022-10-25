@@ -246,6 +246,6 @@ let () = Driver.register_transformation
         field_rule ;
         constr_rule ;
         pattern_rule ;
-      ]) "why3"
+      ]) "why3find"
 
 (* -------------------------------------------------------------------------- *)

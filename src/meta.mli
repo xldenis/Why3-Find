@@ -30,6 +30,7 @@ type pkg = {
   configs: string list ;
   drivers: string list ;
   extracted: bool;
+  symbols: bool;
 }
 
 

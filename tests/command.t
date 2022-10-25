@@ -143,7 +143,7 @@
     --driver DRV add extraction driver
     -p  same as --package
     -D  same as --driver
-    -d PKG Additional OCaml package dependency
+    -l PKG Additional OCaml library dependency
     -o destination directory (default "lib")
     -s generate symbol maps for ppx_why3find
     -v print why3 extract command
