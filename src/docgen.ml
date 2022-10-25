@@ -43,6 +43,18 @@ type mode =
   | List of int (* indent *)
   | Item of int (* indent *)
 
+let pp_mode fmt = function
+  | Body -> Format.fprintf fmt "BODY"
+  | Pre -> Format.fprintf fmt "PRE"
+  | Div -> Format.fprintf fmt "DIV"
+  | Par -> Format.fprintf fmt "PAR"
+  | Emph -> Format.fprintf fmt "EMPH"
+  | Bold -> Format.fprintf fmt "BOLD"
+  | Head(_,n) -> Format.fprintf fmt "HEAD%d" n
+  | List n -> Format.fprintf fmt "LIST%d" n
+  | Item n -> Format.fprintf fmt "ITEM%d" n
+[@@ warning "-32"]
+
 let is_opening = function
   | "scope" | "match" | "try" | "begin" -> true
   | _ -> false
@@ -61,6 +73,7 @@ type env = {
   input : Token.input ; (* input lexer *)
   out : Pdoc.output ; (* output buffer *)
   crc : Pdoc.output ; (* proofs buffer *)
+  wenv : Why3.Env.env ; (* why3 env. *)
   henv : Axioms.henv ; (* axioms *)
   mutable proof_href : int ; (* proof href *)
   mutable clone_decl : int ; (* clone decl indent (when > 0) *)
@@ -716,6 +729,16 @@ let rec list env n =
     if n > m then
       push env (List n)
 
+let rec closeblock env =
+  match env.mode with
+  | Body | Head _ | Pre -> ()
+  | Emph -> Token.error env.input "unclosed bold style"
+  | Bold -> Token.error env.input "unclosed emphasis style"
+  | Par -> pop env
+  | Item _ -> pop env ; closeblock env
+  | List _ -> pop env ; closeblock env
+  | Div -> ()
+
 let process_dash env s =
   let s = String.length s in
   if s = 1 && Token.startline env.input then
@@ -747,10 +770,10 @@ let process_space env =
 let process_newline env =
   match env.mode with
   | Body -> if Token.emptyline env.input then Pdoc.flush env.out
-  | Div | List _ -> ()
-  | Par | Item _ ->
+  | Div -> ()
+  | Par | List _ | Item _ ->
     if Token.emptyline env.input then
-      pop env
+      closeblock env
     else
       env.space <- true
   | Emph | Bold -> env.space <- true
@@ -782,13 +805,103 @@ let process_reference ~wenv ~env r =
   | Failure msg -> Token.error env.input "%s" msg
 
 (* -------------------------------------------------------------------------- *)
-(* --- File Processing                                                    --- *)
+(* --- Token Processing                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_file ~wenv ~henv ~out:dir file =
+let parse env =
+  let wenv = env.wenv in
+  let out = env.out in
+  while not (Token.eof env.input) do
+    match Token.token env.input with
+    | Eof -> close env
+    | Char c -> text env ; Pdoc.pp_html_c out c
+    | Text s -> text env ; Pdoc.pp_html_s out s
+    | Comment s ->
+      text env ;
+      Pdoc.pp_html_s out ~className:"comment" s
+    | Verb s ->
+      text env ;
+      Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
+    | Ref s -> process_reference ~wenv ~env s
+    | Style(Emph,_) -> process_style env Emph
+    | Style(Bold,_) -> process_style env Bold
+    | Style(Head,h) -> process_header env h
+    | Style(Dash,n) -> process_dash env n
+    | Style _ -> ()
+    | OpenDoc ->
+      begin
+        Pdoc.flush ~onlyspace:false out ;
+        close env ;
+        push env Div ;
+      end
+    | CloseDoc ->
+      begin
+        close env ;
+        push env env.file ;
+      end
+    | OpenSection(active,title) -> process_open_section env ~active title
+    | CloseSection title -> process_close_section env title
+    | Space -> process_space env
+    | Newline -> process_newline env
+    | Ident s ->
+      text env ;
+      process_ident env s ;
+      process_clones env
+    | Infix s ->
+      text env ;
+      let href = resolve env ~infix:true () in
+      process_href env href s
+  done
+
+(* -------------------------------------------------------------------------- *)
+(* --- Titling Document                                                   --- *)
+(* -------------------------------------------------------------------------- *)
+
+let document_title ~title ~page =
+  if title <> "" then Printf.sprintf "%s — %s" title page else page
+
+(* -------------------------------------------------------------------------- *)
+(* --- MD File Processing                                                 --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process_markdown ~wenv ~henv ~out:dir ~title file =
+  begin
+    let src = Docref.empty () in
+    let input = Token.input ~doc:true file in
+    let basename = Filename.chop_extension @@ Filename.basename file in
+    let page = String.capitalize_ascii basename in
+    let title = document_title ~title ~page in
+    let ofile = Filename.concat dir (basename ^ ".html") in
+    let out = Pdoc.output ~file:ofile ~title in
+    let crc = Pdoc.null () in
+    let env = {
+      dir ; src ; input ; out ; crc ; space = false ; wenv ; henv ;
+      scope = None ; theory = None ;
+      mode = Body ; file = Body ; stack = [] ;
+      clone_decl = 0 ;
+      clone_path = "" ;
+      clone_order = 0 ;
+      proof_href = 0 ;
+      declared = Sid.empty ;
+      opened = 0 ; section = 0 ;
+    } in
+    Pdoc.printf out "<header>%a</header>@\n" Pdoc.pp_html title ;
+    Pdoc.flush out ;
+    push env Div ;
+    parse env ;
+    close env ;
+    Pdoc.close_all out ;
+  end
+
+(* -------------------------------------------------------------------------- *)
+(* --- MLW File Processing                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process_source ~wenv ~henv ~out:dir ~title file =
   let src = Docref.parse ~henv ~wenv file in
   let path = String.concat "." src.lib in
-  let title = Printf.sprintf "Library %s" path in
+  let page = Printf.sprintf "Library %s" path in
+  let title = document_title ~title ~page in
   let ofile = Filename.concat dir (src.urlbase ^ ".index.html") in
   let out = Pdoc.output ~file:ofile ~title in
   let crc = Pdoc.output
@@ -796,7 +909,7 @@ let process_file ~wenv ~henv ~out:dir file =
       ~title:(Printf.sprintf "Proofs %s" path) in
   let input = Token.input file in
   let env = {
-    dir ; src ; input ; out ; crc ; space = false ; henv ;
+    dir ; src ; input ; out ; crc ; space = false ; wenv ; henv ;
     scope = None ; theory = None ;
     mode = Body ; file = Body ; stack = [] ;
     clone_decl = 0 ;
@@ -818,47 +931,7 @@ let process_file ~wenv ~henv ~out:dir file =
       ) src.profile ;
     Pdoc.printf crc "</pre>@\n<h1>Proof Certificates</h1>@\n" ;
     Pdoc.flush crc ;
-    while not (Token.eof env.input) do
-      match Token.token env.input with
-      | Eof -> close env
-      | Char c -> text env ; Pdoc.pp_html_c out c
-      | Text s -> text env ; Pdoc.pp_html_s out s
-      | Comment s ->
-        text env ;
-        Pdoc.pp_html_s out ~className:"comment" s
-      | Verb s ->
-        text env ;
-        Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
-      | Ref s -> process_reference ~wenv ~env s
-      | Style(Emph,_) -> process_style env Emph
-      | Style(Bold,_) -> process_style env Bold
-      | Style(Head,h) -> process_header env h
-      | Style(Dash,n) -> process_dash env n
-      | Style _ -> ()
-      | OpenDoc ->
-        begin
-          Pdoc.flush ~onlyspace:false out ;
-          close env ;
-          push env Div ;
-        end
-      | CloseDoc ->
-        begin
-          close env ;
-          push env env.file ;
-        end
-      | OpenSection(active,title) -> process_open_section env ~active title
-      | CloseSection title -> process_close_section env title
-      | Space -> process_space env
-      | Newline -> process_newline env
-      | Ident s ->
-        text env ;
-        process_ident env s ;
-        process_clones env
-      | Infix s ->
-        text env ;
-        let href = resolve env ~infix:true () in
-        process_href env href s
-    done ;
+    parse env ;
     Pdoc.close_all out ;
     Pdoc.close_all crc ;
   end
@@ -872,7 +945,16 @@ let shared ~out ~file =
   let src = Meta.shared file in
   Utils.copy ~src ~tgt
 
-let generate ~out ~files =
+let process ~wenv ~henv ~out ~title file =
+  if Filename.check_suffix file ".md" then
+    process_markdown ~wenv ~henv ~out ~title file
+  else
+  if Filename.check_suffix file ".mlw" then
+    process_source ~wenv ~henv ~out ~title file
+  else
+    Utils.failwith "Don't known what to do with %S" file
+
+let generate ~out ~title ~files =
   begin
     Utils.flush () ;
     Format.printf "Generated %s@." @@ Utils.absolute out ;
@@ -883,7 +965,7 @@ let generate ~out ~files =
     shared ~out ~file:"icofont.min.css" ;
     shared ~out ~file:"fonts/icofont.woff" ;
     shared ~out ~file:"fonts/icofont.woff2" ;
-    List.iter (process_file ~wenv ~henv ~out) files
+    List.iter (process ~wenv ~henv ~title ~out) files
   end
 
 (* -------------------------------------------------------------------------- *)

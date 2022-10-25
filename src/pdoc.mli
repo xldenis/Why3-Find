@@ -64,6 +64,9 @@ val pp_buffer : buffer fmt
 
 type output
 
+(** Trashed buffer. *)
+val null : unit -> output
+
 (** Open with (sanitized) title. *)
 val output : file:string -> title:string -> output
 

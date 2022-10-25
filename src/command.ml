@@ -477,7 +477,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
          \n  Prove all why3 files and directories accessible from PATH.\n\n\
          OPTIONS:\n" ;
       let session = !session || !ide in
-      let files = Wenv.argmlw @@ List.rev !files in
+      let files = Wenv.argfiles ~exts:[".mlw"] @@ List.rev !files in
       let tofix = Prove.prove_files ~mode:!mode ~session ~log:!log ~files in
       match tofix with
       | [] -> ()
@@ -500,10 +500,12 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
 let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
     begin fun argv ->
       let files = ref [] in
+      let title = ref "" in
       let out = ref "" in
       Arg.parse_argv argv
         begin
           Wenv.options ~packages:true ~drivers:true () @ [
+            "-t", Arg.Set_string title, "document title (default none)" ;
             "-o", Arg.Set_string out,
             "destination directory (default \"html\")" ;
           ]
@@ -514,12 +516,14 @@ let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
          DESCRIPTION:\n\
          \n  Generate HTML documentation.\
          \n\
-         \n  Includes all why3 files and directories accessible from PATH.\n\n\
+         \n  Includes all why3 sources and markdown pages\
+         \n  accessible from PATH.\n\n\
          \n\
          OPTIONS:\n" ;
-      let files = Wenv.argmlw @@ List.rev !files in
+      let title = !title in
+      let files = Wenv.argfiles ~exts:[".md";".mlw"] @@ List.rev !files in
       let out = if !out = "" then "html" else Wenv.arg1 !out in
-      Docgen.generate ~out ~files
+      Docgen.generate ~out ~title ~files
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -661,7 +665,7 @@ let () = register ~name:"install" ~args:"PKG PATH..."
             Utils.failwith "Can not install %S from outside of %s directory"
               src pkg ;
           allsrc := false ;
-          Wenv.allmlw (install ~kind:"(source)") src ;
+          Wenv.allfiles ~exts:[".mlw"] (install ~kind:"(source)") src ;
           let proofs = Filename.(concat (chop_extension src) "proof.json") in
           if Sys.file_exists proofs then
             install ~kind:"(proof)" proofs
@@ -671,7 +675,7 @@ let () = register ~name:"install" ~args:"PKG PATH..."
           if not @@ Sys.file_exists src then
             Utils.failwith "unknown file or directory %S" src ;
           if Sys.is_directory src then
-            Wenv.allmlw install_src src
+            Wenv.allfiles ~exts:[".mlw"] install_src src
           else
             match Filename.extension src with
             | ".mlw" -> install_src src
@@ -683,7 +687,8 @@ let () = register ~name:"install" ~args:"PKG PATH..."
       let depends = Wenv.packages () in
       let drivers = Wenv.drivers () in
       let configs = Wenv.configs () in
-      if !allsrc then Wenv.allmlw (install_src ~check:false) pkg ;
+      if !allsrc then Wenv.allfiles ~exts:[".mlw"]
+          (install_src ~check:false) pkg ;
       List.iter (install ~kind:"(config)") configs ;
       List.iter (install ~kind:"(driver)") drivers ;
       let doc = !html in

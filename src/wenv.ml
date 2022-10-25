@@ -171,21 +171,21 @@ let arg0 file =
 let arg1 file = load () ; arg0 file
 let argv files = load () ; List.map arg1 files
 
-let is_mlw p = Filename.extension p = ".mlw"
+let filter ~exts p = List.mem (Filename.extension p) exts
 
-let allmlw f path =
+let allfiles ~exts f path =
   if not (Sys.file_exists path) then
     Utils.failwith "Unknown file or directory %S" path ;
-  if not (is_mlw path || Sys.is_directory path) then
+  if not (filter ~exts path || Sys.is_directory path) then
     Utils.failwith "File %S is not a Why-3 source neither a directory" path ;
   Utils.iterpath
-    ~file:(fun p -> if is_mlw p then f p)
+    ~file:(fun p -> if filter ~exts p then f p)
     path
 
-let argmlw files = load () ;
+let argfiles ~exts files = load () ;
   let paths = ref [] in
   List.iter
-    (fun f -> allmlw (fun p -> paths := p :: !paths) (arg1 f))
+    (fun f -> allfiles ~exts (fun p -> paths := p :: !paths) (arg1 f))
     files ;
   List.rev !paths
 
