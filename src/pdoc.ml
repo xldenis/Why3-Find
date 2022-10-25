@@ -122,6 +122,8 @@ let output ~file ~title =
     current = buffer () ;
   }
 
+let null () = output ~file:"" ~title:""
+
 let buffered output = contents output.current
 
 let push output =

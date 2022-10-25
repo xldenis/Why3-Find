@@ -836,13 +836,13 @@ let parse env =
 (* -------------------------------------------------------------------------- *)
 
 let document_title ~title ~page =
-  if title <> "" then Printf.sprintf "%s - %s" title page else page
+  if title <> "" then Printf.sprintf "%s — %s" title page else page
 
 (* -------------------------------------------------------------------------- *)
 (* --- MD File Processing                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_markdown ~title ~out:dir file =
+let process_markdown ~wenv ~henv ~out:dir ~title file =
   begin
     let src = Docref.empty () in
     let basename = Filename.chop_extension @@ Filename.basename file in
@@ -850,7 +850,25 @@ let process_markdown ~title ~out:dir file =
     let title = document_title ~title ~page in
     let file = Filename.concat dir (basename ^ ".html") in
     let out = Pdoc.output ~file ~title in
-    ignore src ; ignore out ;
+    let crc = Pdoc.null () in
+    let input = Token.input ~doc:true file in
+    let env = {
+      dir ; src ; input ; out ; crc ; space = false ; wenv ; henv ;
+      scope = None ; theory = None ;
+      mode = Body ; file = Body ; stack = [] ;
+      clone_decl = 0 ;
+      clone_path = "" ;
+      clone_order = 0 ;
+      proof_href = 0 ;
+      declared = Sid.empty ;
+      opened = 0 ; section = 0 ;
+    } in
+    begin
+      Pdoc.printf out "<header>%a</header>@\n" Pdoc.pp_html title ;
+      Pdoc.flush out ;
+      parse env ;
+      Pdoc.close_all out ;
+    end
   end
 
 (* -------------------------------------------------------------------------- *)
@@ -907,7 +925,7 @@ let shared ~out ~file =
 
 let process ~wenv ~henv ~out ~title file =
   if Filename.check_suffix file ".md" then
-    process_markdown ~out ~title file
+    process_markdown ~wenv ~henv ~out ~title file
   else
   if Filename.check_suffix file ".mlw" then
     process_source ~wenv ~henv ~out ~title file
