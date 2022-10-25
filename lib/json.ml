@@ -20,34 +20,67 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- META Package Infos                                                 --- *)
+(* --- JSON Utilities                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
-type pkg = {
-  name: string ;
-  path: string ;
-  depends: string list ;
-  configs: string list ;
-  drivers: string list ;
-  extracted: bool;
-  symbols: bool;
-}
+type t = Yojson.t
 
+let of_file f : t = (Yojson.Basic.from_file f :> t)
+let to_file f js =
+  let out = open_out f in
+  Yojson.pretty_to_channel ~std:true out js ;
+  close_out out
 
-(** [shared f] returns the path of file [f] installed in shared directory. *)
-val shared : string -> string
+let jbool = function
+  | `Bool b -> b
+  | _ -> false
 
-(** [path pkg] returns the topmost installation path of package [pkg]. *)
-val path : string -> string
+let jint = function
+  | `Int n -> n
+  | `Float a -> int_of_float (a +. 0.5)
+  | _ -> 0
 
-(** [find pkg] returns the installed package META data, if installed. *)
-val find : string -> pkg
+let jfloat = function
+  | `Float a -> a
+  | `Int n -> float n
+  | _ -> 0.0
 
-(** [find_all pkgs] returns all listed packages and their dependencies,
-    in dependency order. *)
-val find_all : string list -> pkg list
+let jstring = function
+  | `String a -> a
+  | _ -> ""
 
-(** [install pkg] install the package META data. *)
-val install : pkg -> unit
+let jlist = function
+  | `List xs -> xs
+  | _ -> []
+
+let jmap f js = jlist js |> List.map f
+
+let jstringlist js = jlist js |> List.map jstring
+
+let jmem fd = function
+  | `Assoc fds -> List.mem_assoc fd fds
+  | _ -> false
+
+let jfield fd = function
+  | `Assoc fds -> (try List.assoc fd fds with Not_found -> `Null)
+  | _ -> `Null
+
+let jdefault value pp = function
+  | `Null -> value
+  | js -> pp js
+
+let jfield_exn fd = function
+  | `Assoc fds -> List.assoc fd fds
+  | _ -> raise Not_found
+
+let jiter f = function
+  | `Assoc fds -> List.iter (fun (fd,js) -> f fd js) fds
+  | _ -> ()
+
+let is_empty = function
+  | `Null -> true
+  | `List [] -> true
+  | `Assoc [] -> true
+  | _ -> false
 
 (* -------------------------------------------------------------------------- *)

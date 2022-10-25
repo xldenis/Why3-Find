@@ -1,0 +1,6 @@
+module Bar
+  use int.Int
+
+  type t = A int | B bool
+
+end

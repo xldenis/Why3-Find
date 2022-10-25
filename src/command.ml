@@ -87,11 +87,11 @@ let verbose = ref false
 let exec
     ?(cmd="why3")
     ?(auto=false)
-    ?(configs=true)
-    ?(drivers=false)
+    ?(configs)
+    ?(drivers)
     ?(prefix=[])
     ?(pkgs=[])
-    ?(skip=1)
+    ?(skip=0)
     argv =
   let open Bag in
   let args = ref empty in
@@ -108,8 +108,8 @@ let exec
           pkgs += argv.(!p)
         else
           failwith "missing PKG name"
-      | "--drivers" when auto -> drivers := true
-      | "--configs" when auto -> configs := true
+      | "--drivers" when auto && !drivers = None -> drivers := Some []
+      | "--configs" when auto && !configs = None -> configs := Some []
       | "-v" | "--verbose" -> verbose := true
       | arg ->
         args += arg
@@ -117,23 +117,27 @@ let exec
   done ;
   let pkgs = Meta.find_all (Bag.to_list !pkgs) in
   let cfg =
-    if !configs then
+    match !configs with
+    | None -> Bag.empty
+    | Some cs ->
+      Bag.map (Printf.sprintf "--extra-config=%s") cs ++
       Bag.merge
         (fun (pkg : Meta.pkg) ->
            Bag.map
              (Printf.sprintf "--extra-config=%s/%s" pkg.path)
              pkg.configs
-        ) pkgs
-    else Bag.empty in
+        ) pkgs in
   let drv =
-    if !drivers then
+    match !drivers with
+    | None -> Bag.empty
+    | Some ds ->
+      Bag.map (Printf.sprintf "--driver=%s") ds ++
       Bag.merge
         (fun (pkg : Meta.pkg) ->
            Bag.map
              (Printf.sprintf "--driver=%s/%s" pkg.path)
              pkg.drivers
-        ) pkgs
-    else Bag.empty in
+        ) pkgs in
   let load =
     Bag.map
       (fun (pkg : Meta.pkg) -> Printf.sprintf "--library=%s" pkg.path)
@@ -165,7 +169,7 @@ let process cmd argv : unit =
        \n  --configs : pass also --extra-config-file=<CFG> options\
        \n  --drivers : pass also --driver=<DRV> options\
        \n" ;
-    exec ~cmd ~auto:true argv
+    exec ~cmd ~auto:true ~skip:1 argv
   | _,process -> process argv
 
 let register ~name ?(args="") process =
@@ -292,9 +296,14 @@ let () = register ~name:"query" ~args:"[PKG...]"
           pkgs
       else
         let pp_opt name ps =
-          Format.printf "  @[<hov 2>%s: %s@]@\n" name
-            (if ps = [] then "-" else String.concat ", " ps)
-        in
+          if ps <> [] then
+            begin
+              Format.printf "  @[<hov 2>%s:" name ;
+              List.iter (Format.printf "@ %s") ps ;
+              Format.printf "@]@\n" ;
+            end in
+        let pp_yes name fg =
+          if fg then Format.printf "  %s: yes@\n" name in
         List.iter
           (fun (p : Meta.pkg) ->
              Format.printf "Package %s:@\n" p.name ;
@@ -302,6 +311,8 @@ let () = register ~name:"query" ~args:"[PKG...]"
              pp_opt "depends" p.depends ;
              pp_opt "configs" p.configs ;
              pp_opt "drivers" p.drivers ;
+             pp_yes "extracted" p.extracted ;
+             pp_yes "symbols" (p.extracted && p.symbols) ;
           ) pkgs
     end
 
@@ -478,7 +489,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
             let pkgs = Wenv.packages () in
             Format.printf "proof failed: running why3 ide %s@." f ;
             let hammer = Meta.shared "hammer.cfg" in
-            exec ~prefix:["ide";"--extra-config";hammer] ~pkgs ~skip:0 [| f |]
+            exec ~prefix:["ide";"--extra-config";hammer] ~pkgs [| f |]
           end
     end
 
@@ -499,7 +510,7 @@ let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
         end
         (fun f -> files := f :: !files)
         "USAGE:\n\
-         \n  why3find doc PATH...\n\n\
+         \n  why3find doc [OPTIONS] PATH...\n\n\
          DESCRIPTION:\n\
          \n  Generate HTML documentation.\
          \n\
@@ -515,20 +526,75 @@ let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
 (* --- EXTRACT                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
-let () = register ~name:"extract" ~args:"[-p PKG] MODULE..."
+let re_module = Str.regexp "\\([a-zA-Z0x-9_]+.\\)+[A-Z][a-zA-Z0-9_]*"
+
+let () = register ~name:"extract" ~args:"[OPTIONS] MODULE..."
     begin fun argv ->
-      usage argv
+      let pkg = ref "" in
+      let modules = ref [] in
+      let libraries = ref [] in
+      let symbols = ref false in
+      let out = ref "lib" in
+      Arg.parse_argv argv
+        begin
+          Wenv.options ~packages:true ~drivers:true () @ [
+            "-l", Arg.String (fun d -> libraries := d :: !libraries),
+            "PKG Additional OCaml library dependency";
+            "-o", Arg.Set_string out,
+            "destination directory (default \"lib\")" ;
+            "-s", Arg.Set symbols,
+            "generate symbol maps for ppx_why3find" ;
+            "-v", Arg.Set verbose,
+            "print why3 extract command" ;
+          ]
+        end
+        (fun m ->
+           if not @@ Str.string_match re_module m 0 then
+             Utils.failwith "%S is not a module name" m ;
+           let mp = List.hd @@ String.split_on_char '.' m in
+           if !pkg = "" then
+             pkg := mp
+           else
+           if !pkg <> mp then
+             Utils.failwith "%S is not in package %S" m !pkg ;
+           modules := m :: !modules)
         "USAGE:\n\
-         \n  why3find extract [OPTIONS] MODULE...\n\n\
+         \n  why3find extract [OPTIONS] PKG MODULE...\n\n\
          DESCRIPTION:\n\
-         \n  Executes why3 extract with the specified arguments.\n\n\
-         OPTIONS:\n\
-         \n  -v|--verbose print why3 command\
-         \n  -p|--package PKG package dependency\
-         \n  -D|--driver NAME|FILE additional extraction driver\
-         \n  --extra-config FILE additional configuration file\
-         \n";
-      exec ~prefix:["extract"] ~configs:true ~drivers:true argv
+         \n  Extract OCaml and generate Dune file.\
+         \n\n\
+         OPTIONS:\n" ;
+      if !pkg = "" then failwith "Nothing to extract" ;
+      let pkgs = Wenv.packages () in
+      let configs = Wenv.configs () in
+      let drivers = Wenv.drivers () in
+      let libraries =
+        List.rev !libraries @
+        List.filter (fun pkg -> (Meta.find pkg).extracted) pkgs in
+      Utils.rmpath !out ;
+      Utils.mkdirs !out ;
+      let dune = Filename.concat !out "dune" in
+      let cdune = open_out (Filename.concat !out "dune") in
+      let fdune = Format.formatter_of_out_channel cdune in
+      Format.fprintf fdune "(* Generated by why3find extract *)@\n" ;
+      Format.fprintf fdune
+        "(library@\n  (name %s)@\n  (public_name %s)"
+        !pkg !pkg ;
+      if libraries <> [] then
+        begin
+          Format.fprintf fdune "@\n  (@[<hov 2>libraries" ;
+          List.iter (Format.fprintf fdune "@ %s") @@ libraries ;
+          Format.fprintf fdune "@])" ;
+        end ;
+      Format.fprintf fdune ")@." ;
+      close_out cdune ;
+      Format.printf "Generated %s@." (Utils.absolute dune) ;
+      let prefix =
+        List.append
+          ["extract";"-D";"ocaml64";"-o";!out;"--modular"]
+          (if !symbols then ["-symbols"] else []) in
+      let argv = Array.of_list @@ List.rev !modules in
+      exec ~prefix ~pkgs ~configs ~drivers argv
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -539,12 +605,14 @@ let () = register ~name:"install" ~args:"PKG PATH..."
     begin fun argv ->
       let args = ref [] in
       let dune = ref true in
+      let lib = ref "lib" in
       let html = ref "html" in
       let nodoc () = html := "" in
       Arg.parse_argv argv [
         "--dune", Arg.Set dune,"Generate dune installer (default)" ;
         "--global", Arg.Clear dune,"Install in global repository (why3find where)" ;
-        "--doc", Arg.Set_string html,"DIR Doc output directory (why3find doc -o DIR)";
+        "--lib", Arg.Set_string lib,"DIR extraction directory (why3find extract -o DIR)";
+        "--doc", Arg.Set_string html,"DIR doc output directory (why3find doc -o DIR)";
         "--no-doc", Arg.Unit nodoc,"Do not install documentation";
       ] (fun f -> args := f :: !args)
         "USAGE:\n\
@@ -633,8 +701,32 @@ let () = register ~name:"install" ~args:"PKG PATH..."
                 install ~kind:"(html)" ~tgt src
           in install_doc doc "html" ;
         end ;
+      let lib = !lib in
+      let haslib = ref false in
+      let hasppx = ref false in
+      if Sys.file_exists lib && Sys.is_directory lib then
+        begin
+          Utils.readdir (fun d ->
+              let src = Filename.concat lib d in
+              if Filename.check_suffix src ".json" then
+                begin
+                  let tgt = Filename.concat "lib" d in
+                  install ~kind:"(ppx)" ~tgt src ;
+                  hasppx := true ;
+                  haslib := true ;
+                end
+              else if Filename.check_suffix src ".ml" then
+                haslib := true ;
+            ) lib
+        end ;
+      let extracted = !haslib in
+      let symbols = !hasppx in
+      if dune && extracted then
+        log ~kind:"(dune)" "extracted code" ;
       log ~kind:"(meta)" "META.json" ;
-      Meta.install { name = pkg ; path ; depends ; drivers ; configs } ;
+      Meta.install {
+        name = pkg ; path ; depends ; drivers ; configs ; extracted ; symbols ;
+      } ;
       if dune then
         begin
           let meta = "META.json" in
@@ -655,7 +747,11 @@ let () = register ~name:"install" ~args:"PKG PATH..."
           Format.printf "Generated %s@." (Utils.absolute "dune");
         end
       else
-        Format.printf "Installed %s@." (Utils.absolute path)
+        begin
+          Format.printf "Installed %s@." (Utils.absolute path);
+          if extracted then
+            Format.eprintf "Warning: extracted code not installed (use dune)@." ;
+        end
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -699,7 +795,7 @@ let () = register ~name:"compile" ~args:"[-p PKG] FILE"
          \n  -p|--package PKG package dependency\
          \n  --extra-config FILE additional configuration file\
          \n";
-      exec ~prefix:["prove";"--type-only"] ~configs:true argv
+      exec ~prefix:["prove";"--type-only"] ~configs:[] ~skip:1 argv
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -721,7 +817,7 @@ let () = register ~name:"ide" ~args:"[-p PKG] FILE"
          \n  --extra-config FILE additional configuration file\
          \n";
       let hammer = Meta.shared "hammer.cfg" in
-      exec ~prefix:["ide";"--extra-config";hammer] ~configs:true argv
+      exec ~prefix:["ide";"--extra-config";hammer] ~configs:[] ~skip:1 argv
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -732,7 +828,7 @@ let () = register ~name:"replay" ~args:"[-p PKG] FILE"
     begin fun argv ->
       usage argv
         "USAGE:\n\
-         \n  why3find extract [OPTIONS] MODULE...\n\n\
+         \n  why3find replay [OPTIONS] MODULE...\n\n\
          DESCRIPTION:\n\
          \n  Executes why3 replay with the specified arguments.\n\n\
          OPTIONS:\n\
@@ -740,7 +836,7 @@ let () = register ~name:"replay" ~args:"[-p PKG] FILE"
          \n  -p|--package PKG package dependency\
          \n  --extra-config FILE additional configuration file\
          \n";
-      exec ~prefix:["replay"] ~configs:true argv
+      exec ~prefix:["replay"] ~configs:[] ~skip:1 argv
     end
 
 (* -------------------------------------------------------------------------- *)

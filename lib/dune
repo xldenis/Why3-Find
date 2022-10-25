@@ -1,0 +1,9 @@
+(library
+  (name why3utils)
+  (public_name why3find.lib)
+  (flags (:standard "-w" "-9"))
+  (libraries unix yojson dune-site))
+
+(generate_sites_module
+  (module global)
+  (sites why3find))

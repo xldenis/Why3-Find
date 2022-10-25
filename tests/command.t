@@ -9,7 +9,7 @@
   why3find config [OPTIONS] PROVERS
   why3find prove [OPTIONS] PATH...
   why3find doc [OPTIONS] PATH...
-  why3find extract [-p PKG] MODULE...
+  why3find extract [OPTIONS] MODULE...
   why3find install PKG PATH...
   why3find uninstall [PKG...]
   why3find compile [-p PKG] FILE
@@ -113,7 +113,7 @@
   $ why3find replay --help
   USAGE:
   
-    why3find extract [OPTIONS] MODULE...
+    why3find replay [OPTIONS] MODULE...
   
   DESCRIPTION:
   
@@ -129,18 +129,26 @@
   $ why3find extract --help
   USAGE:
   
-    why3find extract [OPTIONS] MODULE...
+    why3find extract [OPTIONS] PKG MODULE...
   
   DESCRIPTION:
   
-    Executes why3 extract with the specified arguments.
+    Extract OCaml and generate Dune file.
   
   OPTIONS:
   
-    -v|--verbose print why3 command
-    -p|--package PKG package dependency
-    -D|--driver NAME|FILE additional extraction driver
-    --extra-config FILE additional configuration file
+    --root DIR change to directory
+    --extra-config CFG extra why3 config
+    --package PKG add package dependency
+    --driver DRV add extraction driver
+    -p  same as --package
+    -D  same as --driver
+    -l PKG Additional OCaml library dependency
+    -o destination directory (default "lib")
+    -s generate symbol maps for ppx_why3find
+    -v print why3 extract command
+    -help  Display this list of options
+    --help  Display this list of options
   
 
   $ why3find config --help
@@ -162,7 +170,7 @@
     --prover PRV add automated prover
     --transf TRANS add transformation
     --driver DRV add extraction driver
-    --remove remove all specified packages, proversand transformations
+    --remove remove items from configuration
     -p  same as --package
     -t  same as --time
     -P  same as --prover
@@ -199,7 +207,7 @@
     --prover PRV add automated prover
     --transf TRANS add transformation
     --driver DRV add extraction driver
-    --remove remove all specified packages, proversand transformations
+    --remove remove items from configuration
     -p  same as --package
     -t  same as --time
     -P  same as --prover
@@ -225,7 +233,7 @@
   $ why3find doc --help
   USAGE:
   
-    why3find doc PATH...
+    why3find doc [OPTIONS] PATH...
   
   DESCRIPTION:
   
@@ -240,9 +248,7 @@
     --extra-config CFG extra why3 config
     --package PKG add package dependency
     --driver DRV add extraction driver
-    --remove remove all specified packages, proversand transformations
     -p  same as --package
-    -t  same as --time
     -D  same as --driver
     -o destination directory (default "html")
     -help  Display this list of options
@@ -277,7 +283,8 @@
   
     --dune Generate dune installer (default)
     --global Install in global repository (why3find where)
-    --doc DIR Doc output directory (why3find doc -o DIR)
+    --lib DIR extraction directory (why3find extract -o DIR)
+    --doc DIR doc output directory (why3find doc -o DIR)
     --no-doc Do not install documentation
     -help  Display this list of options
     --help  Display this list of options

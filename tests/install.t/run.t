@@ -22,9 +22,6 @@
   $ why3find query a
   Package a:
     path: WHERE/a
-    depends: -
-    configs: -
-    drivers: -
   $ find `why3find query a -p` | sort
   WHERE/a
   WHERE/a/META.json
@@ -58,8 +55,6 @@
   Package b:
     path: WHERE/b
     depends: a
-    configs: -
-    drivers: -
   $ why3find uninstall b
   remove WHERE/b
   $ why3find list

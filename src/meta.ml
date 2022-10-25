@@ -29,6 +29,8 @@ type pkg = {
   depends: string list ;
   configs: string list ;
   drivers: string list ;
+  extracted: bool ;
+  symbols: bool ;
 }
 
 (* -------------------------------------------------------------------------- *)
@@ -53,9 +55,13 @@ let find pkg =
           let depends = jfield "depends" js |> jstringlist in
           let configs = jfield "configs" js |> jstringlist in
           let drivers = jfield "drivers" js |> jstringlist in
-          { name = pkg ; path ; depends ; configs ; drivers }
+          let extracted = jfield "extracted" js |> jbool in
+          let symbols = jfield "symbols" js |> jbool in
+          { name = pkg ; path ; depends ; configs ; drivers ;
+            extracted ; symbols }
         else
-          { name = pkg ; path ; depends = [] ; configs = [] ; drivers = [] }
+          { name = pkg ; path ; depends = [] ; configs = [] ; drivers = [] ;
+            extracted = false ; symbols = false }
   in lookup pkg Global.Sites.packages
 
 let find_all pkgs =
@@ -74,11 +80,21 @@ let find_all pkgs =
 let install pkg =
   let meta = Filename.concat pkg.path "META.json" in
   let list xs = `List (List.map (fun s -> `String s) xs) in
-  Json.to_file meta @@ `Assoc [
-    "depends", list pkg.depends ;
-    "configs", list pkg.configs ;
-    "drivers", list pkg.drivers ;
-  ]
+  let nonempty (_,js) =
+    match js with
+    | `Bool b -> b
+    | `Null -> false
+    | `List [] -> false
+    | _  -> true
+  in
+  Json.to_file meta @@ `Assoc (
+    List.filter nonempty [
+      "depends", list pkg.depends ;
+      "configs", list pkg.configs ;
+      "drivers", list pkg.drivers ;
+      "extracted", `Bool pkg.extracted ;
+      "symbols", `Bool pkg.symbols ;
+    ])
 
 (* -------------------------------------------------------------------------- *)
 (* ---                                                                    --- *)
