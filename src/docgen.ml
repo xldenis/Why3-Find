@@ -43,6 +43,18 @@ type mode =
   | List of int (* indent *)
   | Item of int (* indent *)
 
+let pp_mode fmt = function
+  | Body -> Format.fprintf fmt "BODY"
+  | Pre -> Format.fprintf fmt "PRE"
+  | Div -> Format.fprintf fmt "DIV"
+  | Par -> Format.fprintf fmt "PAR"
+  | Emph -> Format.fprintf fmt "EMPH"
+  | Bold -> Format.fprintf fmt "BOLD"
+  | Head(_,n) -> Format.fprintf fmt "HEAD%d" n
+  | List n -> Format.fprintf fmt "LIST%d" n
+  | Item n -> Format.fprintf fmt "ITEM%d" n
+[@@ warning "-32"]
+
 let is_opening = function
   | "scope" | "match" | "try" | "begin" -> true
   | _ -> false
@@ -717,6 +729,16 @@ let rec list env n =
     if n > m then
       push env (List n)
 
+let rec closeblock env =
+  match env.mode with
+  | Body | Head _ | Pre -> ()
+  | Emph -> Token.error env.input "unclosed bold style"
+  | Bold -> Token.error env.input "unclosed emphasis style"
+  | Par -> pop env
+  | Item _ -> pop env ; closeblock env
+  | List _ -> pop env ; closeblock env
+  | Div -> ()
+
 let process_dash env s =
   let s = String.length s in
   if s = 1 && Token.startline env.input then
@@ -748,10 +770,10 @@ let process_space env =
 let process_newline env =
   match env.mode with
   | Body -> if Token.emptyline env.input then Pdoc.flush env.out
-  | Div | List _ -> ()
-  | Par | Item _ ->
+  | Div -> ()
+  | Par | List _ | Item _ ->
     if Token.emptyline env.input then
-      pop env
+      closeblock env
     else
       env.space <- true
   | Emph | Bold -> env.space <- true
@@ -845,13 +867,13 @@ let document_title ~title ~page =
 let process_markdown ~wenv ~henv ~out:dir ~title file =
   begin
     let src = Docref.empty () in
+    let input = Token.input ~doc:true file in
     let basename = Filename.chop_extension @@ Filename.basename file in
     let page = String.capitalize_ascii basename in
     let title = document_title ~title ~page in
-    let file = Filename.concat dir (basename ^ ".html") in
-    let out = Pdoc.output ~file ~title in
+    let ofile = Filename.concat dir (basename ^ ".html") in
+    let out = Pdoc.output ~file:ofile ~title in
     let crc = Pdoc.null () in
-    let input = Token.input ~doc:true file in
     let env = {
       dir ; src ; input ; out ; crc ; space = false ; wenv ; henv ;
       scope = None ; theory = None ;
@@ -863,12 +885,12 @@ let process_markdown ~wenv ~henv ~out:dir ~title file =
       declared = Sid.empty ;
       opened = 0 ; section = 0 ;
     } in
-    begin
-      Pdoc.printf out "<header>%a</header>@\n" Pdoc.pp_html title ;
-      Pdoc.flush out ;
-      parse env ;
-      Pdoc.close_all out ;
-    end
+    Pdoc.printf out "<header>%a</header>@\n" Pdoc.pp_html title ;
+    Pdoc.flush out ;
+    push env Div ;
+    parse env ;
+    close env ;
+    Pdoc.close_all out ;
   end
 
 (* -------------------------------------------------------------------------- *)

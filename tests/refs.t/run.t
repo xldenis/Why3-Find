@@ -1,7 +1,7 @@
 --------------------------------------------------------------------------
 --- Testing References
 --------------------------------------------------------------------------
-  $ why3find doc a.mlw
+  $ why3find doc main.md a.mlw
   Generated $TESTCASE_ROOT/html
   $ find html | sort
   html
@@ -13,8 +13,37 @@
   html/fonts/icofont.woff
   html/fonts/icofont.woff2
   html/icofont.min.css
+  html/main.html
   html/script.js
   html/style.css
+--------------------------------------------------------------------------
+--- Document
+--------------------------------------------------------------------------
+  $ cat html/main.html
+  <html>
+  <head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
+  <title>Main</title>
+  </head>
+  <body>
+  <nav>
+  <a class="toc1" href="#_1">Main Document</a>
+  </nav>
+  <header>Main</header>
+  <div class="doc">
+  <h1><a id="_1">Main Document</a></h1>
+  <p>This package contains one [unique](a.index.html) library, which consists of:</p>
+  <ul>
+  <li>Theory <code class="src"><a title="a.A" href="a.A.html#">a.A</a></code></li>
+  <li>Module <code class="src"><a title="a.B" href="a.B.html#">a.B</a></code></li>
+  </ul>
+  <p>Please, read the doc!</p>
+  </div>
+  <script type="text/javascript" src="script.js"></script>
+  </body>
+  </html>
 --------------------------------------------------------------------------
 --- Library
 --------------------------------------------------------------------------
