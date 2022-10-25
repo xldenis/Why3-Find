@@ -61,6 +61,7 @@ type env = {
   input : Token.input ; (* input lexer *)
   out : Pdoc.output ; (* output buffer *)
   crc : Pdoc.output ; (* proofs buffer *)
+  wenv : Why3.Env.env ; (* why3 env. *)
   henv : Axioms.henv ; (* axioms *)
   mutable proof_href : int ; (* proof href *)
   mutable clone_decl : int ; (* clone decl indent (when > 0) *)
@@ -782,7 +783,56 @@ let process_reference ~wenv ~env r =
   | Failure msg -> Token.error env.input "%s" msg
 
 (* -------------------------------------------------------------------------- *)
-(* --- File Processing                                                    --- *)
+(* --- Token Processing                                                   --- *)
+(* -------------------------------------------------------------------------- *)
+
+let parse env =
+  let wenv = env.wenv in
+  let out = env.out in
+  while not (Token.eof env.input) do
+    match Token.token env.input with
+    | Eof -> close env
+    | Char c -> text env ; Pdoc.pp_html_c out c
+    | Text s -> text env ; Pdoc.pp_html_s out s
+    | Comment s ->
+      text env ;
+      Pdoc.pp_html_s out ~className:"comment" s
+    | Verb s ->
+      text env ;
+      Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
+    | Ref s -> process_reference ~wenv ~env s
+    | Style(Emph,_) -> process_style env Emph
+    | Style(Bold,_) -> process_style env Bold
+    | Style(Head,h) -> process_header env h
+    | Style(Dash,n) -> process_dash env n
+    | Style _ -> ()
+    | OpenDoc ->
+      begin
+        Pdoc.flush ~onlyspace:false out ;
+        close env ;
+        push env Div ;
+      end
+    | CloseDoc ->
+      begin
+        close env ;
+        push env env.file ;
+      end
+    | OpenSection(active,title) -> process_open_section env ~active title
+    | CloseSection title -> process_close_section env title
+    | Space -> process_space env
+    | Newline -> process_newline env
+    | Ident s ->
+      text env ;
+      process_ident env s ;
+      process_clones env
+    | Infix s ->
+      text env ;
+      let href = resolve env ~infix:true () in
+      process_href env href s
+  done
+
+(* -------------------------------------------------------------------------- *)
+(* --- MLW File Processing                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
 let process_file ~wenv ~henv ~out:dir file =
@@ -796,7 +846,7 @@ let process_file ~wenv ~henv ~out:dir file =
       ~title:(Printf.sprintf "Proofs %s" path) in
   let input = Token.input file in
   let env = {
-    dir ; src ; input ; out ; crc ; space = false ; henv ;
+    dir ; src ; input ; out ; crc ; space = false ; wenv ; henv ;
     scope = None ; theory = None ;
     mode = Body ; file = Body ; stack = [] ;
     clone_decl = 0 ;
@@ -818,47 +868,7 @@ let process_file ~wenv ~henv ~out:dir file =
       ) src.profile ;
     Pdoc.printf crc "</pre>@\n<h1>Proof Certificates</h1>@\n" ;
     Pdoc.flush crc ;
-    while not (Token.eof env.input) do
-      match Token.token env.input with
-      | Eof -> close env
-      | Char c -> text env ; Pdoc.pp_html_c out c
-      | Text s -> text env ; Pdoc.pp_html_s out s
-      | Comment s ->
-        text env ;
-        Pdoc.pp_html_s out ~className:"comment" s
-      | Verb s ->
-        text env ;
-        Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
-      | Ref s -> process_reference ~wenv ~env s
-      | Style(Emph,_) -> process_style env Emph
-      | Style(Bold,_) -> process_style env Bold
-      | Style(Head,h) -> process_header env h
-      | Style(Dash,n) -> process_dash env n
-      | Style _ -> ()
-      | OpenDoc ->
-        begin
-          Pdoc.flush ~onlyspace:false out ;
-          close env ;
-          push env Div ;
-        end
-      | CloseDoc ->
-        begin
-          close env ;
-          push env env.file ;
-        end
-      | OpenSection(active,title) -> process_open_section env ~active title
-      | CloseSection title -> process_close_section env title
-      | Space -> process_space env
-      | Newline -> process_newline env
-      | Ident s ->
-        text env ;
-        process_ident env s ;
-        process_clones env
-      | Infix s ->
-        text env ;
-        let href = resolve env ~infix:true () in
-        process_href env href s
-    done ;
+    parse env ;
     Pdoc.close_all out ;
     Pdoc.close_all crc ;
   end
