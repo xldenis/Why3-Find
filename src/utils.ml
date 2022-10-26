@@ -165,7 +165,9 @@ let pp_ok fmt = Format.fprintf fmt "@{<green>\u{2714}@}"
 let pp_ko fmt = Format.fprintf fmt "@{<red>\u{2718}@}"
 let pp_weak fmt = Format.fprintf fmt "@{<orange>\u{2718}@}"
 let pp_mark fmt b = if b then pp_ok fmt else pp_ko fmt
-let pp_plural fmt n = if n > 0 then Format.pp_print_char fmt 's'
+let pp_s fmt n = if n > 1 then Format.pp_print_char fmt 's'
+let pp_yies fmt n =
+  Format.pp_print_string fmt (if n > 1 then "ies" else "y")
 
 (* -------------------------------------------------------------------------- *)
 (* --- Failures                                                           --- *)

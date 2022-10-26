@@ -130,8 +130,11 @@ let broken = ref 0
 let updated = ref 0
 let minimized = ref 0
 let unchanged = ref 0
+let nproved = ref 0
+let nstuck = ref 0
 
 let rec stats a b =
+  incr (if complete b then nproved else nstuck) ;
   match a, b with
   | Stuck, Stuck -> incr unchanged
   | Stuck, _ -> incr (if complete b then fixed else updated)
@@ -153,17 +156,28 @@ let rec stats a b =
 let print_stats () =
   begin
     Utils.flush () ;
-    Format.printf "Proof Certificates:@." ;
-    if !fixed > 0 then
-      Format.printf " - fixed: @{<green>%d@}@." !fixed ;
-    if !broken > 0 then
-      Format.printf " - broken: @{<red>%d@} broken goal(s)@." !broken ;
-    if !minimized > 0 then
-      Format.printf " - minimized: @{<orange>%d@}@." !minimized ;
-    if !updated > 0 then
-      Format.printf " - updated: @{<orange>%d@}@." !updated ;
+    Format.printf "Proofs %t"
+      (pp_result ~proved:!nproved ~stuck:!nstuck) ;
     if !fixed + !broken + !minimized + !updated = 0 then
-      Format.printf " => Unchanged (%d)@." !unchanged ;
+      if !nproved >0 then
+        Format.printf " (unchanged)@."
+      else
+        Format.printf " (none)@."
+    else
+      begin
+        Format.print_newline () ;
+        if !unchanged > 0 then
+          Format.printf " - unchanged: %d@\n" !unchanged ;
+        if !fixed > 0 then
+          Format.printf " - fixed: @{<green>%d@}@\n" !fixed ;
+        if !minimized > 0 then
+          Format.printf " - minimized: @{<green>%d@}@\n" !minimized ;
+        if !updated > 0 then
+          Format.printf " - updated: @{<orange>%d@}@\n" !updated ;
+        if !broken > 0 then
+          Format.printf " - broken: @{<red>%d@}@\n" !broken ;
+        Format.print_flush () ;
+      end
   end
 
 (* -------------------------------------------------------------------------- *)

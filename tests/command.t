@@ -221,11 +221,15 @@
     -m minimize proofs (or update)
     -i run why-3 IDE on error(s) (implies -s)
     -s save why3 session
+    -h report hypotheses and axioms
+    --local no calibration (local times)
     --modules list results by module
     --theories list results by theory
     --goals list results by goals
     --proofs list proofs by goals
-    --local no calibration (local times)
+    --stdlib report hypotheses from stdlib
+    --extern report assumed external symbols
+    --builtin report assumed builtin symbols
     -help  Display this list of options
     --help  Display this list of options
   

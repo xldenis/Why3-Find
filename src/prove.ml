@@ -83,91 +83,179 @@ let save_proofs ~mode dir file profile (prfs : proofs) =
     ]
 
 (* -------------------------------------------------------------------------- *)
-(* --- Single File Processing                                             --- *)
+(* --- Proof Driver                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-type mode = [ `Force | `Update | `Minimize | `Replay ]
-type log0 = [ `Modules | `Theories | `Goals | `Proofs ]
-type log = [ `Default | log0 ]
+let prove_theory mode profile strategy theory =
+  let thy = Session.name theory in
+  let tasks = Session.split theory in
+  let hints = M.find_def M.empty thy strategy in
+  let+ proofs =
+    Fibers.all @@ List.map
+      (fun task ->
+         let goal = Session.goal_name task in
+         let hint = M.find_def Crc.Stuck goal hints in
+         let+ crc =
+           match mode with
+           | `Force ->
+             Hammer.schedule profile task Stuck
+           | `Replay ->
+             Hammer.schedule profile task hint
+           | `Update | `Minimize ->
+             Crc.merge hint @+ Hammer.schedule profile task hint
+         in
+         if Utils.tty then Crc.stats hint crc ;
+         if not (Crc.complete crc) then
+           begin
+             Utils.flush () ;
+             begin
+               match Session.goal_loc task with
+               | Some loc ->
+                 Format.printf "%a: proof failed@."
+                   Why3.Loc.gen_report_position loc
+               | None -> ()
+             end ;
+             Format.printf "Goal @{<red>%s@}: %a@."
+               goal Crc.pretty crc
+           end ;
+         goal, crc
+      ) tasks
+  in
+  theory, proofs
 
-let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
-  begin
-    if not @@ String.ends_with ~suffix:".mlw" file then
+(* -------------------------------------------------------------------------- *)
+(* --- Axioms Logger                                                      --- *)
+(* -------------------------------------------------------------------------- *)
+
+let stdlib = ref false
+let externals = ref false
+let builtins = ref false
+
+let standardized = "Standard  ",ref 0
+let dependencies = "Assumed   ",ref 0
+let hypotheses   = "Hypothesis",ref 0
+let parameters   = "Parameter ",ref 0
+let procedures   = "Procedure ",ref 0
+let externalized = "External  ",ref 0
+
+let print_axioms_stats () =
+  let p = !(snd parameters) in
+  let h = !(snd hypotheses) in
+  let r = !(snd procedures) in
+  let e = !(snd externalized) in
+  let d = !(snd dependencies) in
+  let s = !(snd standardized) in
+  if p+h+r+e+d+s = 0 then
+    Format.printf "Hypotheses: none@."
+  else
+    begin
+      Format.printf "Hypotheses:@\n" ;
+      if p > 0 then
+        Format.printf " - parameter%a: @{<green>%d@}@\n" Utils.pp_s p p ;
+      if h > 0 then
+        Format.printf " - hypothes%a: @{<orange>%d@}@\n" Utils.pp_yies h h ;
+      if r > 0 then
+        Format.printf " - procedure%a: @{<orange>%d@}@\n" Utils.pp_s r r ;
+      if e > 0 then
+        Format.printf " - externalized: @{<orange>%d@}@\n" e ;
+      if s > 0 then
+        Format.printf " - standardized: @{<orange>%d@}@\n" s ;
+      if d > 0 then
+        Format.printf " - dependenc%a: @{<red>%d@}@\n" Utils.pp_yies d d ;
+      Format.print_flush ()
+    end
+
+let report_parameter ~lib ~signature (prm : Axioms.parameter) =
+  try
+    let id = Axioms.ident prm.kind in
+    let ident = Id.resolve ~lib id in
+    let std = ident.id_pkg = `Stdlib in
+    let builtin = prm.builtin <> [] in
+    let extern = prm.extern <> None in
+    if (!stdlib || not std) &&
+       ((!builtins && builtin) || (!externals || not extern))
+    then
       begin
-        Format.eprintf "Invalid file name: %S@." file ;
-        exit 2
-      end ;
-    let dir = Filename.chop_extension file in
-    let path =
-      String.concat "." @@ String.split_on_char '/' @@
-      if Filename.is_relative file then dir else Filename.basename dir in
-    let fp = Filename.concat dir "proof.json" in
-    let theories, format = load_theories env file in
-    let session = Session.create ~session ~dir ~file ~format theories in
-    let profile, strategy = load_proofs fp in
+        let kind, param =
+          match prm.kind with
+          | Type _ -> "type ", parameters
+          | Logic _ -> "logic", parameters
+          | Value _ -> "value", procedures
+          | Axiom _ -> "axiom", hypotheses
+        in
+        let action, count =
+          if builtin || extern then externalized else
+          if signature then param else
+          if std then standardized else dependencies
+        in incr count ;
+        Format.printf "  %s %s %a" action kind Id.pp_title ident ;
+        let categories = List.filter (fun c -> c <> "") [
+            if std then "stdlib" else "" ;
+            if builtin then "builtin" else "" ;
+            if extern then "extern" else "" ;
+          ] in
+        if categories <> [] then
+          Format.printf " (%s)" (String.concat ", " categories) ;
+        Format.printf "@\n" ;
+      end
+  with Not_found -> ()
+
+let report_signature henv ~lib (th : Th.theory) =
+  match henv with
+  | None -> ()
+  | Some henv ->
+    List.iter
+      (report_parameter ~lib ~signature:true)
+      (Axioms.parameters @@ Axioms.signature henv th)
+
+let report_hypotheses henv ~lib (ths : Th.theory list) =
+  match henv with
+  | None -> ()
+  | Some henv ->
+    let once = ref true in
+    Axioms.iter henv
+      (fun prm ->
+         if !once then (Format.printf "Dependencies:@\n" ; once := false) ;
+         report_parameter ~lib ~signature:false prm)
+      ths
+
+(* -------------------------------------------------------------------------- *)
+(* --- Proof Logger                                                       --- *)
+(* -------------------------------------------------------------------------- *)
+
+let report_results log henv ~lib proofs =
+  begin
     let stuck = ref 0 in
     let proved = ref 0 in
-    let driver =
-      Fibers.all @@ List.map
-        (fun theory ->
-           let thy = Session.name theory in
-           let tasks = Session.split theory in
-           let hints = M.find_def M.empty thy strategy in
-           let+ proofs =
-             Fibers.all @@ List.map
-               (fun task ->
-                  let goal = Session.goal_name task in
-                  let hint = M.find_def Crc.Stuck goal hints in
-                  let+ crc =
-                    match mode with
-                    | `Force ->
-                      Hammer.schedule profile task Stuck
-                    | `Replay ->
-                      Hammer.schedule profile task hint
-                    | `Update | `Minimize ->
-                      Crc.merge hint @+ Hammer.schedule profile task hint
-                  in
-                  if Utils.tty then Crc.stats hint crc ;
-                  stuck := !stuck + Crc.stuck crc ;
-                  proved := !proved + Crc.proved crc ;
-                  if not (Crc.complete crc) then
-                    begin
-                      unsuccess := file :: !unsuccess ;
-                      Utils.flush () ;
-                      begin
-                        match Session.goal_loc task with
-                        | Some loc ->
-                          Format.printf "%a: proof failed@."
-                            Why3.Loc.gen_report_position loc
-                        | None -> ()
-                      end ;
-                      Format.printf "Goal @{<red>%s@}: %a@."
-                        goal Crc.pretty crc
-                    end ;
-                  goal, crc
-               ) tasks
-           in
-           theory, proofs
-        ) (Session.theories session)
-    in
-    Fibers.await driver
-      begin fun proofs ->
-        Session.save session ;
-        save_proofs ~mode dir fp profile proofs ;
-        Utils.flush () ;
-        match log with
-        | `Modules ->
-          Format.printf "Module %s: %t@."
-            path (Crc.pp_result ~stuck:!stuck ~proved:!proved)
-        | `Theories | `Goals | `Proofs ->
-          List.iter
-            (fun (th,goals) ->
-               let tn = Session.name th in
-               let (s,p) = List.fold_left
-                   (fun (s,p) (_,c) -> s + Crc.stuck c, p + Crc.proved c)
-                   (0,0) goals in
-               Format.printf "Theory %s.%s: %t@." path tn
-                 (Crc.pp_result ~stuck:s ~proved:p) ;
+    let failed = ref false in
+    List.iter
+      (fun (_,goals) ->
+         List.iter
+           (fun (_,crc) ->
+              stuck := !stuck + Crc.stuck crc ;
+              proved := !proved + Crc.proved crc ;
+              if not @@ Crc.complete crc then failed := true ;
+           ) goals
+      ) proofs ;
+    let ths = List.map (fun (th,_) -> Session.theory th) proofs in
+    begin
+      let path = String.concat "." lib in
+      match log with
+      | `Modules ->
+        Format.printf "Library %s: %t@."
+          path (Crc.pp_result ~stuck:!stuck ~proved:!proved) ;
+        List.iter (report_signature henv ~lib) ths
+      | `Theories | `Goals | `Proofs ->
+        List.iter
+          (fun (th,goals) ->
+             let thy = Session.theory th in
+             let tn = Session.name th in
+             let (s,p) = List.fold_left
+                 (fun (s,p) (_,c) -> s + Crc.stuck c, p + Crc.proved c)
+                 (0,0) goals in
+             Format.printf "Theory %s.%s: %t@." path tn
+               (Crc.pp_result ~stuck:s ~proved:p) ;
+             begin
                match log with
                | `Modules | `Theories -> ()
                | `Goals ->
@@ -181,7 +269,52 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
                       Format.printf "  @[<hv 2>Goal %s %a@ %a@]@." g
                         Utils.pp_mark (Crc.complete c) Crc.dump c
                    ) goals
-            ) proofs
+             end ;
+             report_signature henv ~lib thy
+          ) proofs
+    end ;
+    report_hypotheses henv ~lib ths ;
+    !failed
+  end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Single File Processing                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+type mode = [ `Force | `Update | `Minimize | `Replay ]
+type log0 = [ `Modules | `Theories | `Goals | `Proofs ]
+type log = [ `Default | log0 ]
+
+let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
+  begin
+    if not @@ String.ends_with ~suffix:".mlw" file then
+      begin
+        Format.eprintf "Invalid file name: %S@." file ;
+        exit 2
+      end ;
+    let dir = Filename.chop_extension file in
+    let lib = String.split_on_char '/' @@
+      if Filename.is_relative file then dir else Filename.basename dir in
+    let fp = Filename.concat dir "proof.json" in
+    let theories, format = load_theories env file in
+    let session = Session.create ~session ~dir ~file ~format theories in
+    let profile, strategy = load_proofs fp in
+    let results =
+      Fibers.all @@ List.map
+        (prove_theory mode profile strategy)
+        (Session.theories session)
+    in
+    Fibers.await results
+      begin fun proofs ->
+        Utils.flush () ;
+        Session.save session ;
+        save_proofs ~mode dir fp profile proofs ;
+        let henv =
+          if axioms then
+            Some (Axioms.init env)
+          else None in
+        let failed = report_results log henv ~lib proofs in
+        if failed then unsuccess := file :: !unsuccess ;
       end
   end
 
@@ -189,7 +322,7 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
 (* --- Prove Command                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-let prove_files ~mode ~session ~log ~files =
+let prove_files ~mode ~session ~log ~axioms ~files =
   begin
     let env = Wenv.init () in
     let time = Wenv.time () in
@@ -201,12 +334,13 @@ let prove_files ~mode ~session ~log ~files =
     let log : log0 = match log with
       | `Default -> if List.length files > 1 then `Modules else `Theories
       | #log0 as l -> l in
-    List.iter (process ~env ~mode ~session ~log ~unsuccess) files ;
+    List.iter (process ~env ~mode ~session ~log ~axioms ~unsuccess) files ;
     Hammer.run { env ; time ; provers ; transfs ; minimize } ;
     if Utils.tty then
       begin
         Runner.print_stats () ;
         Crc.print_stats () ;
+        if axioms then print_axioms_stats () ;
       end ;
     List.rev !unsuccess ;
   end

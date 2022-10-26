@@ -42,7 +42,8 @@ val pp_ko : Format.formatter -> unit
 val pp_weak : Format.formatter -> unit
 val pp_mark : Format.formatter -> bool -> unit
 val pp_time : Format.formatter -> float -> unit
-val pp_plural : Format.formatter -> int -> unit
+val pp_s : Format.formatter -> int -> unit
+val pp_yies : Format.formatter -> int -> unit
 
 val round : float -> float
 

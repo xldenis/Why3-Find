@@ -26,9 +26,14 @@
 type mode = [ `Force | `Update | `Minimize | `Replay ]
 type log = [ `Default | `Modules | `Theories | `Goals | `Proofs ]
 
+val stdlib : bool ref
+val externals : bool ref
+val builtins : bool ref
+
 val prove_files :
   mode:mode ->
   session:bool ->
   log:log ->
+  axioms:bool ->
   files:string list ->
   string list

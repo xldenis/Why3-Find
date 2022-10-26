@@ -266,7 +266,7 @@ let process_axioms env (id : Id.id) =
         in
         Pdoc.ppt env.out (pp_mark ~cla:icon_externals ~title)
 
-let process_assumed env kind =
+let process_assumed env Axioms.{ kind } =
   try
     let id = Id.resolve ~lib:env.src.lib @@ Axioms.ident kind in
     let key = match kind with
@@ -288,18 +288,17 @@ let process_module_axioms env =
   match env.theory with
   | None -> ()
   | Some { theory } ->
-    List.iter
-      (fun thy ->
-         List.iter
-           (process_assumed env)
-           (Axioms.assumed @@ Axioms.signature env.henv thy)
-      ) (Axioms.dependencies env.henv theory)
+    Axioms.iter env.henv
+      (fun prm ->
+         if Axioms.is_assumed prm then
+           process_assumed env prm)
+      [theory]
 
 type axioms = { ext : int ; prm : int ; hyp :  int ; pvs : int }
 let free = { ext = 0 ; prm = 0 ; hyp = 0 ; pvs = 0 }
 
 let add_axiom hs (p : Axioms.parameter) =
-  if Axioms.is_external p then
+  if not @@ Axioms.is_assumed p then
     { hs with ext = succ hs.ext }
   else
     match p.kind with
