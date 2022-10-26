@@ -40,6 +40,7 @@ val save : session -> unit
 type theory
 
 val name : theory -> string
+val theory : theory -> Why3.Theory.theory
 val theories : session -> theory list
 
 type goal

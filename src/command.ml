@@ -466,7 +466,11 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
             "--modules",  Arg.Unit (set log `Modules), "list results by module";
             "--theories", Arg.Unit (set log `Theories), "list results by theory";
             "--goals", Arg.Unit (set log `Goals), "list results by goals";
-            "--proofs",   Arg.Unit (set log `Proofs), "list proofs by goals";
+            "--proofs", Arg.Unit (set log `Proofs), "list proofs by goals";
+            "--stdlib", Arg.Set Prove.stdlib, "report hypotheses from stdlib";
+            "--axioms", Arg.Set Prove.axioms, "report assumed axioms";
+            "--externals", Arg.Set Prove.externals, "report assumed external symbols";
+            "--builtins", Arg.Set Prove.builtins, "report assumed builtin symbols";
             "--local", Arg.Set Hammer.local, "no calibration (local times)";
           ]
         end

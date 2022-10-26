@@ -292,7 +292,7 @@ let process_module_axioms env =
       (fun _id prm ->
          if not @@ Axioms.is_external prm then
            process_assumed env prm)
-      theory
+      [theory]
 
 type axioms = { ext : int ; prm : int ; hyp :  int ; pvs : int }
 let free = { ext = 0 ; prm = 0 ; hyp = 0 ; pvs = 0 }

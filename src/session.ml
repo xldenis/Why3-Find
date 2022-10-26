@@ -48,6 +48,10 @@ type theory =
   | Thy of Th.theory
   | Sth of S.session * S.theory
 
+let theory = function
+  | Thy th -> th
+  | Sth(_,th) -> Th.restore_theory (S.theory_name th)
+
 let theories = function
   | Ths ths -> List.map (fun t -> Thy t) ths
   | Sfile(f,s) -> List.map (fun t -> Sth(s,t)) (S.file_theories f)

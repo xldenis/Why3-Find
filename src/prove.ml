@@ -83,6 +83,142 @@ let save_proofs ~mode dir file profile (prfs : proofs) =
     ]
 
 (* -------------------------------------------------------------------------- *)
+(* --- Proof Driver                                                       --- *)
+(* -------------------------------------------------------------------------- *)
+
+let prove_theory mode profile strategy theory =
+  let thy = Session.name theory in
+  let tasks = Session.split theory in
+  let hints = M.find_def M.empty thy strategy in
+  let+ proofs =
+    Fibers.all @@ List.map
+      (fun task ->
+         let goal = Session.goal_name task in
+         let hint = M.find_def Crc.Stuck goal hints in
+         let+ crc =
+           match mode with
+           | `Force ->
+             Hammer.schedule profile task Stuck
+           | `Replay ->
+             Hammer.schedule profile task hint
+           | `Update | `Minimize ->
+             Crc.merge hint @+ Hammer.schedule profile task hint
+         in
+         if Utils.tty then Crc.stats hint crc ;
+         if not (Crc.complete crc) then
+           begin
+             Utils.flush () ;
+             begin
+               match Session.goal_loc task with
+               | Some loc ->
+                 Format.printf "%a: proof failed@."
+                   Why3.Loc.gen_report_position loc
+               | None -> ()
+             end ;
+             Format.printf "Goal @{<red>%s@}: %a@."
+               goal Crc.pretty crc
+           end ;
+         goal, crc
+      ) tasks
+  in
+  theory, proofs
+
+(* -------------------------------------------------------------------------- *)
+(* --- Axioms Logger                                                      --- *)
+(* -------------------------------------------------------------------------- *)
+
+let stdlib = ref false
+let axioms = ref false
+let externals = ref false
+let builtins = ref false
+
+let report_axioms henv theories =
+  Axioms.iter henv
+    (fun _id prm ->
+       begin
+         try
+           let id = Axioms.ident prm.kind in
+           let ident = Id.resolve ~lib:[] id in
+           if ident.id_pkg = `Stdlib && not !stdlib then raise Not_found ;
+           let axiom = !axioms && Axioms.is_external prm in
+           let builtin = !builtins && prm.builtin <> [] in
+           let extern = !externals && prm.extern <> None in
+           if axiom || builtin || extern then
+             let kind = match prm.kind with
+               | Type _ -> "type"
+               | Logic _ -> "logic"
+               | Value _ -> "value"
+               | Axiom _ -> "axiom" in
+             let categories = List.filter (fun c -> c <> "") [
+                 if axiom then "axiom" else "" ;
+                 if builtin then "builtin" else "" ;
+                 if extern then "extern" else "" ;
+               ] in
+             Format.printf "  Assumed %s %a (%s)@\n" kind Id.pp_title ident
+               (String.concat ", " categories) ;
+         with Not_found -> ()
+       end
+    ) theories
+
+(* -------------------------------------------------------------------------- *)
+(* --- Proof Logger                                                       --- *)
+(* -------------------------------------------------------------------------- *)
+
+let report_results log path henv proofs =
+  begin
+    let stuck = ref 0 in
+    let proved = ref 0 in
+    let failed = ref false in
+    List.iter
+      (fun (_,goals) ->
+         List.iter
+           (fun (_,crc) ->
+              stuck := !stuck + Crc.stuck crc ;
+              proved := !proved + Crc.proved crc ;
+              if not @@ Crc.complete crc then failed := true ;
+           ) goals
+      ) proofs ;
+    begin
+      match log with
+      | `Modules ->
+        Format.printf "Module %s: %t@."
+          path (Crc.pp_result ~stuck:!stuck ~proved:!proved) ;
+        Option.iter (fun h ->
+            report_axioms h @@
+            List.map (fun (th,_) -> Session.theory th) proofs
+          ) henv ;
+      | `Theories | `Goals | `Proofs ->
+        List.iter
+          (fun (th,goals) ->
+             let thy = Session.theory th in
+             let tn = Session.name th in
+             let (s,p) = List.fold_left
+                 (fun (s,p) (_,c) -> s + Crc.stuck c, p + Crc.proved c)
+                 (0,0) goals in
+             Format.printf "Theory %s.%s: %t@." path tn
+               (Crc.pp_result ~stuck:s ~proved:p) ;
+             begin
+               match log with
+               | `Modules | `Theories -> ()
+               | `Goals ->
+                 List.iter
+                   (fun (g,c) ->
+                    Format.printf "  Goal %s: %a@." g Crc.pretty c
+                   ) goals
+               | `Proofs ->
+                 List.iter
+                   (fun (g,c) ->
+                      Format.printf "  @[<hv 2>Goal %s %a@ %a@]@." g
+                        Utils.pp_mark (Crc.complete c) Crc.dump c
+                   ) goals
+             end ;
+             Option.iter (fun h -> report_axioms h [thy]) henv ;
+          ) proofs
+    end ;
+    !failed
+  end
+
+(* -------------------------------------------------------------------------- *)
 (* --- Single File Processing                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -105,83 +241,22 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
     let theories, format = load_theories env file in
     let session = Session.create ~session ~dir ~file ~format theories in
     let profile, strategy = load_proofs fp in
-    let stuck = ref 0 in
-    let proved = ref 0 in
-    let driver =
+    let results =
       Fibers.all @@ List.map
-        (fun theory ->
-           let thy = Session.name theory in
-           let tasks = Session.split theory in
-           let hints = M.find_def M.empty thy strategy in
-           let+ proofs =
-             Fibers.all @@ List.map
-               (fun task ->
-                  let goal = Session.goal_name task in
-                  let hint = M.find_def Crc.Stuck goal hints in
-                  let+ crc =
-                    match mode with
-                    | `Force ->
-                      Hammer.schedule profile task Stuck
-                    | `Replay ->
-                      Hammer.schedule profile task hint
-                    | `Update | `Minimize ->
-                      Crc.merge hint @+ Hammer.schedule profile task hint
-                  in
-                  if Utils.tty then Crc.stats hint crc ;
-                  stuck := !stuck + Crc.stuck crc ;
-                  proved := !proved + Crc.proved crc ;
-                  if not (Crc.complete crc) then
-                    begin
-                      unsuccess := file :: !unsuccess ;
-                      Utils.flush () ;
-                      begin
-                        match Session.goal_loc task with
-                        | Some loc ->
-                          Format.printf "%a: proof failed@."
-                            Why3.Loc.gen_report_position loc
-                        | None -> ()
-                      end ;
-                      Format.printf "Goal @{<red>%s@}: %a@."
-                        goal Crc.pretty crc
-                    end ;
-                  goal, crc
-               ) tasks
-           in
-           theory, proofs
-        ) (Session.theories session)
+        (prove_theory mode profile strategy)
+        (Session.theories session)
     in
-    Fibers.await driver
+    Fibers.await results
       begin fun proofs ->
+        Utils.flush () ;
         Session.save session ;
         save_proofs ~mode dir fp profile proofs ;
-        Utils.flush () ;
-        match log with
-        | `Modules ->
-          Format.printf "Module %s: %t@."
-            path (Crc.pp_result ~stuck:!stuck ~proved:!proved)
-        | `Theories | `Goals | `Proofs ->
-          List.iter
-            (fun (th,goals) ->
-               let tn = Session.name th in
-               let (s,p) = List.fold_left
-                   (fun (s,p) (_,c) -> s + Crc.stuck c, p + Crc.proved c)
-                   (0,0) goals in
-               Format.printf "Theory %s.%s: %t@." path tn
-                 (Crc.pp_result ~stuck:s ~proved:p) ;
-               match log with
-               | `Modules | `Theories -> ()
-               | `Goals ->
-                 List.iter
-                   (fun (g,c) ->
-                      Format.printf "  Goal %s: %a@." g Crc.pretty c
-                   ) goals
-               | `Proofs ->
-                 List.iter
-                   (fun (g,c) ->
-                      Format.printf "  @[<hv 2>Goal %s %a@ %a@]@." g
-                        Utils.pp_mark (Crc.complete c) Crc.dump c
-                   ) goals
-            ) proofs
+        let henv =
+          if !axioms || !externals || !builtins then
+            Some (Axioms.init env)
+          else None in
+        let failed = report_results log path henv proofs in
+        if failed then unsuccess := file :: !unsuccess ;
       end
   end
 

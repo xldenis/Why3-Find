@@ -212,7 +212,7 @@ let assumed s =
 (* --- Consolidated Hypotheses                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
-let dependencies henv (thy : Theory.theory) =
+let dependencies henv (ths : Theory.theory list) =
   let deps = ref Mid.empty in
   let rec add (thy : Theory.theory) =
     let id = thy.th_name in
@@ -226,7 +226,7 @@ let dependencies henv (thy : Theory.theory) =
   and add_depends s =
     List.iter add s.used_theories ;
     List.iter add_signature s.cloned_theories ;
-  in add_signature thy ; Mid.values !deps
+  in List.iter add_signature ths ; Mid.values !deps
 
 let iter henv f th =
   List.iter
