@@ -376,7 +376,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
         begin
           let j = Runner.maxjobs env in
           Format.printf "Provers Configuration:@." ;
-          Format.printf " - %d parallel prover%a@." j Utils.pp_plural j ;
+          Format.printf " - %d parallel prover%a@." j Utils.pp_s j ;
           Format.printf " - median time %a@." Utils.pp_time (Wenv.time ()) ;
         end ;
       let pconfig = if !relax then List.map Runner.relax pconfig else pconfig in
@@ -450,6 +450,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
       let session = ref false in
       let log = ref `Default in
       let mode = ref `Update in
+      let axioms = ref false in
       let set m v () = m := v in
       let add r p = r := p :: !r in
       Arg.parse_argv argv
@@ -463,15 +464,15 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
             "-m", Arg.Unit (set mode `Minimize), "minimize proofs (or update)";
             "-i", Arg.Set ide, "run why-3 IDE on error(s) (implies -s)";
             "-s", Arg.Set session, "save why3 session";
+            "-h", Arg.Set axioms, "report hypotheses and axioms";
+            "--local", Arg.Set Hammer.local, "no calibration (local times)";
             "--modules",  Arg.Unit (set log `Modules), "list results by module";
             "--theories", Arg.Unit (set log `Theories), "list results by theory";
             "--goals", Arg.Unit (set log `Goals), "list results by goals";
             "--proofs", Arg.Unit (set log `Proofs), "list proofs by goals";
             "--stdlib", Arg.Set Prove.stdlib, "report hypotheses from stdlib";
-            "--axioms", Arg.Set Prove.axioms, "report assumed axioms";
-            "--externals", Arg.Set Prove.externals, "report assumed external symbols";
-            "--builtins", Arg.Set Prove.builtins, "report assumed builtin symbols";
-            "--local", Arg.Set Hammer.local, "no calibration (local times)";
+            "--extern", Arg.Set Prove.externals, "report assumed external symbols";
+            "--builtin", Arg.Set Prove.builtins, "report assumed builtin symbols";
           ]
         end
         (add files)
@@ -482,7 +483,9 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
          OPTIONS:\n" ;
       let session = !session || !ide in
       let files = Wenv.argfiles ~exts:[".mlw"] @@ List.rev !files in
-      let tofix = Prove.prove_files ~mode:!mode ~session ~log:!log ~files in
+      let tofix = Prove.prove_files
+          ~mode:!mode ~session ~log:!log ~axioms:!axioms ~files
+      in
       match tofix with
       | [] -> ()
       | f::_ ->

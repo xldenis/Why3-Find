@@ -289,8 +289,8 @@ let process_module_axioms env =
   | None -> ()
   | Some { theory } ->
     Axioms.iter env.henv
-      (fun _id prm ->
-         if not @@ Axioms.is_external prm then
+      (fun prm ->
+         if Axioms.is_assumed prm then
            process_assumed env prm)
       [theory]
 
@@ -298,7 +298,7 @@ type axioms = { ext : int ; prm : int ; hyp :  int ; pvs : int }
 let free = { ext = 0 ; prm = 0 ; hyp = 0 ; pvs = 0 }
 
 let add_axiom hs (p : Axioms.parameter) =
-  if Axioms.is_external p then
+  if not @@ Axioms.is_assumed p then
     { hs with ext = succ hs.ext }
   else
     match p.kind with

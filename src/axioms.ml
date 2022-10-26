@@ -59,7 +59,7 @@ let init (wenv : Wenv.env) =
   let builtins = List.fold_left add_builtins Mid.empty provers in
   let drivers = List.concat_map drivers wenv.pkgs @ Wenv.drivers () in
   let pdriver = Pdriver.load_driver wenv.wenv ocaml64 drivers in
-  let externals = Mid.map (fun (x,_) -> x) pdriver.drv_syntax in
+  let externals = Mid.map fst pdriver.drv_syntax in
   { builtins ; externals }
 
 (* -------------------------------------------------------------------------- *)
@@ -84,18 +84,18 @@ type parameter = {
   extern : string option ;
 }
 
-let is_external { builtin ; extern } =
-  builtin <> [] || extern <> None
+let is_assumed { builtin ; extern } =
+  builtin = [] && extern = None
 
 type signature = {
-  params : int ;
+  assumed : int ;
   locals : parameter Mid.t ;
   used_theories : Theory.theory list ;
   cloned_theories : Theory.theory list ;
 }
 
 let empty = {
-  params = 0 ;
+  assumed = 0 ;
   locals = Mid.empty ;
   used_theories = [] ;
   cloned_theories = [] ;
@@ -106,8 +106,8 @@ let add henv hs kind =
   let builtin = Mid.find_def [] id henv.builtins in
   let extern = Mid.find_opt id henv.externals in
   let prm = { kind ; builtin ; extern } in
-  let params = if is_external prm then hs.params else succ hs.params in
-  { hs with params ; locals = Mid.add id prm hs.locals }
+  let assumed = if is_assumed prm then succ hs.assumed else hs.assumed in
+  { hs with assumed ; locals = Mid.add id prm hs.locals }
 
 let add_used hs (thy : Theory.theory) =
   { hs with used_theories = thy :: hs.used_theories }
@@ -202,37 +202,38 @@ let signature henv (thy : Theory.theory) =
 
 let parameter s id = Mid.find_opt id s.locals
 let parameters s = Mid.values s.locals
-
 let assumed s =
   List.filter_map
-    (fun p -> if is_external p then None else Some p.kind)
+    (fun p -> if is_assumed p then Some p.kind else None)
     (Mid.values s.locals)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Consolidated Hypotheses                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
-let dependencies henv (ths : Theory.theory list) =
+let dependencies henv ?(self=false) (ths : Theory.theory list) =
   let deps = ref Mid.empty in
   let rec add (thy : Theory.theory) =
     let id = thy.th_name in
     if not @@ Mid.mem id !deps then
       begin
         deps := Mid.add id thy !deps ;
-        add_signature thy
+        add_derived thy
       end
-  and add_signature thy =
+  and add_derived thy =
     add_depends (signature henv thy)
   and add_depends s =
     List.iter add s.used_theories ;
-    List.iter add_signature s.cloned_theories ;
-  in List.iter add_signature ths ; Mid.values !deps
+    List.iter add_derived s.cloned_theories ;
+  in
+  let add_init = if self then add else add_derived in
+  List.iter add_init ths ; Mid.values !deps
 
-let iter henv f th =
+let iter henv ?(self=false) f ths =
   List.iter
     (fun thy ->
        let s = signature henv thy in
-       Mid.iter f s.locals
-    ) (dependencies henv th)
+       Mid.iter (fun _ p -> f p) s.locals
+    ) (dependencies henv ~self ths)
 
 (* -------------------------------------------------------------------------- *)

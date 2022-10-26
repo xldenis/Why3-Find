@@ -128,43 +128,102 @@ let prove_theory mode profile strategy theory =
 (* -------------------------------------------------------------------------- *)
 
 let stdlib = ref false
-let axioms = ref false
 let externals = ref false
 let builtins = ref false
 
-let report_axioms henv theories =
-  Axioms.iter henv
-    (fun _id prm ->
-       begin
-         try
-           let id = Axioms.ident prm.kind in
-           let ident = Id.resolve ~lib:[] id in
-           if ident.id_pkg = `Stdlib && not !stdlib then raise Not_found ;
-           let axiom = !axioms && Axioms.is_external prm in
-           let builtin = !builtins && prm.builtin <> [] in
-           let extern = !externals && prm.extern <> None in
-           if axiom || builtin || extern then
-             let kind = match prm.kind with
-               | Type _ -> "type"
-               | Logic _ -> "logic"
-               | Value _ -> "value"
-               | Axiom _ -> "axiom" in
-             let categories = List.filter (fun c -> c <> "") [
-                 if axiom then "axiom" else "" ;
-                 if builtin then "builtin" else "" ;
-                 if extern then "extern" else "" ;
-               ] in
-             Format.printf "  Assumed %s %a (%s)@\n" kind Id.pp_title ident
-               (String.concat ", " categories) ;
-         with Not_found -> ()
-       end
-    ) theories
+let standardized = "Standard  ",ref 0
+let dependencies = "Assumed   ",ref 0
+let hypotheses   = "Hypothesis",ref 0
+let parameters   = "Parameter ",ref 0
+let procedures   = "Procedure ",ref 0
+let externalized = "External  ",ref 0
+
+let print_axioms_stats () =
+  let p = !(snd parameters) in
+  let h = !(snd hypotheses) in
+  let r = !(snd procedures) in
+  let e = !(snd externalized) in
+  let d = !(snd dependencies) in
+  let s = !(snd standardized) in
+  if p+h+r+e+d+s = 0 then
+    Format.printf "Hypotheses: none@."
+  else
+    begin
+      Format.printf "Hypotheses:@\n" ;
+      if p > 0 then
+        Format.printf " - parameter%a: @{<green>%d@}@\n" Utils.pp_s p p ;
+      if h > 0 then
+        Format.printf " - hypothes%a: @{<orange>%d@}@\n" Utils.pp_yies h h ;
+      if r > 0 then
+        Format.printf " - procedure%a: @{<orange>%d@}@\n" Utils.pp_s r r ;
+      if e > 0 then
+        Format.printf " - externalized: @{<orange>%d@}@\n" e ;
+      if s > 0 then
+        Format.printf " - standardized: @{<orange>%d@}@\n" s ;
+      if d > 0 then
+        Format.printf " - dependenc%a: @{<red>%d@}@\n" Utils.pp_yies d d ;
+      Format.print_flush ()
+    end
+
+let report_parameter ~lib ~signature (prm : Axioms.parameter) =
+  try
+    let id = Axioms.ident prm.kind in
+    let ident = Id.resolve ~lib id in
+    let std = ident.id_pkg = `Stdlib in
+    let builtin = prm.builtin <> [] in
+    let extern = prm.extern <> None in
+    if (!stdlib || not std) &&
+       ((!builtins && builtin) || (!externals || not extern))
+    then
+      begin
+        let kind, param =
+          match prm.kind with
+          | Type _ -> "type ", parameters
+          | Logic _ -> "logic", parameters
+          | Value _ -> "value", procedures
+          | Axiom _ -> "axiom", hypotheses
+        in
+        let action, count =
+          if builtin || extern then externalized else
+          if signature then param else
+          if std then standardized else dependencies
+        in incr count ;
+        Format.printf "  %s %s %a" action kind Id.pp_title ident ;
+        let categories = List.filter (fun c -> c <> "") [
+            if std then "stdlib" else "" ;
+            if builtin then "builtin" else "" ;
+            if extern then "extern" else "" ;
+          ] in
+        if categories <> [] then
+          Format.printf " (%s)" (String.concat ", " categories) ;
+        Format.printf "@\n" ;
+      end
+  with Not_found -> ()
+
+let report_signature henv ~lib (th : Th.theory) =
+  match henv with
+  | None -> ()
+  | Some henv ->
+    List.iter
+      (report_parameter ~lib ~signature:true)
+      (Axioms.parameters @@ Axioms.signature henv th)
+
+let report_hypotheses henv ~lib (ths : Th.theory list) =
+  match henv with
+  | None -> ()
+  | Some henv ->
+    let once = ref true in
+    Axioms.iter henv
+      (fun prm ->
+         if !once then (Format.printf "Dependencies:@\n" ; once := false) ;
+         report_parameter ~lib ~signature:false prm)
+      ths
 
 (* -------------------------------------------------------------------------- *)
 (* --- Proof Logger                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-let report_results log path henv proofs =
+let report_results log henv ~lib proofs =
   begin
     let stuck = ref 0 in
     let proved = ref 0 in
@@ -178,15 +237,14 @@ let report_results log path henv proofs =
               if not @@ Crc.complete crc then failed := true ;
            ) goals
       ) proofs ;
+    let ths = List.map (fun (th,_) -> Session.theory th) proofs in
     begin
+      let path = String.concat "." lib in
       match log with
       | `Modules ->
-        Format.printf "Module %s: %t@."
+        Format.printf "Library %s: %t@."
           path (Crc.pp_result ~stuck:!stuck ~proved:!proved) ;
-        Option.iter (fun h ->
-            report_axioms h @@
-            List.map (fun (th,_) -> Session.theory th) proofs
-          ) henv ;
+        List.iter (report_signature henv ~lib) ths
       | `Theories | `Goals | `Proofs ->
         List.iter
           (fun (th,goals) ->
@@ -203,7 +261,7 @@ let report_results log path henv proofs =
                | `Goals ->
                  List.iter
                    (fun (g,c) ->
-                    Format.printf "  Goal %s: %a@." g Crc.pretty c
+                      Format.printf "  Goal %s: %a@." g Crc.pretty c
                    ) goals
                | `Proofs ->
                  List.iter
@@ -212,9 +270,10 @@ let report_results log path henv proofs =
                         Utils.pp_mark (Crc.complete c) Crc.dump c
                    ) goals
              end ;
-             Option.iter (fun h -> report_axioms h [thy]) henv ;
+             report_signature henv ~lib thy
           ) proofs
     end ;
+    report_hypotheses henv ~lib ths ;
     !failed
   end
 
@@ -226,7 +285,7 @@ type mode = [ `Force | `Update | `Minimize | `Replay ]
 type log0 = [ `Modules | `Theories | `Goals | `Proofs ]
 type log = [ `Default | log0 ]
 
-let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
+let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
   begin
     if not @@ String.ends_with ~suffix:".mlw" file then
       begin
@@ -234,8 +293,7 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
         exit 2
       end ;
     let dir = Filename.chop_extension file in
-    let path =
-      String.concat "." @@ String.split_on_char '/' @@
+    let lib = String.split_on_char '/' @@
       if Filename.is_relative file then dir else Filename.basename dir in
     let fp = Filename.concat dir "proof.json" in
     let theories, format = load_theories env file in
@@ -252,10 +310,10 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
         Session.save session ;
         save_proofs ~mode dir fp profile proofs ;
         let henv =
-          if !axioms || !externals || !builtins then
+          if axioms then
             Some (Axioms.init env)
           else None in
-        let failed = report_results log path henv proofs in
+        let failed = report_results log henv ~lib proofs in
         if failed then unsuccess := file :: !unsuccess ;
       end
   end
@@ -264,7 +322,7 @@ let process ~env ~mode ~session ~(log : log0) ~unsuccess file =
 (* --- Prove Command                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-let prove_files ~mode ~session ~log ~files =
+let prove_files ~mode ~session ~log ~axioms ~files =
   begin
     let env = Wenv.init () in
     let time = Wenv.time () in
@@ -276,12 +334,13 @@ let prove_files ~mode ~session ~log ~files =
     let log : log0 = match log with
       | `Default -> if List.length files > 1 then `Modules else `Theories
       | #log0 as l -> l in
-    List.iter (process ~env ~mode ~session ~log ~unsuccess) files ;
+    List.iter (process ~env ~mode ~session ~log ~axioms ~unsuccess) files ;
     Hammer.run { env ; time ; provers ; transfs ; minimize } ;
     if Utils.tty then
       begin
         Runner.print_stats () ;
         Crc.print_stats () ;
+        if axioms then print_axioms_stats () ;
       end ;
     List.rev !unsuccess ;
   end
