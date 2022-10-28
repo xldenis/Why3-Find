@@ -613,7 +613,28 @@ let () = register ~name:"extract" ~args:"[OPTIONS] MODULE..."
 (* --- SERVER                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-module S = Server
+let () = register ~name:"server" ~args:"OPTIONS"
+    begin fun argv ->
+      let frontend = ref "tcp://*:5555" in
+      let backend = ref "tcp://*:5556" in
+      let hangup = ref 10 in
+      let url kind value =
+        Printf.sprintf "URL %s connection address (default %S)" kind !value
+      in
+      Arg.parse_argv argv [
+        "--frontend",Arg.Set_string frontend, url "Client" frontend;
+        "--backend", Arg.Set_string backend,  url "Worker" backend;
+        "--hangup",  Arg.Set_int hangup,
+        "Connection timeout (in minutes, default 10')";
+      ] failwith
+        "USAGE:\n\
+         \n  why3find server [OPTIONS]\n\n\
+         DESCRIPTION:\n\
+         \n  Establishes a proof server.\
+         \n\n\
+         OPTIONS:\n" ;
+      Server.establish ~frontend:!frontend ~backend:!backend ~hangup:!hangup
+    end
 
 (* -------------------------------------------------------------------------- *)
 (* --- INSTALL                                                            --- *)
