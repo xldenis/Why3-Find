@@ -57,10 +57,24 @@ let send socket emitter msg =
 (* --- Server Heartbeat                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
+let kill server task =
+  List.iter
+    (fun w -> send server.clients w ["kill";task.prover;task.digest])
+    task.running
+
 let heartbeat server ~time =
   if time > server.pulse then
     begin
       server.pulse <- time +. 10.0 ;
+      let active emitter = time < emitter.time +. server.hangup in
+      Fibers.Queue.filter server.pending
+        begin fun task ->
+          task.waiting <- List.filter active task.waiting ;
+          task.running <- List.filter active task.running ;
+          if task.waiting = [] then (kill server task ; false) else true
+        end ;
+      let pendings = Fibers.Queue.size server.pending in
+      Utils.progress "pending %4d" pendings
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -89,7 +103,7 @@ let worker_handler server emitter msg =
 (* --- Server Main Program                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let create ~frontend ~backend ~hangup =
+let establish ~frontend ~backend ~hangup =
   if frontend = backend then
     Utils.failwith "Server frontend URL and backend URL shall differ" ;
   let context = Zmq.Context.create () in
@@ -110,6 +124,7 @@ let create ~frontend ~backend ~hangup =
   while true do
     ignore @@ Zmq.Poll.poll ~timeout:60000 server.polling ;
     let time = Unix.time () in
+    heartbeat server ~time ;
     recv server.clients ~time (client_handler server) ;
     recv server.workers ~time (worker_handler server) ;
   done

@@ -23,7 +23,11 @@
 (* --- Server Commands                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-
+val establish:
+  frontend:string ->
+  backend:string ->
+  hangup:int ->
+  unit
 
 
 
