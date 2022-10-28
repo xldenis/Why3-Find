@@ -23,7 +23,7 @@
 (* --- Server                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-type emitter = { identity : bytes ; time : float }
+type emitter = { identity : string ; time : float }
 
 type task = {
   prover : string ;
@@ -61,12 +61,12 @@ type server = {
 
 let recv socket ~time fn =
   match Zmq.Socket.recv_all ~block:false socket with
-  | identity::msg -> fn { time ; identity = (Bytes.of_string identity) } msg
+  | identity::msg -> fn { time ; identity } msg
   | [] -> ()
   | exception Unix.Unix_error(EAGAIN,_,_) -> ()
 
 let send socket emitter msg =
-  Zmq.Socket.send_all socket (Bytes.to_string emitter.identity :: msg)
+  Zmq.Socket.send_all socket (emitter.identity :: msg)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Server Heartbeat                                                   --- *)
@@ -103,6 +103,8 @@ let heartbeat server ~time =
 let basename database gen task =
   let hh = String.sub task.digest 0 2 in
   Format.sprintf "%s/%d/%s/%s/%s" database gen task.prover hh task.digest
+
+[@@@ warning "-32"]
 
 let get server task =
   let rec lookup n =
@@ -157,6 +159,8 @@ let set_data server task data =
   let file = filename server task ".data" in
   let out = open_out file in
   output_string out data ; close_out out
+
+[@@@ warning "+32"]
 
 (* -------------------------------------------------------------------------- *)
 (* --- Shifting Database                                                  --- *)
