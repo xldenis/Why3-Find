@@ -20,7 +20,7 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Server Commands                                                    --- *)
+(* --- Server                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
 type emitter = { identity : bytes ; time : float }
@@ -34,12 +34,27 @@ type task = {
   mutable running : emitter list ;
 }
 
+(* -------------------------------------------------------------------------- *)
+(* --- Tasks                                                              --- *)
+(* -------------------------------------------------------------------------- *)
+
+module Task =
+struct
+  type t = task
+  let hash t = Hashtbl.hash (t.prover,t.digest)
+  let equal a b = a.prover = b.prover && a.digest = b.digest
+end
+
+module TaskIndex = Hashtbl.Make(Task)
+
 type server = {
   context : Zmq.Context.t ;
   polling : Zmq.Poll.t ;
   clients : [ `Router ] Zmq.Socket.t ;
   workers : [ `Router ] Zmq.Socket.t ;
-  pending : task Fibers.Queue.t ;
+  pending : unit TaskIndex.t ;
+  cache : Runner.result TaskIndex.t ;
+  database : string ;
   hangup  : float ;
   mutable pulse : float ;
 }
@@ -67,15 +82,107 @@ let heartbeat server ~time =
     begin
       server.pulse <- time +. 10.0 ;
       let active emitter = time < emitter.time +. server.hangup in
-      Fibers.Queue.filter server.pending
-        begin fun task ->
-          task.waiting <- List.filter active task.waiting ;
-          task.running <- List.filter active task.running ;
-          if task.waiting = [] then (kill server task ; false) else true
-        end ;
-      let pendings = Fibers.Queue.size server.pending in
+      TaskIndex.iter
+        begin fun task () ->
+           task.waiting <- List.filter active task.waiting ;
+           task.running <- List.filter active task.running ;
+           if task.waiting = [] then
+             begin
+               kill server task ;
+               TaskIndex.remove server.pending task ;
+             end
+        end server.pending ;
+      let pendings = TaskIndex.length server.pending in
       Utils.progress "pending %4d" pendings
     end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Server Cache                                                       --- *)
+(* -------------------------------------------------------------------------- *)
+
+let basename database gen task =
+  let hh = String.sub task.digest 0 2 in
+  Format.sprintf "%s/%d/%s/%s/%s" database gen task.prover hh task.digest
+
+let get server task =
+  let rec lookup n =
+    let gen = Format.sprintf "%s/%d" server.database n in
+    if Sys.file_exists gen && Sys.is_directory gen then
+      let base = basename server.database n task in
+      if Sys.file_exists base && Sys.is_directory base then
+        let root =
+          if n > 0 then
+            let root = basename server.database 0 task in
+            Sys.rename base root ; root
+          else base
+        in
+        let json = root ^ "/task.json" in
+        let data = root ^ "/task.data" in
+        let result =
+          if Sys.file_exists json then
+            try Json.of_file json |> Runner.of_json
+            with _err ->
+              Utils.flush () ;
+              Format.eprintf "Error: incorrect database (removed entry)@." ;
+              Sys.remove json ; Runner.NoResult
+          else Runner.NoResult in
+        let source = if Sys.file_exists data then Some data else None in
+        result,source
+      else
+        lookup (succ n)
+    else
+      NoResult,None
+  in lookup 0
+
+let get_data file =
+  let inc = open_in file in
+  let buffer = Buffer.create 2048 in
+  try
+    while true do
+      Buffer.add_channel buffer inc 2048
+    done ; "" (* unreachable *)
+  with End_of_file ->
+    close_in inc ; Buffer.contents buffer
+
+let filename server task ext =
+  let base = basename server.database 0 task in
+  Utils.mkdirs base ;
+  Printf.sprintf "%s/task.%s" base ext
+
+let set_result server task result =
+  let file = filename server task ".json" in
+  Runner.to_json result |> Json.to_file file
+
+let set_data server task data =
+  let file = filename server task ".data" in
+  let out = open_out file in
+  output_string out data ; close_out out
+
+(* -------------------------------------------------------------------------- *)
+(* --- Shifting Database                                                  --- *)
+(* -------------------------------------------------------------------------- *)
+
+let prune_database database age =
+  let rec shift n =
+    let gen = Format.sprintf "%s/%d" database n in
+    begin
+      if Sys.file_exists gen && Sys.is_directory gen then
+        let target = shift (succ n) in
+        if n < age then Sys.rename gen target else
+        if n > age then
+          begin
+            Format.printf "Deleting generation %d…@." n ;
+            Utils.rmpath gen ;
+          end
+        else
+          Format.printf "Shifting generations 1-%d…@." n
+    end ; gen
+  in
+  begin
+    Utils.flush () ;
+    ignore @@ shift 0 ;
+    Format.printf "Database pruned@." ;
+  end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Client Handler                                                     --- *)
@@ -103,30 +210,33 @@ let worker_handler server emitter msg =
 (* --- Server Main Program                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let establish ~frontend ~backend ~hangup =
+let establish ~database ~frontend ~backend ~hangup =
   if frontend = backend then
     Utils.failwith "Server frontend URL and backend URL shall differ" ;
   let context = Zmq.Context.create () in
   let clients = Zmq.Socket.(create context router) in
   let workers = Zmq.Socket.(create context router) in
   let polling = Zmq.Poll.(mask_of [| clients , In ; workers , In |]) in
-  let pending = Fibers.Queue.create () in
   Zmq.Socket.bind clients frontend  ;
   Zmq.Socket.bind workers backend ;
-  let hangup = float hangup *. 60.0 in
-  let pulse = 0.0 in
   let server = {
-    context ; polling ; clients ; workers ;
-    pending ;
-    hangup ;
-    pulse
+    database ;
+    context ;
+    polling ;
+    clients ;
+    workers ;
+    pending = TaskIndex.create 0 ;
+    cache = TaskIndex.create 0 ;
+    hangup = float hangup *. 60.0 ;
+    pulse = 0.0 ;
   } in
+  Format.printf "Server is running…@." ;
   while true do
-    ignore @@ Zmq.Poll.poll ~timeout:60000 server.polling ;
     let time = Unix.time () in
-    heartbeat server ~time ;
     recv server.clients ~time (client_handler server) ;
     recv server.workers ~time (worker_handler server) ;
+    heartbeat server ~time ;
+    ignore @@ Zmq.Poll.poll ~timeout:60000 server.polling ;
   done
 
 (* -------------------------------------------------------------------------- *)
