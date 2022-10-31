@@ -29,16 +29,27 @@ let return v k = k v
 let bind ta fb k = ta (fun x -> fb x k)
 let apply ta f k = ta (fun x -> k (f x))
 let map f ta k = ta (fun x -> k (f x))
-let pair ta tb k = ta (fun x -> tb (fun y -> k (x,y)))
 let await f k = f k
+let par a b k =
+  let x = ref None in
+  let y = ref None in
+  let join () =
+    match !x,!y with
+    | Some u,Some v -> k(u,v)
+    | _ -> ()
+  in
+  begin
+    a (fun u -> x := Some u ; join ()) ;
+    b (fun v -> y := Some v ; join ()) ;
+  end
 
 module Monad =
 struct
   let (let*) = bind
   let (let+) = apply
-  let (and*) = pair
-  let (and+) = pair
+  let (and*) = par
   let (@+) = map
+  let (@*) = par
 end
 open Monad
 

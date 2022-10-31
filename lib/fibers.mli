@@ -47,11 +47,10 @@ val apply : 'a t -> ('a -> 'b) -> 'b t
 (** Same as {!apply} with reversed arguments. *)
 val map : ('a -> 'b) -> 'a t -> 'b t
 
-(** Combines two computations into a computation of pair.
+(** Combines two computations into a parallel computation of both.
 
-    The first computation is wait before waiting the second.
-    See {!Monad.and*} and {!Monad.and+} operators.*)
-val pair : 'a t -> 'b t -> ('a * 'b) t
+    See {!Monad.and*}, and {!Monad.@*} operators. *)
+val par : 'a t -> 'b t -> ('a * 'b) t
 
 (** Monadic and Applicative operators.
 
@@ -77,14 +76,14 @@ sig
   (** Applicative map operator, same as {!apply}. *)
   val (let+) : 'a t -> ('a -> 'b) -> 'b t
 
+  (** Monoidal product operator, same as {!par}. *)
+  val (and*) : 'a t -> 'b t -> ('a * 'b) t
+
   (** Map operator, same as {!map}. *)
   val (@+) : ('a -> 'b) -> 'a t -> 'b t
 
-  (** Monoidal product operator, same as {!pair}. *)
-  val (and*) : 'a t -> 'b t -> ('a * 'b) t
-
-  (** Monoidal product operator, same as {!pair}. *)
-  val (and+) : 'a t -> 'b t -> ('a * 'b) t
+  (** Parallel product operator, same as {!par}. *)
+  val (@*) : 'a t -> 'b t -> ('a * 'b) t
 
 end
 
