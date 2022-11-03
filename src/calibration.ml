@@ -88,11 +88,10 @@ let choose t x y =
   | Some(_,tx), Some(_,ty) ->
     if Float.abs (t -. tx) < Float.abs (t -. ty) then x else y
 
-[@@@ warning "-32"]
 let pp_range fmt = function
   | Guess(p,q) -> Format.fprintf fmt "%d…%d?" p q
   | Range(p,q) -> Format.fprintf fmt "%d…%d" p q
-[@@@ warning "+32"]
+[@@ warning "-32"]
 
 type qenv = {
   env : Wenv.env ;
@@ -331,6 +330,14 @@ let iter f profile =
       | None -> w
       | Some g -> (p,g.size,g.time)::w
     ) profile []
+
+let mem profile prv = Hashtbl.mem profile prv
+
+let get profile prv =
+  let { size ; time } = Hashtbl.find profile prv in size,time
+
+let set profile prv size time =
+  Hashtbl.replace profile prv { size ; time ; alpha = 0.0 }
 
 (* -------------------------------------------------------------------------- *)
 (* --- Calibration                                                        --- *)
