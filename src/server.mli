@@ -27,8 +27,7 @@ val prune_database: string -> int -> unit
 
 val establish:
   database:string ->
-  frontend:string ->
-  backend:string ->
+  url:string ->
   hangup:int ->
   unit
 

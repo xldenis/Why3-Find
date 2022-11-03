@@ -65,25 +65,24 @@ let load_profile ~database =
 
 type server = {
   context : Zmq.Context.t ;
+  socket : [ `Router ] Zmq.Socket.t ;
   polling : Zmq.Poll.t ;
-  profile : Calibration.profile ;
-  clients : [ `Router ] Zmq.Socket.t ;
-  workers : [ `Router ] Zmq.Socket.t ;
   database : string ;
+  profile : Calibration.profile ;
   cache : Runner.result TaskIndex.t ;
   pending : task TaskIndex.t ;
   hangup  : float ;
   mutable pulse : float ;
 }
 
-let recv socket ~time fn =
-  match Zmq.Socket.recv_all ~block:false socket with
+let recv server ~time fn =
+  match Zmq.Socket.recv_all ~block:false server.socket with
   | identity::msg -> fn { time ; identity } msg
   | [] -> ()
   | exception Unix.Unix_error(EAGAIN,_,_) -> ()
 
-let send socket emitter msg =
-  Zmq.Socket.send_all socket (emitter.identity :: msg)
+let send server emitter msg =
+  Zmq.Socket.send_all server.socket (emitter.identity :: msg)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Server Heartbeat                                                   --- *)
@@ -91,7 +90,7 @@ let send socket emitter msg =
 
 let kill server { goal ; running } =
   List.iter
-    (fun w -> send server.clients w ["kill";goal.prover;goal.digest])
+    (fun id -> send server id ["kill";goal.prover;goal.digest])
     running
 
 let heartbeat server ~time =
@@ -207,21 +206,10 @@ let prune_database database age =
   end
 
 (* -------------------------------------------------------------------------- *)
-(* --- Client Handler                                                     --- *)
+(* --- Message Handler                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let client_handler server emitter msg =
-  begin
-    ignore server ;
-    ignore emitter ;
-    ignore msg ;
-  end
-
-(* -------------------------------------------------------------------------- *)
-(* --- Worker Handler                                                     --- *)
-(* -------------------------------------------------------------------------- *)
-
-let worker_handler server emitter msg =
+let handler server emitter msg =
   begin
     ignore server ;
     ignore emitter ;
@@ -232,23 +220,18 @@ let worker_handler server emitter msg =
 (* --- Server Main Program                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let establish ~database ~frontend ~backend ~hangup =
-  if frontend = backend then
-    Utils.failwith "Server frontend URL and backend URL shall differ" ;
+let establish ~database ~url ~hangup =
   let context = Zmq.Context.create () in
-  let clients = Zmq.Socket.(create context router) in
-  let workers = Zmq.Socket.(create context router) in
-  let polling = Zmq.Poll.(mask_of [| clients , In ; workers , In |]) in
+  let socket = Zmq.Socket.(create context router) in
+  let polling = Zmq.Poll.(mask_of [| socket , In |]) in
   let profile = load_profile ~database in
-  Zmq.Socket.bind clients frontend  ;
-  Zmq.Socket.bind workers backend ;
+  Zmq.Socket.bind socket url  ;
   let server = {
     profile ;
     database ;
     context ;
     polling ;
-    clients ;
-    workers ;
+    socket ;
     pending = TaskIndex.create 0 ;
     cache = TaskIndex.create 0 ;
     hangup = float hangup *. 60.0 ;
@@ -257,8 +240,7 @@ let establish ~database ~frontend ~backend ~hangup =
   Format.printf "Server is running…@." ;
   while true do
     let time = Unix.time () in
-    recv server.clients ~time (client_handler server) ;
-    recv server.workers ~time (worker_handler server) ;
+    recv server ~time (handler server) ;
     heartbeat server ~time ;
     ignore @@ Zmq.Poll.poll ~timeout:60000 server.polling ;
   done

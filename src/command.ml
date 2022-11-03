@@ -617,19 +617,16 @@ let () = register ~name:"server" ~args:"OPTIONS"
     begin fun argv ->
       let age = ref 0 in
       let database = ref "why3server" in
-      let frontend = ref "tcp://*:5555" in
-      let backend = ref "tcp://*:5556" in
+      let url = ref "tcp://*:5555" in
       let hangup = ref 10 in
-      let url kind value =
-        Printf.sprintf "URL %s connection address (default %S)" kind !value
-      in
       Arg.parse_argv argv [
         "--prune",Arg.Set_int age,"AGE Prune old cache generations@.";
-        "--database",Arg.Set_string database, "DIR Database (default \"why3server\")";
-        "--frontend",Arg.Set_string frontend, url "Client" frontend;
-        "--backend", Arg.Set_string backend,  url "Worker" backend;
+        "--database",Arg.Set_string database,
+        "DIR Database (default \"why3server\")";
+        "--url",Arg.Set_string url,
+        "URL server address (default \"tcp://*:5555\")";
         "--hangup",  Arg.Set_int hangup,
-        "Connection timeout (in minutes, default 10')";
+        "MIN Connection timeout (in minutes, default 10')";
       ] failwith
         "USAGE:\n\
          \n  why3find server [OPTIONS]\n\n\
@@ -639,9 +636,8 @@ let () = register ~name:"server" ~args:"OPTIONS"
          OPTIONS:\n" ;
       if !age > 0 then Server.prune_database !database !age ;
       Server.establish
+        ~url:!url
         ~database:!database
-        ~frontend:!frontend
-        ~backend:!backend
         ~hangup:!hangup
     end
 
