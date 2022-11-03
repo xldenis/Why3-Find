@@ -405,18 +405,18 @@ let notify_cached env prover (callback : callback option) cached =
     | Unknown t -> fire f prover (limit env t) (pr ~s:1  ~t (Unknown "cached"))
     | Failed -> fire f prover (limit env 1.0) (pr ~s:2 (Failure "cached"))
 
+let valid_for ~time = function
+  | NoResult -> false
+  | Failed -> true
+  | Unknown _ -> true
+  | Valid t -> t <= time
+  | Timeout t -> time <= t
+
 let prove env ?name ?cancel ?callback task prover time =
   let prepared = Driver.prepare_task prover.driver task in
   let entry = prepared,prover in
   let cached = get entry in
-  let promote = match cached with
-    | NoResult -> false
-    | Failed -> true
-    | Unknown _ -> true
-    | Valid t -> t <= time
-    | Timeout t -> time <= t
-  in
-  if promote then
+  if valid_for ~time cached then
     (incr hits ;
      notify_cached env prover callback cached ;
      Fibers.return cached)

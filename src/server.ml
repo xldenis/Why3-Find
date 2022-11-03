@@ -23,14 +23,15 @@
 (* --- Server                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
+type goal = { prover : string ; digest : string }
 type emitter = { identity : string ; time : float }
 
 type task = {
-  prover : string ;
-  digest : string ;
+  goal : goal ;
   mutable sourced : bool ; (* prover task has been downloaded *)
   mutable timeout : float ; (* max of requested timeout *)
   mutable waiting : emitter list ;
+  mutable loading : emitter list ;
   mutable running : emitter list ;
 }
 
@@ -38,23 +39,23 @@ type task = {
 (* --- Tasks                                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-module Task =
+module Goal =
 struct
-  type t = task
-  let hash t = Hashtbl.hash (t.prover,t.digest)
+  type t = goal
+  let hash g = Hashtbl.hash (g.prover,g.digest)
   let equal a b = a.prover = b.prover && a.digest = b.digest
 end
 
-module TaskIndex = Hashtbl.Make(Task)
+module TaskIndex = Hashtbl.Make(Goal)
 
 type server = {
   context : Zmq.Context.t ;
   polling : Zmq.Poll.t ;
   clients : [ `Router ] Zmq.Socket.t ;
   workers : [ `Router ] Zmq.Socket.t ;
-  pending : unit TaskIndex.t ;
-  cache : Runner.result TaskIndex.t ;
   database : string ;
+  cache : Runner.result TaskIndex.t ;
+  pending : task TaskIndex.t ;
   hangup  : float ;
   mutable pulse : float ;
 }
@@ -72,10 +73,10 @@ let send socket emitter msg =
 (* --- Server Heartbeat                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-let kill server task =
+let kill server { goal ; running } =
   List.iter
-    (fun w -> send server.clients w ["kill";task.prover;task.digest])
-    task.running
+    (fun w -> send server.clients w ["kill";goal.prover;goal.digest])
+    running
 
 let heartbeat server ~time =
   if time > server.pulse then
@@ -83,13 +84,14 @@ let heartbeat server ~time =
       server.pulse <- time +. 10.0 ;
       let active emitter = time < emitter.time +. server.hangup in
       TaskIndex.iter
-        begin fun task () ->
+        begin fun goal task ->
            task.waiting <- List.filter active task.waiting ;
+           task.loading <- List.filter active task.loading ;
            task.running <- List.filter active task.running ;
            if task.waiting = [] then
              begin
                kill server task ;
-               TaskIndex.remove server.pending task ;
+               TaskIndex.remove server.pending goal ;
              end
         end server.pending ;
       let pendings = TaskIndex.length server.pending in
