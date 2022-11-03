@@ -48,9 +48,25 @@ end
 
 module TaskIndex = Hashtbl.Make(Goal)
 
+(* -------------------------------------------------------------------------- *)
+(* --- Velocity                                                           --- *)
+(* -------------------------------------------------------------------------- *)
+
+let load_profile ~database =
+  let file = Printf.sprintf "%s/profile.json" database in
+  if Sys.file_exists file then
+    Json.of_file file |> Calibration.of_json
+  else
+    Calibration.empty ()
+
+(* -------------------------------------------------------------------------- *)
+(* --- Server                                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
 type server = {
   context : Zmq.Context.t ;
   polling : Zmq.Poll.t ;
+  profile : Calibration.profile ;
   clients : [ `Router ] Zmq.Socket.t ;
   workers : [ `Router ] Zmq.Socket.t ;
   database : string ;
@@ -223,9 +239,11 @@ let establish ~database ~frontend ~backend ~hangup =
   let clients = Zmq.Socket.(create context router) in
   let workers = Zmq.Socket.(create context router) in
   let polling = Zmq.Poll.(mask_of [| clients , In ; workers , In |]) in
+  let profile = load_profile ~database in
   Zmq.Socket.bind clients frontend  ;
   Zmq.Socket.bind workers backend ;
   let server = {
+    profile ;
     database ;
     context ;
     polling ;
