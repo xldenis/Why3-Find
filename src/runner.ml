@@ -46,17 +46,19 @@ let title ?(strict=false) p = if strict then id p else name p
 
 let pp_prover fmt prv = Format.pp_print_string fmt @@ id prv
 
+let load (env : Wenv.env) (config : Whyconf.config_prover) =
+  try Whyconf.load_driver (Whyconf.get_main env.wconfig) env.wenv config
+  with _ ->
+    Format.eprintf "Failed to load driver for %s@."
+      (Whyconf.prover_parseable_format config.prover) ;
+    exit 2
+
 let find_exact (env : Wenv.env) s =
   try
     let filter = Whyconf.parse_filter_prover s in
     let config = Whyconf.filter_one_prover env.wconfig filter in
-    let driver =
-      try Whyconf.load_driver (Whyconf.get_main env.wconfig) env.wenv config
-      with _ ->
-        Format.eprintf "Failed to load driver for %s@."
-          (Whyconf.prover_parseable_format config.prover) ;
-        exit 2
-    in Some { config ; driver }
+    let driver = load env config in
+    Some { config ; driver }
   with _ -> None
 
 let find_default env name =
@@ -94,6 +96,17 @@ let prover env name =
   with Not_found ->
     Format.eprintf "Error: prover %S not found." name ;
     exit 2
+
+let all env =
+  let byid p q = String.compare (id p) (id q) in
+  List.sort byid @@
+  Whyconf.Mprover.fold
+    (fun _id config prvs ->
+       if config.Whyconf.prover.prover_altern = "" then
+         let driver = load env config in
+         { config ; driver } :: prvs
+       else prvs
+    ) (Whyconf.get_provers env.Wenv.wconfig) []
 
 let default env =
   find_default env "alt-ergo" @
