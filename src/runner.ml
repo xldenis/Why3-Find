@@ -264,14 +264,6 @@ let pp_goals fmt =
          Format.fprintf fmt " %s" a
     ) !goals
 
-let update_client () =
-  let nj = !jobs in
-  if nj > 0 && nj <> !clients then
-    begin
-      clients := nj ;
-      Why3.Prove_client.set_max_running_provers nj ;
-    end
-
 let is_modified () = !jobs > 0
 
 let save_config (env : Wenv.env) =
@@ -291,6 +283,14 @@ let maxjobs (env : Wenv.env) =
   if !jobs > 0 then !jobs else
     let main = Whyconf.get_main env.wconfig in
     Whyconf.running_provers_max main
+
+let update_client env =
+  let njobs = maxjobs env in
+  if njobs <> !clients then
+    begin
+      clients := njobs ;
+      Why3.Prove_client.set_max_running_provers njobs ;
+    end
 
 let limit env t =
   Call_provers.{
@@ -315,7 +315,7 @@ let call_prover (env : Wenv.env)
   let started = ref false in
   let killed = ref false in
   let canceled = ref false in
-  update_client () ;
+  update_client env ;
   schedule () ;
   let cancel = match cancel with None -> Fibers.signal () | Some s -> s in
   let libdir = Whyconf.libdir main in
