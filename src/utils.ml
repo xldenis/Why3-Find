@@ -26,7 +26,7 @@
 let tty = Unix.isatty Unix.stdout
 
 let progress msg =
-  let buffer = Buffer.create 80 in
+  let buffer = Buffer.create 78 in
   Format.kfprintf
     (fun fmt ->
        Format.pp_print_flush fmt () ;

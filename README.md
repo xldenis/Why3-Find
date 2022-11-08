@@ -132,7 +132,7 @@ purpose, and you will have to re-launch `why3find prove` to update the proof
 certificates when your Why-3 specifications have been fixed.
 
 *Proving Strategy* for building proof certificates is a heuristic based on
-user-defined median time, registered provers and transformations.  It consists
+user-defined median time, registered provers and transformations. It consists
 in several _rounds_ tried in sequence until proof completion:
 
 1. Fast sequential provers: each configured prover is tried in _sequence_ with a
@@ -175,11 +175,12 @@ proofs. During execution in a terminal, `why3find prove` displays a progression
 status with the following format:
 
     $ why3find prove […]
-    P/Q/R goal goal …
+    P/Q/S/R goal goal …
 
-`P` is the number of complete proofs to be replayed, `Q` is the number of stuck
-or partial proofs to be complete and `R` is number of currently running provers.
-The topmost active goals for proof completion are also given for user feedback.
+`P` is the number of complete proofs to be replayed; `Q` is the number of stuck
+or partial proofs to be complete; finally `S` and `R` are respectively the
+number of schedules and currently running prover tasks. The topmost active goals
+for proof completion are also given for user feedback.
 
 *Prover Calibration* is a strategy used by `why3find` in order to reduce the
 instability in proof sessions introduced when using machines with different

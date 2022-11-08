@@ -188,10 +188,11 @@ let process h : strategy = fun n ->
 
 let rec exec (s : strategy) =
   Fibers.yield () ;
-  let n1 = Queue.length q1 + Runner.pending () in
   let n2 = Queue.length q2 in
+  let n1 = Queue.length q1 in
+  let nq = Runner.pending () in
   let nr = Runner.running () in
-  Utils.progress "%d/%d/%d%t" n2 n1 nr Runner.pp_goals ;
+  Utils.progress "%d/%d/%d/%d%t" n2 n1 nq nr Runner.pp_goals ;
   match pop () with
   | None ->
     if Fibers.pending () > 0 then (Unix.sleepf 0.01 ; exec s)
