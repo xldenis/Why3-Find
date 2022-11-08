@@ -342,6 +342,17 @@ let set (profile: profile) prv gauge =
     let+ (size,time) = gauge in { size ; time ; alpha = None }
   in Hashtbl.replace profile prv gv
 
+let gamma env ~(src:profile) ~(tgt:profile) prv =
+  let id = Runner.id prv in
+  let ga = Fibers.find @@ Hashtbl.find src id in
+  let gb = Fibers.find @@ Hashtbl.find tgt id in
+  if ga.size = gb.size then
+    Fibers.return @@ gb.time /. ga.time
+  else
+    let+ a = velocity env src prv
+    and* b = velocity env tgt prv
+    in b /. a
+
 (* -------------------------------------------------------------------------- *)
 (* --- Calibration                                                        --- *)
 (* -------------------------------------------------------------------------- *)
