@@ -147,8 +147,8 @@ val emit : 'a signal -> 'a -> unit
 (** Condition variables to synchronize tasks. *)
 type 'a var
 
-(** Creates an unitialized variable. *)
-val var : unit -> 'a var
+(** Creates a variable. *)
+val var : ?init:'a -> unit -> 'a var
 
 (** [get x] waits on the variable [x] until it is set.
     If the variable [x] is already initialized, its value is immediately
@@ -163,6 +163,13 @@ val set : 'a var -> 'a -> unit
 
 (** [peek x] returns the value assigned to variable [x], if any. *)
 val peek : 'a var -> 'a option
+
+(** [find x] returns the value assigned to variable [x] or raise [Not_found].
+    @raise Not_found *)
+val find : 'a var -> 'a
+
+(** [once f] returns a variable that captures the result of fiber [f]. *)
+val once : 'a t -> 'a var
 
 (** {1 Mutual Exclusion} *)
 

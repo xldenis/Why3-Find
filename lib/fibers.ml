@@ -141,10 +141,15 @@ let hook s k f x =
 type 'a var = 'a state ref
 and 'a state = Done of 'a | Wait of 'a signal
 
-let var () = ref @@ Wait (Queue.create ())
+let var ?init () =
+  match init with
+  | None -> ref @@ Wait (Queue.create ())
+  | Some v -> ref (Done v)
 let get v k = match !v with Done r -> k r | Wait q -> Queue.push q k
 let set v r = match !v with Done _ -> () | Wait q -> v := Done r ; emit q r
 let peek v = match !v with Done r -> Some r | Wait _ -> None
+let find v = match !v with Done r -> r | Wait _ -> raise Not_found
+let once f = let x = var () in f (set x) ; x
 
 (* -------------------------------------------------------------------------- *)
 (* --- List Combinators                                                   --- *)
