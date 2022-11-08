@@ -5,6 +5,7 @@
   alt-ergo,
   why3,
   zmq,
+  zeromq,
   yojson }:
 
 buildDunePackage {
@@ -22,5 +23,5 @@ buildDunePackage {
 
   doCheck = true;
 
-  buildInputs = [ dune_3 dune-site alt-ergo why3 zmq yojson ];
+  buildInputs = [ dune_3 dune-site alt-ergo why3 zeromq zmq yojson ];
 }
