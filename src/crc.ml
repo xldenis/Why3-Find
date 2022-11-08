@@ -115,10 +115,14 @@ let rec of_json (js : Json.t) : crc =
 (* --- Merging                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
+let window t0 t1 =
+  let w0 = max t0 0.01 in
+  let w1 = max t1 0.01 in
+  w0 *. 0.5 < w1 && w1 < w0 *.2.0
+
 let rec merge a b =
   match a, b with
-  | Prover(p0,t0), Prover(p1,t1)
-    when p0 = p1 && t0 *. 0.5 < t1 && t1 < t0 *. 2.0 -> a
+  | Prover(p0,t0), Prover(p1,t1) when p0 = p1 && window t0 t1 -> a
   | Transf { id = f ; children = xs } ,
     Transf { id = g ; children = ys }
     when f = g && List.length xs = List.length ys ->
