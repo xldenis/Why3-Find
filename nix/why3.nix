@@ -1,8 +1,7 @@
 { callPackage
-, fetchurl
-, fetchpatch
 , lib
 , stdenv
+, fetchgit
 , ocaml
 , findlib
 , ocamlgraph
@@ -27,9 +26,13 @@
 
 stdenv.mkDerivation rec {
   pname = "why3";
-  version = src.version;
+  version = "1.5.1+dev";
 
-  src = (import ./sources.nix {}).why3;
+  src = fetchgit {
+    url = "https://gitlab+deploy-token-12:koWsnx1g8xXFy9bimNqh@git.frama-c.com/lcorrenson/why3tmp.git" ;
+    rev = "0bcff3203083b8fc2df69993c293847015504405" ;
+    sha256 = "sha256-HJ7zHgOtnkzf8jHALPHMT54H6NaIonirvbfZSHk8Vl0=" ;
+  };
   nativeBuildInputs = [
     autoreconfHook
   ];
