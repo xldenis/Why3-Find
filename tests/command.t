@@ -1,3 +1,6 @@
+--------------------------------------------------------------------------
+--- All Commands
+--------------------------------------------------------------------------
   $ why3find --help
   why3find [-h|--help]
   why3find [-v|--version]
@@ -10,13 +13,16 @@
   why3find prove [OPTIONS] PATH...
   why3find doc [OPTIONS] PATH...
   why3find extract [OPTIONS] MODULE...
+  why3find server OPTIONS
   why3find install PKG PATH...
   why3find uninstall [PKG...]
   why3find compile [-p PKG] FILE
   why3find ide [-p PKG] FILE
   why3find replay [-p PKG] FILE
   why3find CMD [ARGS...]
-
+--------------------------------------------------------------------------
+--- why3find where
+--------------------------------------------------------------------------
   $ why3find where --help
   USAGE:
   
@@ -26,7 +32,9 @@
   
     Prints installation site(s).
   
-
+--------------------------------------------------------------------------
+--- why3find shared
+--------------------------------------------------------------------------
   $ why3find shared --help
   USAGE:
   
@@ -36,7 +44,9 @@
   
     Prints shared resources site(s).
   
-
+--------------------------------------------------------------------------
+--- why3find init
+--------------------------------------------------------------------------
   $ why3find init --help
   USAGE:
   
@@ -47,7 +57,9 @@
     Create templates for dune-project and git-ignore for package PKG.
     Files are created in directory DIR (default ./PKG).
   
-
+--------------------------------------------------------------------------
+--- why3find list
+--------------------------------------------------------------------------
   $ why3find list --help
   USAGE:
   
@@ -57,7 +69,6 @@
   
     Prints all installed packages.
   
-
   $ why3find query --help
   USAGE:
   
@@ -75,7 +86,9 @@
     -help  Display this list of options
     --help  Display this list of options
   
-
+--------------------------------------------------------------------------
+--- why3find compile
+--------------------------------------------------------------------------
   $ why3find compile --help
   USAGE:
   
@@ -91,7 +104,9 @@
     -p|--package PKG package dependency
     --extra-config FILE additional configuration file
   
-
+--------------------------------------------------------------------------
+--- why3find ide
+--------------------------------------------------------------------------
   $ why3find ide --help
   USAGE:
   
@@ -109,7 +124,9 @@
     -p|--package PKG package dependency
     --extra-config FILE additional configuration file
   
-
+--------------------------------------------------------------------------
+--- why3find replay
+--------------------------------------------------------------------------
   $ why3find replay --help
   USAGE:
   
@@ -125,7 +142,6 @@
     -p|--package PKG package dependency
     --extra-config FILE additional configuration file
   
-
   $ why3find extract --help
   USAGE:
   
@@ -150,7 +166,9 @@
     -help  Display this list of options
     --help  Display this list of options
   
-
+--------------------------------------------------------------------------
+--- why3find config
+--------------------------------------------------------------------------
   $ why3find config --help
   USAGE:
   
@@ -190,7 +208,9 @@
     -help  Display this list of options
     --help  Display this list of options
   
-
+--------------------------------------------------------------------------
+--- why3find prove
+--------------------------------------------------------------------------
   $ why3find prove --help
   USAGE:
   
@@ -237,7 +257,9 @@
     -help  Display this list of options
     --help  Display this list of options
   
-
+--------------------------------------------------------------------------
+--- why3find doc
+--------------------------------------------------------------------------
   $ why3find doc --help
   USAGE:
   
@@ -264,7 +286,30 @@
     -help  Display this list of options
     --help  Display this list of options
   
-
+--------------------------------------------------------------------------
+--- why3find server
+--------------------------------------------------------------------------
+  $ why3find server --help
+  USAGE:
+  
+    why3find server [OPTIONS]
+  
+  DESCRIPTION:
+  
+    Establishes a proof server.
+  
+  OPTIONS:
+  
+    --prune AGE Prune old cache generations@.
+    --database DIR Database (default "why3server")
+    --url URL server address (default "tcp://*:5555")
+    --hangup MIN Connection timeout (in minutes, default 10')
+    -help  Display this list of options
+    --help  Display this list of options
+  
+--------------------------------------------------------------------------
+--- why3find install
+--------------------------------------------------------------------------
   $ why3find install --help
   USAGE:
   
@@ -299,7 +344,9 @@
     -help  Display this list of options
     --help  Display this list of options
   
-
+--------------------------------------------------------------------------
+--- why3find uninstall
+--------------------------------------------------------------------------
   $ why3find uninstall --help
   USAGE:
   
@@ -309,7 +356,9 @@
   
     Remove all specified packages from topmost installation site.
   
-
+--------------------------------------------------------------------------
+--- Generic Command
+--------------------------------------------------------------------------
   $ why3find CMD --help
   USAGE:
   
@@ -325,3 +374,4 @@
     --configs : pass also --extra-config-file=<CFG> options
     --drivers : pass also --driver=<DRV> options
   
+--------------------------------------------------------------------------
