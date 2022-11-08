@@ -149,7 +149,7 @@ let get v k = match !v with Done r -> k r | Wait q -> Queue.push q k
 let set v r = match !v with Done _ -> () | Wait q -> v := Done r ; emit q r
 let peek v = match !v with Done r -> Some r | Wait _ -> None
 let find v = match !v with Done r -> r | Wait _ -> raise Not_found
-let once f = let x = var () in f (set x) ; x
+let result f = let x = var () in f (set x) ; x
 
 (* -------------------------------------------------------------------------- *)
 (* --- List Combinators                                                   --- *)

@@ -168,8 +168,8 @@ val peek : 'a var -> 'a option
     @raise Not_found *)
 val find : 'a var -> 'a
 
-(** [once f] returns a variable that captures the result of fiber [f]. *)
-val once : 'a t -> 'a var
+(** [result f] returns a variable that captures the result of fiber [f]. *)
+val result : 'a t -> 'a var
 
 (** {1 Mutual Exclusion} *)
 

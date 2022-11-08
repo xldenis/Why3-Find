@@ -285,7 +285,7 @@ let gauge env profile prv : gauge Fibers.t =
   Fibers.get @@
   try Hashtbl.find profile p
   with Not_found ->
-    let gv = Fibers.once
+    let gv = Fibers.result
         begin
           let+ r = calibrate env prv in
           match r with
@@ -313,7 +313,7 @@ let velocity env profile prv : float Fibers.t =
   match g.alpha with
   | Some a -> Fibers.get a
   | None ->
-    let ga = Fibers.once (alpha env prv ~size:g.size ~time:g.time) in
+    let ga = Fibers.result @@ alpha env prv ~size:g.size ~time:g.time in
     g.alpha <- Some ga ; Fibers.get ga
 
 let observed profile prv =
