@@ -70,7 +70,7 @@ type server = {
   database : string ;
   profile : Calibration.profile ;
   cache : Runner.result TaskIndex.t ;
-  pending : task TaskIndex.t ;
+  pending : task Fibers.Queue.t ;
   hangup  : float ;
   mutable pulse : float ;
 }
@@ -98,18 +98,19 @@ let heartbeat server ~time =
     begin
       server.pulse <- time +. 10.0 ;
       let active emitter = time < emitter.time +. server.hangup in
-      TaskIndex.iter
-        begin fun goal task ->
+      Fibers.Queue.filter server.pending
+        begin fun task ->
            task.waiting <- List.filter active task.waiting ;
            task.loading <- List.filter active task.loading ;
            task.running <- List.filter active task.running ;
            if task.waiting = [] then
              begin
                kill server task ;
-               TaskIndex.remove server.pending goal ;
+               false
              end
-        end server.pending ;
-      let pendings = TaskIndex.length server.pending in
+           else true
+        end ;
+      let pendings = Fibers.Queue.size server.pending in
       Utils.progress "pending %4d" pendings
     end
 
@@ -232,7 +233,7 @@ let establish ~database ~url ~hangup =
     context ;
     polling ;
     socket ;
-    pending = TaskIndex.create 0 ;
+    pending = Fibers.Queue.create () ;
     cache = TaskIndex.create 0 ;
     hangup = float hangup *. 60.0 ;
     pulse = 0.0 ;
