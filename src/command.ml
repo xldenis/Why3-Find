@@ -620,10 +620,10 @@ let () = register ~name:"server" ~args:"OPTIONS"
       let url = ref "tcp://*:5555" in
       let hangup = ref 10 in
       Arg.parse_argv argv [
-        "--prune",Arg.Set_int age,"AGE Prune old cache generations@.";
+        "--prune",Arg.Set_int age,"AGE Prune cache generations older than AGE@.";
         "--database",Arg.Set_string database,
         "DIR Database (default \"why3server\")";
-        "--url",Arg.Set_string url,
+        "--address",Arg.Set_string url,
         "URL server address (default \"tcp://*:5555\")";
         "--hangup",  Arg.Set_int hangup,
         "MIN Connection timeout (in minutes, default 10')";
