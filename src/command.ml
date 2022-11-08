@@ -376,8 +376,9 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
         begin
           let j = Runner.maxjobs env in
           Format.printf "Provers Configuration:@." ;
-          Format.printf " - %d parallel prover%a@." j Utils.pp_s j ;
-          Format.printf " - median time %a@." Utils.pp_time (Wenv.time ()) ;
+          Format.printf " - proof time: %a@." Utils.pp_time (Wenv.time ()) ;
+          Format.printf " - proof depth: %d@." (Wenv.depth ()) ;
+          Format.printf " - parallel provers: %d@." j ;
         end ;
       let pconfig = if !relax then List.map Runner.relax pconfig else pconfig in
       let provers = Runner.select env @@ pconfig in
@@ -395,7 +396,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       else
       if list_provers && not !velocity && not !calibrate then
         if List.for_all Runner.relaxed provers then
-          Format.printf " - %s@." (String.concat ", " provers)
+          Format.printf " - provers: %s@." (String.concat ", " provers)
         else
           List.iter (Format.printf " - %s@.") provers ;
       (* --- Transformations ----- *)

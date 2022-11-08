@@ -60,6 +60,7 @@ let set fd ~to_json value =
 (* -------------------------------------------------------------------------- *)
 
 let time = ref None
+let depth = ref None
 let cfgs = ref []
 let drvs = ref []
 let pkgs = ref []
@@ -119,12 +120,14 @@ let alloptions : (opt * string * Arg.spec * string) list = [
   `All, "--extra-config", Arg.String (add cfgs), "CFG extra why3 config";
   `Package, "--package", Arg.String (add pkgs), "PKG add package dependency";
   `Prover,  "--time", Arg.Float (setv time), "TIME median proof time";
+  `Prover,  "--depth", Arg.Int (setv depth), "DEPTH proof search limit";
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
   `Prover,  "--transf", Arg.String (add trfs), "TRANS add transformation";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
   `Config, "--remove", Arg.Set removal, "remove items from configuration";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
   `Prover,  "-t", Arg.Float (setv time), " same as --time";
+  `Prover,  "-d", Arg.Float (setv time), " same as --depth";
   `Prover,  "-P", Arg.String (add prvs), " same as --prover";
   `Prover,  "-T", Arg.String (add trfs), " same as --transf";
   `Driver,  "-D", Arg.String (add drvs), " same as --driver";
@@ -149,6 +152,7 @@ let add_config = add cfgs
 let add_driver = add drvs
 
 let time () = getv "time" ~of_json:Json.jfloat ~default:1.0 time
+let depth () = getv "depth" ~of_json:Json.jint ~default:10 depth
 let configs () = gets "configs" cfgs
 let packages () = gets "packages" pkgs
 let provers () = gets "provers" ~prefix:true prvs
@@ -159,6 +163,7 @@ let sets fd xs =
   set fd ~to_json:Fun.id (`List (List.map (fun x -> `String x) xs))
 
 let set_time = set "time" ~to_json:(fun v -> `Float v)
+let set_depth = set "depth" ~to_json:(fun n -> `Int n)
 let set_configs = sets "configs"
 let set_packages = sets "packages"
 let set_provers = sets "provers"

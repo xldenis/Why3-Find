@@ -167,12 +167,14 @@
     --extra-config CFG extra why3 config
     --package PKG add package dependency
     --time TIME median proof time
+    --depth DEPTH proof search limit
     --prover PRV add automated prover
     --transf TRANS add transformation
     --driver DRV add extraction driver
     --remove remove items from configuration
     -p  same as --package
     -t  same as --time
+    -d  same as --depth
     -P  same as --prover
     -T  same as --transf
     -D  same as --driver
@@ -204,12 +206,14 @@
     --extra-config CFG extra why3 config
     --package PKG add package dependency
     --time TIME median proof time
+    --depth DEPTH proof search limit
     --prover PRV add automated prover
     --transf TRANS add transformation
     --driver DRV add extraction driver
     --remove remove items from configuration
     -p  same as --package
     -t  same as --time
+    -d  same as --depth
     -P  same as --prover
     -T  same as --transf
     -D  same as --driver

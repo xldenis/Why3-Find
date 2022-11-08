@@ -326,6 +326,7 @@ let prove_files ~mode ~session ~log ~axioms ~files =
   begin
     let env = Wenv.init () in
     let time = Wenv.time () in
+    let maxdepth = Wenv.depth () in
     let provers = Wenv.provers () in
     let transfs = Wenv.transfs () in
     let provers = Runner.select env provers in
@@ -335,7 +336,7 @@ let prove_files ~mode ~session ~log ~axioms ~files =
       | `Default -> if List.length files > 1 then `Modules else `Theories
       | #log0 as l -> l in
     List.iter (process ~env ~mode ~session ~log ~axioms ~unsuccess) files ;
-    Hammer.run { env ; time ; provers ; transfs ; minimize } ;
+    Hammer.run { env ; time ; maxdepth ; provers ; transfs ; minimize } ;
     if Utils.tty then
       begin
         Runner.print_stats () ;
