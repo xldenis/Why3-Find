@@ -28,11 +28,13 @@ open Calibration
 open Session
 
 val local : bool ref
-val schedule : profile -> ?replay:bool -> goal -> crc -> crc Fibers.t
+val schedule :
+  profile -> ?replay:bool -> ?depth:int -> goal -> crc -> crc Fibers.t
 
 type henv = {
   env : Wenv.env ;
   time : float ;
+  maxdepth : int ;
   provers : Runner.prover list ;
   transfs : string list ;
   minimize : bool ;

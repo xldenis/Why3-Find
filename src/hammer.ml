@@ -29,12 +29,14 @@ open Fibers.Monad
 type henv = {
   env : Wenv.env ;
   time : float ;
+  maxdepth : int ;
   provers : Runner.prover list ;
   transfs : string list ;
   minimize : bool ;
 }
 
 type node = {
+  depth : int ;
   profile : Calibration.profile ;
   goal : Session.goal ;
   hint : crc ;
@@ -49,10 +51,10 @@ type node = {
 let q1 : node Queue.t = Queue.create ()
 let q2 : node Queue.t = Queue.create ()
 
-let schedule profile ?(replay=false) goal hint =
+let schedule profile ?(replay=false) ?(depth=0) goal hint =
   let result = Fibers.var () in
   Queue.push
-    { profile ; goal ; hint ; replay ; result }
+    { profile ; goal ; hint ; replay ; depth ; result }
     (if complete hint then q2 else q1) ;
   Fibers.get result
 
@@ -96,8 +98,7 @@ let prove env ?cancel prv timeout : strategy = fun n ->
   let name = Session.goal_name n.goal in
   let+ result = Runner.prove env
       ?cancel ~name ~callback:(Session.result n.goal)
-      task prv time
-  in
+      task prv time in
   match result with
   | Valid t -> Prover( Runner.name prv, Utils.round @@ t /. alpha )
   | _ -> Stuck
@@ -106,18 +107,19 @@ let prove env ?cancel prv timeout : strategy = fun n ->
 (* --- Try Transformation on Node                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-let rec subgoals n goals hints =
+let rec subgoals ({ profile ; replay ; depth } as n) goals hints =
   match goals, hints with
   | [], _ -> []
   | g::gs, [] ->
-    schedule n.profile ~replay:n.replay g Stuck :: subgoals n gs []
+    schedule profile ~replay ~depth:(succ depth) g Stuck :: subgoals n gs []
   | g::gs, h::hs ->
-    schedule n.profile ~replay:n.replay g h :: subgoals n gs hs
+    schedule profile ~replay ~depth:(succ depth) g h :: subgoals n gs hs
 
-let apply env tr hs : strategy = fun n ->
-  match Session.apply env.Wenv.wenv tr n.goal with
-  | None -> stuck
-  | Some gs -> Crc.apply tr @+ Fibers.all @@ subgoals n gs hs
+let apply env depth tr hs : strategy = fun n ->
+  if n.depth > depth then stuck else
+    match Session.apply env.Wenv.wenv tr n.goal with
+    | None -> stuck
+    | Some gs -> Crc.apply tr @+ Fibers.all @@ subgoals n gs hs
 
 (* -------------------------------------------------------------------------- *)
 (* --- Hammer Strategy                                                    --- *)
@@ -134,13 +136,13 @@ let hammer1 env prvs time : strategy = fun n ->
       (fun prv -> watch @+ prove env ~cancel prv time n) prvs
   in try List.find (fun r -> r <> Stuck) results with Not_found -> Stuck
 
-let hammer2 env trfs : strategy =
-  smap (fun tr -> apply env tr []) trfs
+let hammer2 env trfs depth : strategy =
+  smap (fun tr -> apply env depth tr []) trfs
 
 let hammer henv =
   hammer0 henv.env henv.provers (henv.time *. 0.2) >>>
   hammer1 henv.env henv.provers henv.time >>>
-  hammer2 henv.env henv.transfs >>>
+  hammer2 henv.env henv.transfs henv.maxdepth >>>
   hammer1 henv.env henv.provers (henv.time *. 2.0)
 
 (* -------------------------------------------------------------------------- *)
@@ -155,15 +157,15 @@ let prove h p t = prove h.env (select p h.provers) (overhead t)
 let update h p t = prove h p t >>> hammer h
 
 let transf h id cs =
-  apply h.env id cs >>>
+  apply h.env h.maxdepth id cs >>>
   hammer1 h.env h.provers h.time >>>
-  hammer2 h.env (List.filter (fun f -> f <> id) h.transfs) >>>
+  hammer2 h.env (List.filter (fun f -> f <> id) h.transfs) h.maxdepth >>>
   hammer1 h.env h.provers (h.time *. 2.0)
 
 let reduce h id cs =
   hammer1 h.env h.provers h.time >>>
-  apply h.env id cs >>>
-  hammer2 h.env (List.filter (fun f -> f <> id) h.transfs) >>>
+  apply h.env h.maxdepth id cs >>>
+  hammer2 h.env (List.filter (fun f -> f <> id) h.transfs) h.maxdepth >>>
   hammer1 h.env h.provers (h.time *. 2.0)
 
 let process h : strategy = fun n ->
@@ -178,7 +180,7 @@ let process h : strategy = fun n ->
     if h.minimize then
       reduce h id children n
     else if n.replay then
-      apply h.env id children n
+      apply h.env h.maxdepth id children n
     else
       transf h id children n
 
