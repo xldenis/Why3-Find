@@ -100,15 +100,15 @@ let heartbeat server ~time =
       let active emitter = time < emitter.time +. server.hangup in
       Fibers.Queue.filter server.pending
         begin fun task ->
-           task.waiting <- List.filter active task.waiting ;
-           task.loading <- List.filter active task.loading ;
-           task.running <- List.filter active task.running ;
-           if task.waiting = [] then
-             begin
-               kill server task ;
-               false
-             end
-           else true
+          task.waiting <- List.filter active task.waiting ;
+          task.loading <- List.filter active task.loading ;
+          task.running <- List.filter active task.running ;
+          if task.waiting = [] then
+            begin
+              kill server task ;
+              false
+            end
+          else true
         end ;
       let pendings = Fibers.Queue.size server.pending in
       Utils.progress "pending %4d" pendings

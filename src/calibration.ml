@@ -269,10 +269,10 @@ let to_json (p : profile) : Json.t =
       | None -> js
       | Some { size ; time } ->
         (`Assoc [
-          "prover", `String prv ;
-          "size", `Int size ;
-          "time", `Float time ;
-        ]) :: js
+            "prover", `String prv ;
+            "size", `Int size ;
+            "time", `Float time ;
+          ]) :: js
     ) p [])
 
 (* -------------------------------------------------------------------------- *)
