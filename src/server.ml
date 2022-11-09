@@ -181,7 +181,6 @@ let set_result server task result =
 
 let set_data server goal data =
   Utils.save ~file:(filename server goal ".data") data
-[@@ warning "-32"]
 
 let get_data server goal =
   Utils.load ~file:(filename server goal ".data")
@@ -250,15 +249,19 @@ let do_get server id goal timeout =
     | Unknown t -> Some ("Unknown",t)
     | Valid t -> if t <= timeout then Some ("Valid",t) else None
     | Timeout t -> if timeout <= t then Some ("Timeout",t) else None
-  in match status with
-  | Some(status,time) ->
-    List.iter (send_result server goal status time) task.waiting ;
-    List.iter (send_kill server goal) (remove id task.running) ;
-    task.waiting <- [] ;
-    task.running <- [] ;
-  | None ->
-    if task.waiting = [] then Fibers.Queue.push server.pending task ;
-    task.waiting <- add id task.waiting
+  in
+  begin
+    match status with
+    | Some(status,time) ->
+      List.iter (send_result server goal status time) task.waiting ;
+      List.iter (send_kill server goal) (remove id task.running) ;
+      task.waiting <- [] ;
+      task.running <- [] ;
+    | None ->
+      if task.waiting = [] then Fibers.Queue.push server.pending task ;
+      task.waiting <- add id task.waiting ;
+      task.timeout <- max task.timeout timeout ;
+  end
 
 (* -------------------------------------------------------------------------- *)
 (* --- UPLOAD Command                                                     --- *)
@@ -272,6 +275,30 @@ let do_upload server id goal data =
       task.sourced <- true ;
       task.loading <- remove id task.loading ;
     end
+
+(* -------------------------------------------------------------------------- *)
+(* --- KILL Command                                                       --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_kill server id goal =
+  let task = get_task server goal in
+  task.waiting <- remove id task.waiting
+
+(* -------------------------------------------------------------------------- *)
+(* --- HANGUP Command                                                     --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_hangup server id =
+  begin
+    Fibers.Queue.iter server.pending
+      (fun task ->
+         task.waiting <- remove id task.waiting ;
+         task.loading <- remove id task.loading ;
+         task.running <- remove id task.running ;
+      ) ;
+    Fibers.Queue.filter server.workers
+      (fun w -> w.worker.identity <> id.identity) ;
+  end
 
 (* -------------------------------------------------------------------------- *)
 (* --- PROVE Command                                                      --- *)
@@ -335,6 +362,10 @@ let handler server id msg =
       do_get server id { prover ; digest } (float_of_string timeout)
     | ["UPLOAD";prover;digest;data] ->
       do_upload server id { prover ; digest } data
+    | ["KILL";prover;digest] ->
+      do_kill server id { prover ; digest }
+    | ["HANGUP"] ->
+      do_hangup server id
     | _ -> ()
   with Invalid_argument _ | Not_found -> ()
 
