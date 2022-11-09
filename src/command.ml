@@ -627,6 +627,7 @@ let () = register ~name:"server" ~args:"OPTIONS"
         "DIR Database (default \"why3server\")";
         "--address",Arg.Set_string address,
         "URL server address (default \"tcp://*:5555\")";
+        "--trace",Arg.Set Server.trace,"Trace server protocol";
       ] failwith
         "USAGE:\n\
          \n  why3find server [OPTIONS]\n\n\

@@ -304,7 +304,7 @@
     --prune AGE Prune cache generations older than AGE
     --database DIR Database (default "why3server")
     --address URL server address (default "tcp://*:5555")
-    --hangup MIN Connection timeout (in minutes, default 10')
+    --trace Trace server protocol
     -help  Display this list of options
     --help  Display this list of options
   

@@ -71,17 +71,44 @@ type server = {
   profile : Calibration.profile ;
   cache : Runner.result TaskIndex.t ;
   pending : task Fibers.Queue.t ;
-  mutable pulse : float ;
 }
+
+let pp_id fmt id =
+  String.iter (fun c -> Format.fprintf fmt "%02x" @@ Char.code c) id
+
+let pp_arg fmt arg =
+  let arg = String.escaped arg in
+  if String.length arg <= 8 then
+    Format.fprintf fmt " %-8s |" arg
+  else
+    Format.fprintf fmt " %s… |" (String.sub arg 0 7)
+
+let pp_args fmt args = List.iter (pp_arg fmt) args
+
+let trace = ref false
+let chrono = ref @@ Unix.time ()
+
+let send server emitter msg =
+  if !trace then
+    begin
+      Utils.flush () ;
+      Format.printf "SEND@%a %a@." pp_id emitter.identity pp_args msg ;
+    end ;
+  Zmq.Socket.send_all server.socket (emitter.identity :: msg)
 
 let recv server ~time fn =
   match Zmq.Socket.recv_all ~block:false server.socket with
-  | identity::msg -> fn { time ; identity } msg
-  | [] -> ()
-  | exception Unix.Unix_error(EAGAIN,_,_) -> ()
-
-let send server emitter msg =
-  Zmq.Socket.send_all server.socket (emitter.identity :: msg)
+  | [] -> true
+  | identity::msg ->
+    if !trace then
+      begin
+        Utils.flush () ;
+        let delta = time -. !chrono in
+        Format.printf "RECV@%a %a (%a)@." pp_id identity pp_args msg
+          Utils.pp_time delta ;
+      end ;
+    fn { time ; identity } msg ; true
+  | exception Unix.Unix_error(EAGAIN,_,_) -> false
 
 (* -------------------------------------------------------------------------- *)
 (* --- Server Heartbeat                                                   --- *)
@@ -92,27 +119,18 @@ let kill server { goal ; running } =
     (fun id -> send server id ["KILL";goal.prover;goal.digest])
     running
 
-let heartbeat server ~time =
-  if time > server.pulse then
+let process server ~time task =
+  let timeout = max 2.0 (2.0 *. task.timeout) in
+  let active emitter = time < emitter.time +. timeout in
+  task.waiting <- List.filter active task.waiting ;
+  task.loading <- List.filter active task.loading ;
+  task.running <- List.filter active task.running ;
+  if task.waiting = [] then
     begin
-      server.pulse <- time +. 10.0 ;
-      Fibers.Queue.filter server.pending
-        begin fun task ->
-          let timeout = 2.0 *. task.timeout in
-          let active emitter = time < emitter.time +. timeout in
-          task.waiting <- List.filter active task.waiting ;
-          task.loading <- List.filter active task.loading ;
-          task.running <- List.filter active task.running ;
-          if task.waiting = [] then
-            begin
-              kill server task ;
-              false
-            end
-          else true
-        end ;
-      let pendings = Fibers.Queue.size server.pending in
-      Utils.progress "pending %4d" pendings
+      kill server task ;
+      false
     end
+  else true
 
 (* -------------------------------------------------------------------------- *)
 (* --- Server Cache                                                       --- *)
@@ -217,6 +235,12 @@ let handler server emitter msg =
     ignore msg ;
   end
 
+let flush ~time server =
+  begin
+    while recv server ~time (handler server) do () done ;
+    chrono := time ;
+  end
+
 (* -------------------------------------------------------------------------- *)
 (* --- Server Main Program                                                --- *)
 (* -------------------------------------------------------------------------- *)
@@ -235,14 +259,15 @@ let establish ~database ~address =
     socket ;
     pending = Fibers.Queue.create () ;
     cache = TaskIndex.create 0 ;
-    pulse = 0.0 ;
   } in
   Format.printf "Server is running…@." ;
   while true do
+    ignore @@ Zmq.Poll.poll ~timeout:1000 server.polling ;
     let time = Unix.time () in
-    recv server ~time (handler server) ;
-    heartbeat server ~time ;
-    ignore @@ Zmq.Poll.poll ~timeout:60000 server.polling ;
+    flush ~time server ;
+    Fibers.Queue.filter server.pending (process server ~time) ;
+    let pendings = Fibers.Queue.size server.pending in
+    Utils.progress "pending %4d" pendings ;
   done
 
 (* -------------------------------------------------------------------------- *)

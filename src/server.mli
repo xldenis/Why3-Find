@@ -23,8 +23,8 @@
 (* --- Server Commands                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
+val trace: bool ref
 val prune: database:string -> age:int -> unit
-
 val establish: database:string -> address:string -> unit
 
 (* -------------------------------------------------------------------------- *)
