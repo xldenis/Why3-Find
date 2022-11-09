@@ -86,7 +86,6 @@ let now ~time { identity } = { identity ; time }
 (* -------------------------------------------------------------------------- *)
 
 type server = {
-  mutable activity : bool ;
   context : Zmq.Context.t ;
   socket : [ `Router ] Zmq.Socket.t ;
   polling : Zmq.Poll.t ;
@@ -366,7 +365,6 @@ let schedule server ~time task =
           let data = get_data server task.goal in
           send_prove server task.goal task.timeout data w.worker ;
           task.running <- now ~time w.worker :: task.running ;
-          server.activity <- true ;
           raise Exit ;
         end
     done
@@ -430,12 +428,42 @@ let flush ~time server =
   end
 
 (* -------------------------------------------------------------------------- *)
+(* --- Server Statistics                                                  --- *)
+(* -------------------------------------------------------------------------- *)
+
+let print_stats server =
+  begin
+    let waiting = ref 0 in
+    let loading = ref 0 in
+    let running = ref 0 in
+    let cores = ref 0 in
+    Fibers.Queue.iter server.pending
+      (fun task ->
+         incr @@
+           if task.running <> [] then running else
+           if task.loading <> [] then loading else
+             waiting) ;
+    Fibers.Queue.iter server.workers
+      (fun w -> cores := w.cores + !cores) ;
+    let workers = Fibers.Queue.size server.workers in
+    Utils.progress "Tasks:%d/%d/%d  Workers:%d(%d)"
+      !waiting !loading !running workers (!cores + !running)
+  end
+
+(* -------------------------------------------------------------------------- *)
 (* --- Server Main Program                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
 let poll server =
   let mask = Zmq.Poll.poll ~timeout:1000 server.polling in
-  server.activity <- mask.(0) <> None
+  mask.(0) <> None
+
+let stuck server =
+  try
+    Fibers.Queue.iter server.pending
+      (fun task -> if task.loading = [] && task.running = [] then raise Exit) ;
+    false
+  with Exit -> true
 
 let hire server =
   begin
@@ -455,21 +483,19 @@ let establish ~database ~address =
     context ;
     polling ;
     socket ;
-    activity = false ;
     pending = Fibers.Queue.create () ;
     workers = Fibers.Queue.create () ;
     index = TaskIndex.create 0 ;
   } in
   Format.printf "Server is running…@." ;
   while true do
-    poll server ;
+    let activity = poll server in
     let time = Unix.time () in
     flush ~time server ;
     Fibers.Queue.iter server.pending (process server ~time) ;
     Fibers.Queue.filter server.pending (fun { waiting } -> waiting <> []) ;
-    let pendings = Fibers.Queue.size server.pending in
-    Utils.progress "pending %4d" pendings ;
-    if not server.activity && pendings > 0 then hire server ;
+    if not activity && stuck server then hire server ;
+    print_stats server ;
   done
 
 (* -------------------------------------------------------------------------- *)
