@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+<title>SERVER.html</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+
+</head>
+
+<body>
+
+<h1 id="server-protocol">Server Protocol</h1>
+<p>This document presents the why3find server protocol used to build
+proof clusters. Recall that a proof cluster consists of: a unique
+<em>server</em> instance responsible for the coordination and management
+of the cluster; many (volatile) <em>client</em> instances polling proof
+requests to the <em>server</em>; many (volatile) <em>worker</em>
+instances actually running proof tasks. Both <em>clients</em> and
+<em>workers</em> connects the <em>server</em> on the same URL
+address.</p>
+<h2 id="transport-sockets">Transport Sockets</h2>
+<p>All kind of instances are using <a
+href="hhtps://zeromq.org">ZeroMQ</a> sockets to communicate with each
+others. Both UNIX Sockets and TCP transport protocol can be used for
+connecting. A typical cluster setup is composed as follows:</p>
+<ul>
+<li>The Server instance <em>binds</em> to <code>tcp://*:5555</code> URL
+on some host named <code>HOST</code>;</li>
+<li>All Client and Worker instances <em>connect</em> to
+<code>tcp://HOST:5555</code>.</li>
+</ul>
+<h2 id="server-database">Server Database</h2>
+<p>The <em>Server</em> instance stores the proof cluster knowledge in a
+local directory named the <em>Server Database</em>. This directory is
+composed of the following files and subdirectories:</p>
+<ul>
+<li><code>profile.json</code> contains the prover calibration data (Cf.
+<code>why3find config   -m</code>);</li>
+<li><code>AGE/*</code> contains the proof cache entries for generation
+<code>AGE</code>, where <code>AGE=0</code> is the currently active
+generation and <code>AGE&gt;0</code> are older ones.</li>
+</ul>
+<p>Proof entries are automatically promoted from older generations to
+currently active one. Archiving is performed by invoking
+<code>why3find server --prune N</code>, where the <code>N</code> most
+recent generations are shifted to <code>1..N</code>, and older ones are
+erased. Invoking <code>why3find server --stats</code> allows checking
+for disk usage in each generation.</p>
+<h2 id="server-messages">Server Messages</h2>
+<p>Since both clients and workers are connecting to the same address on
+the Server, they actually share the same protocol. However, workers and
+clients actually use a different subset of the protocol messages, with
+few common commands.</p>
+<p>The protocol is using <em>Dealer</em> ZMQ Sockets on Client and
+Worker sides, and <em>Router</em> ZMQ Sockets on Server side. The
+protocol is then asynchronous in both directions for all participants to
+the cluster.</p>
+<h3 id="messages-summary">Messages Summary</h3>
+<p>Below is a summary of commands and responses of the protocol,
+presented in a typical order of events:</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Name</th>
+<th style="text-align: center;">Usage</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>PROFILE</code></td>
+<td
+style="text-align: center;"><code>C &lt;-&gt; S &lt;-&gt; W</code></td>
+<td>Prover calibration</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>GET</code></td>
+<td style="text-align: center;"><code>C -&gt; S</code></td>
+<td>Proof request</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>DOWNLOAD</code></td>
+<td style="text-align: center;"><code>C &lt;- S</code></td>
+<td>Proof data download request</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>UPLOAD</code></td>
+<td style="text-align: center;"><code>C -&gt; S</code></td>
+<td>Proof data upload to server</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>HIRING</code></td>
+<td style="text-align: center;"><code>S -&gt; W</code></td>
+<td>Workers needed</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>READY</code></td>
+<td style="text-align: center;"><code>W -&gt; S</code></td>
+<td>Available worker</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>PROVE</code></td>
+<td style="text-align: center;"><code>S -&gt; W</code></td>
+<td>Proof task request to worker</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>RESULT</code></td>
+<td style="text-align: center;"><code>C &lt;-&gt; S &lt;- W</code></td>
+<td>Proof result transfer</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>KILL</code></td>
+<td style="text-align: center;"><code>C -&gt; S &lt;-&gt; W</code></td>
+<td>Proof task cancelling</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>HANGUP</code></td>
+<td style="text-align: center;"><code>C -&gt; S &lt;- W</code></td>
+<td>Leaving participant</td>
+</tr>
+</tbody>
+</table>
+<h3 id="arguments-format">Arguments Format</h3>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Arg.</th>
+<th style="text-align: center;">Type</th>
+<th style="text-align: left;">Example</th>
+<th style="text-align: left;">Usage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"><code>prv</code></td>
+<td style="text-align: center;"><em>string</em></td>
+<td style="text-align: left;"><code>Alt-Ergo,2.2.0</code></td>
+<td style="text-align: left;">Prover identifier</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><code>jobs</code></td>
+<td style="text-align: center;"><em>int</em></td>
+<td style="text-align: left;"><code>8</code></td>
+<td style="text-align: left;">Available cores</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><code>size</code></td>
+<td style="text-align: center;"><em>int</em></td>
+<td style="text-align: left;"><code>45</code></td>
+<td style="text-align: left;">Calibration size</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><code>time</code></td>
+<td style="text-align: center;"><em>float</em></td>
+<td style="text-align: left;"><code>0.55</code></td>
+<td style="text-align: left;">Calibration time or timeout</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"><code>hash</code></td>
+<td style="text-align: center;"><em>string</em></td>
+<td style="text-align: left;"><code>41c04a2df870…</code></td>
+<td style="text-align: left;">Proof task digest</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;"><code>data</code></td>
+<td style="text-align: center;"><em>string</em></td>
+<td style="text-align: left;">An SMTLIB formula</td>
+<td style="text-align: left;">proof task data</td>
+</tr>
+</tbody>
+</table>
+<h3 id="profile">PROFILE</h3>
+<pre><code>Usage: Client &lt;-&gt; Worker &lt;-&gt; Server
+Format: [ PROFILE | prv | size | time ]</code></pre>
+<p>Updates the target calibration with the given prover profile, if
+undefined yet. Any participant to the cluster shall first announce to
+each others their respective prover profile. This is usually done this
+way: Client and Worker announce their respective calibration profile,
+and the Server replies with its own profile for the announced provers.
+Hence, all participants known each-other profiles.</p>
+<p>Notice that Clients and Workers are both responsible for converting
+times with respect to Server calibration profile. The Server
+<em>never</em> convert times on his own size.</p>
+<h3 id="get">GET</h3>
+<pre><code>Usage: Client -&gt; Server
+Format: [ GET | prv | hash | timout ]</code></pre>
+<p>Proof request from Client. The expected response is eventually a
+<code>RESULT</code>, although the server might first ask for a
+<code>DOWNLOAD</code> if the proof task data has not been uploaded to
+the Server yet. The <code>timout</code> limit must be converted by the
+Client with respect to the Server’s profile.</p>
+<h3 id="download">DOWNLOAD</h3>
+<pre><code>Usage: Server -&gt; Client
+Format: [ DOWNLOAD | prv | hash ]</code></pre>
+<p>Request from the Server to the Client for uploading proof task data.
+Usually sent in response to a <code>GET</code> command from the
+Client.</p>
+<h3 id="upload">UPLOAD</h3>
+<pre><code>Usage: Client -&gt; Server
+Format: [ UPLOAD | prv | hash | data ]</code></pre>
+<p>Upload proof data from the Client to the Server. Usually sent in
+response to a <code>DOWNLOAD</code> message from the Server.</p>
+<h3 id="hiring">HIRING</h3>
+<pre><code>Usage: Server -&gt; Worker
+Format: [ HIRING ]</code></pre>
+<p>Sent by Server to Workers to claim available cores. This message
+makes the Server able to keep track of silently disconnected workers
+after a period of inactivity. Workers are invited to re-emit
+<code>READY</code> messages in response to the <code>HIRING</code>
+message.</p>
+<h3 id="ready">READY</h3>
+<pre><code>Usage: Worker -&gt; Server
+Format: [ READY | jobs | prv | … | prv ]</code></pre>
+<p>Announce some available cores for the listed provers. The Server will
+assign at most <code>jobs</code> proof tasks to the originated worker,
+and only for the specified provers.</p>
+<h3 id="prove">PROVE</h3>
+<pre><code>Usage: Server -&gt; Worker
+Format: [ PROVE | prv | hash | timeout | data ]</code></pre>
+<p>Proof task assigned to a worker. The <code>timeout</code> must be
+converted by the Worker with respect to the Server’s profile.</p>
+<h3 id="result">RESULT</h3>
+<pre><code>Usage: Worker -&gt; Server &lt;-&gt; Client
+Format: [ RESULT | prv | hash | status | time ]</code></pre>
+<p>Sends a proof result, from either Client or Worker to Server, or from
+Server to Client. Status can be either: <code>Valid</code>,
+<code>Invalid</code>, <code>Timeout</code> or <code>Unknown</code>.
+Failures are discarded.</p>
+<h3 id="kill">KILL</h3>
+<pre><code>Usage: Client -&gt; Server &lt;-&gt; Worker
+Format: [ KILL | prv | hash ]</code></pre>
+<p>Cancel a proof request, either on the Server or on a Worker. A
+pending proof request in the Server shall be killed by all its waiting
+Clients before actually being canceled in Worker(s).</p>
+<h3 id="hangup">HANGUP</h3>
+<pre><code>Usage: Client -&gt; Server &lt;- Worker
+Format: [ HANGUP ]</code></pre>
+<p>Fairly announce that a Worker or Client is disconnecting. This
+actually cancels the associated pending proof requests and triggers a
+re-scheduling of the associated running proof tasks. Notice that Workers
+and Clients often disconnect on-the-fly, typically after a user
+<code>Ctrl-C</code> in terminal.</p>
+
+</body>
+</html>

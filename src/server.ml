@@ -69,7 +69,7 @@ let save_profile ~database profile =
 (* -------------------------------------------------------------------------- *)
 
 type worker = {
-  cores: int;
+  mutable cores: int;
   worker: emitter ;
   provers: string list;
 }
@@ -78,6 +78,8 @@ let remove { identity = a } ids =
   List.filter (fun { identity = b } -> a <> b) ids
 
 let add id ids = id :: remove id ids
+
+let now ~time { identity } = { identity ; time }
 
 (* -------------------------------------------------------------------------- *)
 (* --- Server                                                             --- *)
@@ -238,6 +240,18 @@ let do_profile server id prv s t =
   in send_profile server prv size time id
 
 (* -------------------------------------------------------------------------- *)
+(* --- Finalize Task                                                      --- *)
+(* -------------------------------------------------------------------------- *)
+
+let finalize server id task status time =
+  begin
+    List.iter (send_result server task.goal status time) (remove id task.waiting) ;
+    List.iter (send_kill server task.goal) (remove id task.running) ;
+    task.waiting <- [] ;
+    task.running <- [] ;
+  end
+
+(* -------------------------------------------------------------------------- *)
 (* --- GET Command                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -252,11 +266,7 @@ let do_get server id goal timeout =
   in
   begin
     match status with
-    | Some(status,time) ->
-      List.iter (send_result server goal status time) task.waiting ;
-      List.iter (send_kill server goal) (remove id task.running) ;
-      task.waiting <- [] ;
-      task.running <- [] ;
+    | Some(status,time) -> finalize server id task status time
     | None ->
       if task.waiting = [] then Fibers.Queue.push server.pending task ;
       task.waiting <- add id task.waiting ;
@@ -274,6 +284,46 @@ let do_upload server id goal data =
       set_data server goal data ;
       task.sourced <- true ;
       task.loading <- remove id task.loading ;
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- READY Command                                                      --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_ready server id jobs provers =
+  begin
+    Fibers.Queue.filter server.workers
+      (fun w -> w.worker.identity <> id.identity) ;
+    Fibers.Queue.push server.workers {
+      worker = id ;
+      cores = jobs ;
+      provers
+    } ;
+  end
+
+(* -------------------------------------------------------------------------- *)
+(* --- RESULT Command                                                     --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_result server id goal status time =
+  Fibers.Queue.iter server.workers
+    (fun w ->
+       if w.worker.identity = id.identity then
+         w.cores <- succ w.cores
+    ) ;
+  let result =
+    match status with
+    | "Valid" -> Runner.Valid time
+    | "Unknown" -> Runner.Unknown time
+    | "Timeout" -> Runner.Timeout time
+    | _ -> Runner.NoResult
+  in
+  if result <> NoResult then
+    begin
+      let task = get_task server goal in
+      set_result server goal result ;
+      task.cached <- result ;
+      finalize server id task status time ;
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -304,21 +354,21 @@ let do_hangup server id =
 (* --- PROVE Command                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
-let schedule server task =
+let schedule server ~time task =
   try
     let n = Fibers.Queue.size server.workers in
     for _i = 1 to n do
       let w = Fibers.Queue.pop server.workers in
-      if List.mem task.goal.prover w.provers then
+      Fibers.Queue.push server.workers w ;
+      if w.cores > 0 && List.mem task.goal.prover w.provers then
         begin
+          w.cores <- pred w.cores ;
           let data = get_data server task.goal in
           send_prove server task.goal task.timeout data w.worker ;
-          task.running <- w.worker :: task.running ;
+          task.running <- now ~time w.worker :: task.running ;
           server.activity <- true ;
           raise Exit ;
         end
-      else
-        Fibers.Queue.push server.workers w ;
     done
   with Not_found | Exit -> ()
 
@@ -343,11 +393,11 @@ let process server ~time task =
     begin
       let id = List.hd task.waiting in
       send_download server task.goal id ;
-      task.loading <- [id] ;
+      task.loading <- [now ~time id] ;
     end
   else
   if task.sourced && task.running = [] then
-    schedule server task
+    schedule server ~time task
 
 (* -------------------------------------------------------------------------- *)
 (* --- Message Handler                                                    --- *)
@@ -362,6 +412,10 @@ let handler server id msg =
       do_get server id { prover ; digest } (float_of_string timeout)
     | ["UPLOAD";prover;digest;data] ->
       do_upload server id { prover ; digest } data
+    | "READY"::jobs::provers ->
+      do_ready server id (int_of_string jobs) provers
+    | ["RESULT";prover;digest;status;time] ->
+      do_result server id { prover ; digest } status (float_of_string time)
     | ["KILL";prover;digest] ->
       do_kill server id { prover ; digest }
     | ["HANGUP"] ->
