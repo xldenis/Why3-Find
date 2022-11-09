@@ -43,7 +43,8 @@
      (dune (>= 3.5))
      (ocaml (>= 4.12.0))
      (yojson (>= 1.7.0))
-     (ppxlib (>= 0.27.0)))
+     (ppxlib (>= 0.27.0))
+     (why3find (>= 1.0)))
   (sites
     (lib packages))
   (tags (topics "why3" "ppx")))
