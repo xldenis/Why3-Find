@@ -44,7 +44,7 @@ val all : env -> prover list
 val default : env -> prover list
 val prover : env -> string -> prover
 val select : env -> string list -> prover list
-val valid_for : time:float -> result -> bool
+val fits : timeout:float -> result -> bool
 
 val pp_prover : Format.formatter -> prover -> unit
 val pp_result : Format.formatter -> result -> unit

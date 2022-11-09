@@ -321,10 +321,10 @@ let call_prover (env : Wenv.env)
     ?(callback : callback option)
     ~(prepared : Task.task)
     ~(prover : prover)
-    ~(time : float) () =
+    ~(timeout : float) () =
   let main = Whyconf.get_main env.wconfig in
-  let limit = limit env time in
-  let timeout = ref 0.0 in
+  let limit = limit env timeout in
+  let clockwall = ref 0.0 in
   let started = ref false in
   let killed = ref false in
   let canceled = ref false in
@@ -352,7 +352,7 @@ let call_prover (env : Wenv.env)
   Fibers.hook cancel interrupt Fibers.async
     begin fun () ->
       let t0 = Unix.gettimeofday () in
-      if !started && (!canceled || !timeout < t0) then kill () ;
+      if !started && (!canceled || !clockwall < t0) then kill () ;
       let query =
         try Call_provers.query_call call with e -> InternalFailure e in
       match query with
@@ -363,7 +363,7 @@ let call_prover (env : Wenv.env)
         if not !started then
           begin
             start ?name () ;
-            timeout := Unix.gettimeofday () +. time ;
+            clockwall := Unix.gettimeofday () +. timeout ;
             started := true ;
           end ;
         None
@@ -418,18 +418,18 @@ let notify_cached env prover (callback : callback option) cached =
     | Unknown t -> fire f prover (limit env t) (pr ~s:1  ~t (Unknown "cached"))
     | Failed -> fire f prover (limit env 1.0) (pr ~s:2 (Failure "cached"))
 
-let valid_for ~time = function
+let fits ~timeout = function
   | NoResult -> false
   | Failed -> true
   | Unknown _ -> true
-  | Valid t -> t <= time
-  | Timeout t -> time <= t
+  | Valid t -> t <= timeout
+  | Timeout t -> timeout <= t
 
-let prove env ?name ?cancel ?callback task prover time =
+let prove env ?name ?cancel ?callback task prover timeout =
   let prepared = Driver.prepare_task prover.driver task in
   let entry = prepared,prover in
   let cached = get entry in
-  if valid_for ~time cached then
+  if fits ~timeout cached then
     (incr hits ;
      notify_cached env prover callback cached ;
      Fibers.return cached)
@@ -437,7 +437,7 @@ let prove env ?name ?cancel ?callback task prover time =
     (incr miss ;
      Fibers.map
        (fun result -> set entry result ; result)
-       (call_prover env ?name ?cancel ?callback ~prepared ~prover ~time ()))
+       (call_prover env ?name ?cancel ?callback ~prepared ~prover ~timeout ()))
 
 (* -------------------------------------------------------------------------- *)
 (* --- Options                                                            --- *)

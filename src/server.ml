@@ -28,6 +28,7 @@ type emitter = { identity : string ; time : float }
 
 type task = {
   goal : goal ;
+  mutable cached : Runner.result ; (* prover result *)
   mutable sourced : bool ; (* prover task has been downloaded *)
   mutable timeout : float ; (* max of requested timeout *)
   mutable waiting : emitter list ;
@@ -49,7 +50,7 @@ end
 module TaskIndex = Hashtbl.Make(Goal)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Velocity                                                           --- *)
+(* --- Calibration                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
 let load_profile ~database =
@@ -58,6 +59,16 @@ let load_profile ~database =
     Json.of_file file |> Calibration.of_json
   else
     Calibration.empty ()
+
+(* -------------------------------------------------------------------------- *)
+(* --- Worker                                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+type worker = {
+  cores: int;
+  worker: emitter ;
+  provers: string list;
+}
 
 (* -------------------------------------------------------------------------- *)
 (* --- Server                                                             --- *)
@@ -69,8 +80,9 @@ type server = {
   polling : Zmq.Poll.t ;
   database : string ;
   profile : Calibration.profile ;
-  cache : Runner.result TaskIndex.t ;
+  index : task TaskIndex.t;
   pending : task Fibers.Queue.t ;
+  workers : worker Fibers.Queue.t ;
 }
 
 let pp_id fmt id =
@@ -111,46 +123,22 @@ let recv server ~time fn =
   | exception Unix.Unix_error(EAGAIN,_,_) -> false
 
 (* -------------------------------------------------------------------------- *)
-(* --- Server Heartbeat                                                   --- *)
-(* -------------------------------------------------------------------------- *)
-
-let kill server { goal ; running } =
-  List.iter
-    (fun id -> send server id ["KILL";goal.prover;goal.digest])
-    running
-
-let process server ~time task =
-  let timeout = max 2.0 (2.0 *. task.timeout) in
-  let active emitter = time < emitter.time +. timeout in
-  task.waiting <- List.filter active task.waiting ;
-  task.loading <- List.filter active task.loading ;
-  task.running <- List.filter active task.running ;
-  if task.waiting = [] then
-    begin
-      kill server task ;
-      false
-    end
-  else true
-
-(* -------------------------------------------------------------------------- *)
 (* --- Server Cache                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-let basename database gen task =
-  let hh = String.sub task.digest 0 2 in
-  Format.sprintf "%s/%d/%s/%s/%s" database gen task.prover hh task.digest
+let basename database gen { prover ; digest } =
+  let hh = String.sub digest 0 2 in
+  Format.sprintf "%s/%d/%s/%s/%s" database gen prover hh digest
 
-[@@@ warning "-32"]
-
-let get server task =
+let get_cache server goal =
   let rec lookup n =
     let gen = Format.sprintf "%s/%d" server.database n in
     if Sys.file_exists gen && Sys.is_directory gen then
-      let base = basename server.database n task in
+      let base = basename server.database n goal in
       if Sys.file_exists base && Sys.is_directory base then
         let root =
           if n > 0 then
-            let root = basename server.database 0 task in
+            let root = basename server.database 0 goal in
             Sys.rename base root ; root
           else base
         in
@@ -164,12 +152,11 @@ let get server task =
               Format.eprintf "Error: incorrect database (removed entry)@." ;
               Sys.remove json ; Runner.NoResult
           else Runner.NoResult in
-        let source = if Sys.file_exists data then Some data else None in
-        result,source
+        result,Sys.file_exists data
       else
         lookup (succ n)
     else
-      NoResult,None
+      NoResult,false
   in lookup 0
 
 let get_data file =
@@ -181,6 +168,7 @@ let get_data file =
     done ; "" (* unreachable *)
   with End_of_file ->
     close_in inc ; Buffer.contents buffer
+[@@ warning "-32"]
 
 let filename server task ext =
   let base = basename server.database 0 task in
@@ -190,13 +178,120 @@ let filename server task ext =
 let set_result server task result =
   let file = filename server task ".json" in
   Runner.to_json result |> Json.to_file file
+[@@ warning "-32"]
 
 let set_data server task data =
   let file = filename server task ".data" in
   let out = open_out file in
   output_string out data ; close_out out
+[@@ warning "-32"]
 
-[@@@ warning "+32"]
+let get_task server goal =
+  try TaskIndex.find server.index goal with Not_found ->
+    let cached,sourced = get_cache server goal in
+    let task = {
+      goal ;
+      cached ;
+      sourced ;
+      waiting = [] ;
+      loading = [] ;
+      running = [] ;
+      timeout = 0.0 ;
+    } in
+    TaskIndex.add server.index goal task ;
+    Fibers.Queue.push server.pending task ;
+    task
+[@@ warning "-32"]
+
+(* -------------------------------------------------------------------------- *)
+(* --- Message Handler                                                    --- *)
+(* -------------------------------------------------------------------------- *)
+
+let handler server emitter msg =
+  try
+    ignore server ;
+    ignore emitter ;
+    ignore msg ;
+  with Invalid_argument _ | Not_found -> ()
+
+let flush ~time server =
+  begin
+    while recv server ~time (handler server) do () done ;
+    chrono := time ;
+  end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Sent Messages                                                      --- *)
+(* -------------------------------------------------------------------------- *)
+
+let send_kill server goal id =
+  send server id ["KILL";goal.prover;goal.digest]
+
+let send_download server goal id =
+  send server id ["DOWNLOAD";goal.prover;goal.digest]
+
+(* -------------------------------------------------------------------------- *)
+(* --- Task Processing                                                    --- *)
+(* -------------------------------------------------------------------------- *)
+
+let process server ~time task =
+  let timeout = max 2.0 (2.0 *. task.timeout) in
+  let active emitter = time < emitter.time +. timeout in
+  task.waiting <- List.filter active task.waiting ;
+  task.loading <- List.filter active task.loading ;
+  task.running <- List.filter active task.running ;
+  if task.waiting = [] then
+    begin
+      List.iter (send_kill server task.goal) task.running ;
+      task.running <- [] ;
+      task.timeout <- 0.0 ;
+    end
+  else
+  if not task.sourced && task.loading = [] then
+    begin
+      List.iter (send_download server task.goal) task.waiting ;
+      task.loading <- task.waiting ;
+    end
+  else
+  if task.sourced && task.running = [] then
+    begin
+      (*TODO: schedule *)
+    end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Server Main Program                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let poll server =
+  let mask = Zmq.Poll.poll ~timeout:1000 server.polling in
+  mask.(0) <> None
+
+let establish ~database ~address =
+  let context = Zmq.Context.create () in
+  let socket = Zmq.Socket.(create context router) in
+  let polling = Zmq.Poll.(mask_of [| socket , In |]) in
+  let profile = load_profile ~database in
+  Zmq.Socket.bind socket address  ;
+  let server = {
+    profile ;
+    database ;
+    context ;
+    polling ;
+    socket ;
+    pending = Fibers.Queue.create () ;
+    workers = Fibers.Queue.create () ;
+    index = TaskIndex.create 0 ;
+  } in
+  Format.printf "Server is running…@." ;
+  while true do
+    let _evt = poll server in
+    let time = Unix.time () in
+    flush ~time server ;
+    Fibers.Queue.iter server.pending (process server ~time) ;
+    Fibers.Queue.filter server.pending (fun { waiting } -> waiting <> []) ;
+    let pendings = Fibers.Queue.size server.pending in
+    Utils.progress "pending %4d" pendings ;
+  done
 
 (* -------------------------------------------------------------------------- *)
 (* --- Shifting Database                                                  --- *)
@@ -223,51 +318,5 @@ let prune ~database ~age =
     ignore @@ shift 0 ;
     Format.printf "Database pruned@." ;
   end
-
-(* -------------------------------------------------------------------------- *)
-(* --- Message Handler                                                    --- *)
-(* -------------------------------------------------------------------------- *)
-
-let handler server emitter msg =
-  begin
-    ignore server ;
-    ignore emitter ;
-    ignore msg ;
-  end
-
-let flush ~time server =
-  begin
-    while recv server ~time (handler server) do () done ;
-    chrono := time ;
-  end
-
-(* -------------------------------------------------------------------------- *)
-(* --- Server Main Program                                                --- *)
-(* -------------------------------------------------------------------------- *)
-
-let establish ~database ~address =
-  let context = Zmq.Context.create () in
-  let socket = Zmq.Socket.(create context router) in
-  let polling = Zmq.Poll.(mask_of [| socket , In |]) in
-  let profile = load_profile ~database in
-  Zmq.Socket.bind socket address  ;
-  let server = {
-    profile ;
-    database ;
-    context ;
-    polling ;
-    socket ;
-    pending = Fibers.Queue.create () ;
-    cache = TaskIndex.create 0 ;
-  } in
-  Format.printf "Server is running…@." ;
-  while true do
-    ignore @@ Zmq.Poll.poll ~timeout:1000 server.polling ;
-    let time = Unix.time () in
-    flush ~time server ;
-    Fibers.Queue.filter server.pending (process server ~time) ;
-    let pendings = Fibers.Queue.size server.pending in
-    Utils.progress "pending %4d" pendings ;
-  done
 
 (* -------------------------------------------------------------------------- *)
