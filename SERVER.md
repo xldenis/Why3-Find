@@ -48,18 +48,18 @@ directions for all participants to the cluster.
 Below is a summary of commands and responses of the protocol, presented
 in a typical order of events:
 
-| Name       | Usage          | Description                   |
-|:-----------|:--------------:|-------------------------------|
-| `PROFILE`  | (any)          | Prover calibration            |
-| `GET`      | from C         | Proof request                 |
-| `HIRING`   | to W           | Workers needed                |
-| `READY`    | from W         | Available worker              |
-| `DOWNLOAD` | to C           | Proof data download request   |
-| `UPLOAD`   | from C         | Proof data upload to server   |
-| `PROVE`    | to W           | Proof task request to worker  |
-| `RESULT`   | to S, to C     | Proof result transfer         |
-| `KILL`     | to S, to W     | Proof task cancelling         |
-| `HANGUP`   | to S           | Leaving participant           |
+| Name       | Usage            | Description                   |
+|:-----------|:----------------:|-------------------------------|
+| `PROFILE`  | `C <-> S <-> W`  | Prover calibration            |
+| `GET`      | `C -> S`         | Proof request                 |
+| `DOWNLOAD` | `C <- S`         | Proof data download request   |
+| `UPLOAD`   | `C -> S`         | Proof data upload to server   |
+| `HIRING`   | `S -> W`         | Workers needed                |
+| `READY`    | `W -> S`         | Available worker              |
+| `PROVE`    | `S -> W`         | Proof task request to worker  |
+| `RESULT`   | `C <-> S <- W`   | Proof result transfer         |
+| `KILL`     | `C -> S <-> W`   | Proof task cancelling         |
+| `HANGUP`   | `C -> S <- W`    | Leaving participant           |
 
 ### Arguments Format
 
@@ -74,7 +74,7 @@ in a typical order of events:
 
 ### PROFILE
 
-    Origin: Client, Worker, Server
+    Usage: Client <-> Worker <-> Server
     Format: [ PROFILE | prv | size | time ]
 
 Updates the target calibration with the given prover profile, if undefined yet.
@@ -90,7 +90,7 @@ on his own size.
 
 ### GET
 
-    Origin: Client
+    Usage: Client -> Server
     Format: [ GET | prv | hash | timout ]
 
 Proof request from Client. The expected response is eventually a `RESULT`,
@@ -98,27 +98,9 @@ although the server might first ask for a `DOWNLOAD` if the proof task data has
 not been uploaded to the Server yet. The `timout` limit must be converted by the
 Client with respect to the Server's profile.
 
-### HIRING
-
-    Target: Worker
-    Format: [ HIRING ]
-
-Sent by Server to Workers to claim available cores. This message makes the
-Server able to keep track of silently disconnected workers after a period of
-inactivity. Workers are invited to re-emit `READY` messages in response to the
-`HIRING` message.
-### READY
-
-    Origin: Worker
-    Format: [ READY | jobs | prv | … | prv ]
-
-Announce some available cores for the listed provers. The Server will assign at
-most `jobs` proof tasks to the originated worker, and only for the specified
-provers.
-
 ### DOWNLOAD
 
-    Target: Client
+    Usage: Server -> Client
     Format: [ DOWNLOAD | prv | hash ]
 
 Request from the Server to the Client for uploading proof task data.
@@ -126,15 +108,34 @@ Usually sent in response to a `GET` command from the Client.
 
 ### UPLOAD
 
-    Origin: Client
+    Usage: Client -> Server
     Format: [ UPLOAD | prv | hash | data ]
 
 Upload proof data from the Client to the Server.
 Usually sent in response to a `DOWNLOAD` message from the Server.
 
+### HIRING
+
+    Usage: Server -> Worker
+    Format: [ HIRING ]
+
+Sent by Server to Workers to claim available cores. This message makes the
+Server able to keep track of silently disconnected workers after a period of
+inactivity. Workers are invited to re-emit `READY` messages in response to the
+`HIRING` message.
+
+### READY
+
+    Usage: Worker -> Server
+    Format: [ READY | jobs | prv | … | prv ]
+
+Announce some available cores for the listed provers. The Server will assign at
+most `jobs` proof tasks to the originated worker, and only for the specified
+provers.
+
 ### PROVE
 
-    Target: Worker
+    Usage: Server -> Worker
     Format: [ PROVE | prv | hash | timeout | data ]
 
 Proof task assigned to a worker. The `timeout` must be converted by the Worker
@@ -142,7 +143,7 @@ with respect to the Server's profile.
 
 ### RESULT
 
-    Target: Server, Client
+    Usage: Worker -> Server <-> Client
     Format: [ RESULT | prv | hash | status | time ]
 
 Sends a proof result, from either Client or Worker to Server, or from Server to
@@ -151,7 +152,7 @@ Failures are discarded.
 
 ### KILL
 
-    Target: Server, Worker
+    Usage: Client -> Server <-> Worker
     Format: [ KILL | prv | hash ]
 
 Cancel a proof request, either on the Server or on a Worker. A pending proof
@@ -160,7 +161,7 @@ being canceled in Worker(s).
 
 ### HANGUP
 
-    Target: Server
+    Usage: Client -> Server <- Worker
     Format: [ HANGUP ]
 
 Fairly announce that a Worker or Client is disconnecting. This actually
