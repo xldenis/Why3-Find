@@ -333,14 +333,15 @@ let iter f profile =
 
 let mem (profile: profile) prv = Hashtbl.mem profile prv
 
-let get (profile: profile) prv =
-  let+ { size ; time } = Fibers.get @@ Hashtbl.find profile prv in
-  size,time
+let set (profile: profile) prv size time =
+  let gv = Fibers.var ~init:{ size ; time ; alpha = None } () in
+  Hashtbl.replace profile prv gv
 
-let set (profile: profile) prv gauge =
-  let gv = Fibers.result @@
-    let+ (size,time) = gauge in { size ; time ; alpha = None }
-  in Hashtbl.replace profile prv gv
+let get (profile: profile) prv =
+  try
+    let { size ; time } = Fibers.find @@ Hashtbl.find profile prv
+    in Some(size,time)
+  with Not_found -> None
 
 let gamma env ~(src:profile) ~(tgt:profile) prv =
   let id = Runner.id prv in

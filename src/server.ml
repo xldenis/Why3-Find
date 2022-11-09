@@ -60,6 +60,10 @@ let load_profile ~database =
   else
     Calibration.empty ()
 
+let save_profile ~database profile =
+  let file = Printf.sprintf "%s/profile.json" database in
+  Json.to_file file @@ Calibration.to_json profile
+
 (* -------------------------------------------------------------------------- *)
 (* --- Worker                                                             --- *)
 (* -------------------------------------------------------------------------- *)
@@ -69,6 +73,11 @@ type worker = {
   worker: emitter ;
   provers: string list;
 }
+
+let remove { identity = a } ids =
+  List.filter (fun { identity = b } -> a <> b) ids
+
+let add id ids = id :: remove id ids
 
 (* -------------------------------------------------------------------------- *)
 (* --- Server                                                             --- *)
@@ -192,28 +201,13 @@ let get_task server goal =
     TaskIndex.add server.index goal task ;
     Fibers.Queue.push server.pending task ;
     task
-[@@ warning "-32"]
-
-(* -------------------------------------------------------------------------- *)
-(* --- Message Handler                                                    --- *)
-(* -------------------------------------------------------------------------- *)
-
-let handler server emitter msg =
-  try
-    ignore server ;
-    ignore emitter ;
-    ignore msg ;
-  with Invalid_argument _ | Not_found -> ()
-
-let flush ~time server =
-  begin
-    while recv server ~time (handler server) do () done ;
-    chrono := time ;
-  end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Sent Messages                                                      --- *)
 (* -------------------------------------------------------------------------- *)
+
+let send_profile server prv size time id =
+  send server id ["PROFILE";prv;string_of_int size;string_of_float time]
 
 let send_kill server goal id =
   send server id ["KILL";goal.prover;goal.digest]
@@ -224,11 +218,50 @@ let send_download server goal id =
 let send_prove server goal timeout data id =
   send server id ["PROVE";goal.prover;goal.digest;string_of_float timeout;data]
 
+let send_result server goal status time id =
+  send server id ["RESULT";goal.prover;goal.digest;status;string_of_float time]
+
 let send_hiring server id =
   send server id ["HIRING"]
 
 (* -------------------------------------------------------------------------- *)
-(* --- Task Scheduling                                                    --- *)
+(* --- PROFILE Command                                                    --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_profile server id prv s t =
+  let { profile ; database } = server in
+  let size,time =
+    match Calibration.get profile prv with
+    | Some(s0,t0) -> s0,t0
+    | None ->
+      Calibration.set profile prv s t ;
+      save_profile ~database profile ; s,t
+  in send_profile server prv size time id
+
+(* -------------------------------------------------------------------------- *)
+(* --- GET Command                                                        --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_get server id goal timeout =
+  let task = get_task server goal in
+  let status =
+    match task.cached with
+    | NoResult | Failed -> None
+    | Unknown t -> Some ("Unknown",t)
+    | Valid t -> if t <= timeout then Some ("Valid",t) else None
+    | Timeout t -> if timeout <= t then Some ("Timeout",t) else None
+  in match status with
+  | Some(status,time) ->
+    List.iter (send_result server goal status time) task.waiting ;
+    List.iter (send_kill server goal) (remove id task.running) ;
+    task.waiting <- [] ;
+    task.running <- [] ;
+  | None ->
+    if task.waiting = [] then Fibers.Queue.push server.pending task ;
+    task.waiting <- add id task.waiting
+
+(* -------------------------------------------------------------------------- *)
+(* --- PROVE Command                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
 let schedule server task =
@@ -268,12 +301,33 @@ let process server ~time task =
   else
   if not task.sourced && task.loading = [] then
     begin
-      List.iter (send_download server task.goal) task.waiting ;
-      task.loading <- task.waiting ;
+      let id = List.hd task.waiting in
+      send_download server task.goal id ;
+      task.loading <- [id] ;
     end
   else
   if task.sourced && task.running = [] then
     schedule server task
+
+(* -------------------------------------------------------------------------- *)
+(* --- Message Handler                                                    --- *)
+(* -------------------------------------------------------------------------- *)
+
+let handler server id msg =
+  try
+    match msg with
+    | ["PROFILE";prover;size;time] ->
+      do_profile server id prover (int_of_string size) (float_of_string time)
+    | ["GET";prover;digest;timeout] ->
+      do_get server id { prover ; digest } (float_of_string timeout)
+    | _ -> ()
+  with Invalid_argument _ | Not_found -> ()
+
+let flush ~time server =
+  begin
+    while recv server ~time (handler server) do () done ;
+    chrono := time ;
+  end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Server Main Program                                                --- *)

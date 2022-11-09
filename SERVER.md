@@ -91,7 +91,7 @@ on his own size.
 ### GET
 
     Origin: Client
-    Format: [ GET | prv | timout | hash ]
+    Format: [ GET | prv | hash | timout ]
 
 Proof request from Client. The expected response is eventually a `RESULT`,
 although the server might first ask for a `DOWNLOAD` if the proof task data has
