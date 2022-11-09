@@ -261,6 +261,19 @@ let do_get server id goal timeout =
     task.waiting <- add id task.waiting
 
 (* -------------------------------------------------------------------------- *)
+(* --- UPLOAD Command                                                     --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_upload server id goal data =
+  let task = get_task server goal in
+  if not task.sourced then
+    begin
+      set_data server goal data ;
+      task.sourced <- true ;
+      task.loading <- remove id task.loading ;
+    end
+
+(* -------------------------------------------------------------------------- *)
 (* --- PROVE Command                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -320,6 +333,8 @@ let handler server id msg =
       do_profile server id prover (int_of_string size) (float_of_string time)
     | ["GET";prover;digest;timeout] ->
       do_get server id { prover ; digest } (float_of_string timeout)
+    | ["UPLOAD";prover;digest;data] ->
+      do_upload server id { prover ; digest } data
     | _ -> ()
   with Invalid_argument _ | Not_found -> ()
 
