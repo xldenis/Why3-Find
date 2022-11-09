@@ -84,27 +84,23 @@ struct
       let n = List.length q.head + List.length q.tail in
       q.size <- n ; n
 
-  let push q v = q.size <- (-1) ; q.tail <- v::q.tail
+  let push q v =
+    if q.size >= 0 then q.size <- succ q.size ;
+    q.tail <- v::q.tail
 
-  let rec exec f xs ys =
-    match xs with
-    | [] -> if ys = [] then [] else exec f ys []
-    | x::xs ->
-      let ok = f x in
-      let rs = exec f xs ys in
-      if ok then x :: rs else rs
+  let flatten q =
+    match q.tail with
+    | [] -> q.head
+    | tl ->
+      q.tail <- [] ;
+      let xs = q.head @ List.rev tl in q.head <- xs ; xs
 
   let filter q f =
-    begin
-      match q.head, q.tail with
-      | [], [] -> ()
-      | hd, tl ->
-        q.tail <- [] ;
-        q.size <- (-1) ;
-        q.head <- exec f hd (List.rev tl) ;
-    end
+    q.size <- (-1) ;
+    q.head <- List.filter f @@ flatten q
 
-  let iter q f = filter q (fun x -> f x ; true)
+  let iter q f =
+    List.iter f @@ flatten q
 
   let clear q =
     begin
