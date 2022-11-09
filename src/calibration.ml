@@ -25,6 +25,10 @@
 
 open Why3
 
+(* -------------------------------------------------------------------------- *)
+(* --- Calibration Problems                                               --- *)
+(* -------------------------------------------------------------------------- *)
+
 let ty = Ty.create_tysymbol (Ident.id_fresh "t") [] Ty.NoDef
 let t = Ty.ty_app ty []
 let f = Term.create_fsymbol (Ident.id_fresh "f") [t;t] t
