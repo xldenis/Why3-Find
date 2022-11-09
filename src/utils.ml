@@ -144,6 +144,20 @@ let absolute file =
   then Filename.concat (Sys.getcwd ()) file
   else file
 
+let save ~file data =
+  let out = open_out file in
+  output_string out data ; close_out out
+
+let load ~file =
+  let inc = open_in file in
+  let buffer = Buffer.create 2048 in
+  try
+    while true do
+      Buffer.add_channel buffer inc 2048
+    done ; "" (* unreachable *)
+  with End_of_file ->
+    close_in inc ; Buffer.contents buffer
+
 (* -------------------------------------------------------------------------- *)
 (* --- Time Printing                                                      --- *)
 (* -------------------------------------------------------------------------- *)

@@ -100,9 +100,11 @@ sig
   type 'a t
   val create : unit -> 'a t
   val size : 'a t -> int
+  val pop : 'a t -> 'a
   val push : 'a t -> 'a -> unit
   val iter : 'a t -> ('a -> unit) -> unit
   val filter : 'a t -> ('a -> bool) -> unit
+  val clear : 'a t -> unit
 end
 
 (** {1 List Combinators} *)

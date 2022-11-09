@@ -63,6 +63,7 @@ sig
   val create : unit -> 'a t
   val size : 'a t -> int
   val push : 'a t -> 'a -> unit
+  val pop : 'a t -> 'a
   val iter : 'a t -> ('a -> unit) -> unit
   val filter : 'a t -> ('a -> bool) -> unit
   val clear : 'a t -> unit
@@ -87,6 +88,16 @@ struct
   let push q v =
     if q.size >= 0 then q.size <- succ q.size ;
     q.tail <- v::q.tail
+
+  let pop q =
+    let unroll =
+      if q.head <> [] then q.head else
+        let tl = q.tail in q.tail <- [] ; List.rev tl
+    in match unroll with
+    | [] -> raise Not_found
+    | h::hd ->
+      if q.size > 0 then q.size <- pred q.size ;
+      q.head <- hd ; h
 
   let flatten q =
     match q.tail with

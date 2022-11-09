@@ -135,7 +135,7 @@ Usually sent in response to a `DOWNLOAD` message from the Server.
 ### PROVE
 
     Target: Worker
-    Format: [ PROVE | prv | timeout | data ]
+    Format: [ PROVE | prv | hash | timeout | data ]
 
 Proof task assigned to a worker. The `timeout` must be converted by the Worker
 with respect to the Server's profile.
