@@ -616,19 +616,17 @@ let () = register ~name:"extract" ~args:"[OPTIONS] MODULE..."
 let () = register ~name:"server" ~args:"OPTIONS"
     begin fun argv ->
       let stats = ref false in
-      let age = ref 0 in
+      let prune = ref 0 in
       let database = ref "why3server" in
-      let url = ref "tcp://*:5555" in
-      let hangup = ref 10 in
+      let address = ref "tcp://*:5555" in
       Arg.parse_argv argv [
         "--stats",Arg.Set stats,"Print cache disk usage";
-        "--prune",Arg.Set_int age,"AGE Prune cache generations older than AGE";
+        "--prune",Arg.Set_int prune,
+        "AGE Prune cache generations older than AGE";
         "--database",Arg.Set_string database,
         "DIR Database (default \"why3server\")";
-        "--address",Arg.Set_string url,
+        "--address",Arg.Set_string address,
         "URL server address (default \"tcp://*:5555\")";
-        "--hangup",  Arg.Set_int hangup,
-        "MIN Connection timeout (in minutes, default 10')";
       ] failwith
         "USAGE:\n\
          \n  why3find server [OPTIONS]\n\n\
@@ -637,21 +635,21 @@ let () = register ~name:"server" ~args:"OPTIONS"
          \n\n\
          OPTIONS:\n" ;
       Utils.flush () ;
-      Format.printf "Address  %s@." !url ;
-      Format.printf "Database %s@." (Utils.absolute !database) ;
-      if !age > 0 then Server.prune_database !database !age ;
+      let prune = !prune in
+      let address = !address in
+      let database = !database in
+      Format.printf "Address  %s@." address ;
+      Format.printf "Database %s@." (Utils.absolute database) ;
+      if prune > 0 then Server.prune ~database ~age:prune ;
       if !stats then
         begin
           Format.printf "Disk usage:@." ;
-          if Sys.file_exists !database then
-            ignore @@ Sys.command ("du -h -d 1 " ^ !database)
+          if Sys.file_exists database then
+            ignore @@ Sys.command ("du -h -d 1 " ^ database)
           else
             Format.printf "  (empty)@."
         end ;
-      Server.establish
-        ~url:!url
-        ~database:!database
-        ~hangup:!hangup
+      Server.establish ~address ~database ;
     end
 
 (* -------------------------------------------------------------------------- *)

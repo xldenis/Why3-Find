@@ -71,7 +71,6 @@ type server = {
   profile : Calibration.profile ;
   cache : Runner.result TaskIndex.t ;
   pending : task Fibers.Queue.t ;
-  hangup  : float ;
   mutable pulse : float ;
 }
 
@@ -90,16 +89,17 @@ let send server emitter msg =
 
 let kill server { goal ; running } =
   List.iter
-    (fun id -> send server id ["kill";goal.prover;goal.digest])
+    (fun id -> send server id ["KILL";goal.prover;goal.digest])
     running
 
 let heartbeat server ~time =
   if time > server.pulse then
     begin
       server.pulse <- time +. 10.0 ;
-      let active emitter = time < emitter.time +. server.hangup in
       Fibers.Queue.filter server.pending
         begin fun task ->
+          let timeout = 2.0 *. task.timeout in
+          let active emitter = time < emitter.time +. timeout in
           task.waiting <- List.filter active task.waiting ;
           task.loading <- List.filter active task.loading ;
           task.running <- List.filter active task.running ;
@@ -184,7 +184,7 @@ let set_data server task data =
 (* --- Shifting Database                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-let prune_database database age =
+let prune ~database ~age =
   let rec shift n =
     let gen = Format.sprintf "%s/%d" database n in
     begin
@@ -221,12 +221,12 @@ let handler server emitter msg =
 (* --- Server Main Program                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let establish ~database ~url ~hangup =
+let establish ~database ~address =
   let context = Zmq.Context.create () in
   let socket = Zmq.Socket.(create context router) in
   let polling = Zmq.Poll.(mask_of [| socket , In |]) in
   let profile = load_profile ~database in
-  Zmq.Socket.bind socket url  ;
+  Zmq.Socket.bind socket address  ;
   let server = {
     profile ;
     database ;
@@ -235,7 +235,6 @@ let establish ~database ~url ~hangup =
     socket ;
     pending = Fibers.Queue.create () ;
     cache = TaskIndex.create 0 ;
-    hangup = float hangup *. 60.0 ;
     pulse = 0.0 ;
   } in
   Format.printf "Server is running…@." ;

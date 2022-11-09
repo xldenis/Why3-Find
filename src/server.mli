@@ -23,25 +23,8 @@
 (* --- Server Commands                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-val prune_database: string -> int -> unit
+val prune: database:string -> age:int -> unit
 
-val establish:
-  database:string ->
-  url:string ->
-  hangup:int ->
-  unit
-
-
-
-
-
-
-
-
-
-
-
-
-
+val establish: database:string -> address:string -> unit
 
 (* -------------------------------------------------------------------------- *)
