@@ -65,7 +65,7 @@ let recv worker fn =
   with Unix.Unix_error(EAGAIN,_,_) -> false
 
 (* -------------------------------------------------------------------------- *)
-(* --- Commands                                                           --- *)
+(* --- READY                                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
 let send_ready worker =
@@ -73,12 +73,24 @@ let send_ready worker =
     ("READY"::string_of_int worker.maxjobs::List.map Runner.id worker.provers)
 
 (* -------------------------------------------------------------------------- *)
+(* --- PROFILE                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_profile worker prv size time =
+  Calibration.set worker.server prv size time
+
+(* -------------------------------------------------------------------------- *)
 (* --- Message Handler                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let handler worker = function
-  | ["RAISE"] -> send_ready worker
-  | _ -> ()
+let handler worker msg =
+  try
+    match msg with
+    | ["RAISE"] -> send_ready worker
+    | ["PROFILE";prv;size;time] ->
+      do_profile worker prv (int_of_string size) (float_of_string time)
+    | _ -> ()
+  with Invalid_argument _ -> ()
 
 (* -------------------------------------------------------------------------- *)
 (* --- Worker Lifecycle                                                   --- *)
