@@ -175,6 +175,18 @@ let pp_time fmt t =
   if t < 20.0 then Format.fprintf fmt "%.1fs" t else
     Format.fprintf fmt "%ds" (int_of_float t)
 
+let pp_hex fmt hs =
+  String.iter (fun c -> Format.fprintf fmt "%02x" @@ Char.code c) hs
+
+let pp_arg fmt arg =
+  let arg = String.escaped arg in
+  if String.length arg <= 8 then
+    Format.fprintf fmt " %-8s |" arg
+  else
+    Format.fprintf fmt " %s… |" (String.sub arg 0 7)
+
+let pp_args fmt args = List.iter (pp_arg fmt) args
+
 let pp_ok fmt = Format.fprintf fmt "@{<green>\u{2714}@}"
 let pp_ko fmt = Format.fprintf fmt "@{<red>\u{2718}@}"
 let pp_weak fmt = Format.fprintf fmt "@{<orange>\u{2718}@}"

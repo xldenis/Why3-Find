@@ -40,6 +40,10 @@ val iterpath :
   ?leave:(string -> unit) ->
   string -> unit
 
+val pp_hex : Format.formatter -> string -> unit
+val pp_arg : Format.formatter -> string -> unit
+val pp_args : Format.formatter -> string list -> unit
+
 val pp_ok : Format.formatter -> unit
 val pp_ko : Format.formatter -> unit
 val pp_weak : Format.formatter -> unit

@@ -97,18 +97,6 @@ type server = {
   workers : worker Fibers.Queue.t ;
 }
 
-let pp_id fmt id =
-  String.iter (fun c -> Format.fprintf fmt "%02x" @@ Char.code c) id
-
-let pp_arg fmt arg =
-  let arg = String.escaped arg in
-  if String.length arg <= 8 then
-    Format.fprintf fmt " %-8s |" arg
-  else
-    Format.fprintf fmt " %s… |" (String.sub arg 0 7)
-
-let pp_args fmt args = List.iter (pp_arg fmt) args
-
 let trace = ref false
 let chrono = ref @@ Unix.time ()
 
@@ -116,7 +104,9 @@ let send server emitter msg =
   if !trace then
     begin
       Utils.flush () ;
-      Format.printf "SEND@%a %a@." pp_id emitter.identity pp_args msg ;
+      Format.printf "SEND@%a %a@."
+        Utils.pp_hex emitter.identity
+        Utils.pp_args msg ;
     end ;
   Zmq.Socket.send_all server.socket (emitter.identity :: msg)
 
@@ -128,7 +118,9 @@ let recv server ~time fn =
       begin
         Utils.flush () ;
         let delta = time -. !chrono in
-        Format.printf "RECV@%a %a (%a)@." pp_id identity pp_args msg
+        Format.printf "RECV@%a %a (%a)@."
+          Utils.pp_hex identity
+          Utils.pp_args msg
           Utils.pp_time delta ;
       end ;
     fn { time ; identity } msg ; true
