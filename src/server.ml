@@ -360,7 +360,7 @@ let do_hangup server id =
          task.waiting <- id_remove id task.waiting ;
          task.loading <- id_remove id task.loading ;
          task.running <- List.filter (others id) task.running ;
-      ) ;
+      );
     Fibers.Queue.filter server.workers (others id) ;
   end
 
@@ -461,21 +461,22 @@ let print_stats server =
     Fibers.Queue.iter server.pending
       (fun task ->
          incr @@
-           if task.running <> [] then running else
-           if task.loading <> [] then loading else
-             waiting) ;
+         if task.running <> [] then running else
+         if task.loading <> [] then loading else
+           waiting
+      );
     Fibers.Queue.iter server.workers
       (fun w ->
          busy := w.busy + !busy ;
          cores := w.cores + !cores ;
-      ) ;
+      );
     let workers = Fibers.Queue.size server.workers in
     Utils.progress "Tasks:%d/%d/%d  Workers:%d(%d/%d)"
       !waiting !loading !running workers !busy !cores
   end
 
 (* -------------------------------------------------------------------------- *)
-(* --- Server Main Program                                                --- *)
+(* --- Workers Polling                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
 let poll ~timeout server =
@@ -493,7 +494,12 @@ let poll ~timeout server =
         );
     end
 
-let release task = task.waiting <> []
+(* -------------------------------------------------------------------------- *)
+(* --- Server Main Loop                                                   --- *)
+(* -------------------------------------------------------------------------- *)
+
+let alive_task task = task.waiting <> [] || task.running <> []
+let alive_worker w = w.busy + w.cores > 0
 
 let establish ~database ~address ~polling =
   let context = Zmq.Context.create () in
@@ -519,7 +525,8 @@ let establish ~database ~address ~polling =
     let time = Unix.time () in
     flush ~time server ;
     Fibers.Queue.iter server.pending (process server ~time) ;
-    Fibers.Queue.filter server.pending release ;
+    Fibers.Queue.filter server.pending alive_task ;
+    Fibers.Queue.filter server.workers alive_worker ;
     print_stats server ;
   done
 
