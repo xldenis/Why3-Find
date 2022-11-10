@@ -335,7 +335,7 @@ let iter f profile =
       | Some g -> (p,g.size,g.time)::w
     ) profile []
 
-let mem (profile: profile) prv = Hashtbl.mem profile prv
+let mem = Hashtbl.mem
 
 let set (profile: profile) prv size time =
   let init = { size ; time ; alpha = None } in
@@ -351,7 +351,8 @@ let get (profile: profile) prv =
   with Not_found -> None
 
 let lock (profile: profile) prv =
-  Hashtbl.replace profile prv @@ Fibers.var ()
+  if not @@ Hashtbl.mem profile prv then
+    Hashtbl.replace profile prv @@ Fibers.var ()
 
 let gamma env ~(src:profile) ~(tgt:profile) prv =
   let id = Runner.id prv in

@@ -81,7 +81,7 @@ let handler worker = function
   | _ -> ()
 
 (* -------------------------------------------------------------------------- *)
-(* --- Worker Polling                                                     --- *)
+(* --- Worker Lifecycle                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
 let poll ~timeout worker =
@@ -118,9 +118,9 @@ let connect ~server ~polling =
     server = Calibration.create () ;
   } in
   Format.printf "Worker running…@." ;
+  send_ready worker ;
   while true do
     poll ~timeout worker ;
-    send_ready worker ;
     flush worker (handler worker) ;
     let busy = Runner.running () in
     let over = Runner.pending () in
