@@ -324,7 +324,10 @@
   
   OPTIONS:
   
+    -c force cache update
+    -j JOBS max parallel provers
     --address URL proof server address (default "tcp://localhost:5555")
+    --polling TIME server polling interval (default 1.0s)
     --trace Trace server protocol
     -help  Display this list of options
     --help  Display this list of options

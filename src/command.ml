@@ -664,18 +664,23 @@ let () = register ~name:"server" ~args:"OPTIONS"
 let () = register ~name:"worker" ~args:"OPTIONS"
     begin fun argv ->
       let server = ref "tcp://localhost:5555" in
-      Arg.parse_argv argv [
-        "--address",Arg.Set_string server,
-        "URL proof server address (default \"tcp://localhost:5555\")";
-        "--trace",Arg.Set Worker.trace,"Trace server protocol";
-      ] failwith
+      let polling = ref 1.0 in
+      Arg.parse_argv argv
+        (Runner.options @ [
+            "--address",Arg.Set_string server,
+            "URL proof server address (default \"tcp://localhost:5555\")";
+            "--polling",Arg.Set_float polling,
+            "TIME server polling interval (default 1.0s)";
+            "--trace",Arg.Set Worker.trace,"Trace server protocol";
+          ])
+        failwith
         "USAGE:\n\
          \n  why3find worker [OPTIONS]\n\n\
          DESCRIPTION:\n\
          \n  Provides a worker for the specified proof server.\
          \n\n\
          OPTIONS:\n" ;
-      Worker.connect ~server:!server ;
+      Worker.connect ~server:!server ~polling:!polling ;
     end
 
 (* -------------------------------------------------------------------------- *)

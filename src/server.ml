@@ -87,7 +87,6 @@ let save_profile ~database profile =
 (* -------------------------------------------------------------------------- *)
 
 type server = {
-  context : Zmq.Context.t ;
   socket : [ `Router ] Zmq.Socket.t ;
   polling : Zmq.Poll.t ;
   mutable activity : bool ;
@@ -511,7 +510,6 @@ let establish ~database ~address ~polling =
   let server = {
     profile ;
     database ;
-    context ;
     polling ;
     socket ;
     pending = Fibers.Queue.create () ;
