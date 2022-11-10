@@ -14,6 +14,7 @@
   why3find doc [OPTIONS] PATH...
   why3find extract [OPTIONS] MODULE...
   why3find server OPTIONS
+  why3find worker OPTIONS
   why3find install PKG PATH...
   why3find uninstall [PKG...]
   why3find compile [-p PKG] FILE
@@ -305,6 +306,25 @@
     --database DIR Database (default "why3server")
     --address URL server address (default "tcp://*:5555")
     --polling TIME server polling interval (default 1.0s)
+    --trace Trace server protocol
+    -help  Display this list of options
+    --help  Display this list of options
+  
+--------------------------------------------------------------------------
+--- why3find worker
+--------------------------------------------------------------------------
+  $ why3find worker --help
+  USAGE:
+  
+    why3find worker [OPTIONS]
+  
+  DESCRIPTION:
+  
+    Provides a worker for the specified proof server.
+  
+  OPTIONS:
+  
+    --address URL proof server address (default "tcp://localhost:5555")
     --trace Trace server protocol
     -help  Display this list of options
     --help  Display this list of options

@@ -536,19 +536,19 @@ let establish ~database ~address ~polling =
 
 let prune ~database ~age =
   let rec shift n =
-    let gen = Format.sprintf "%s/%d" database n in
+    let dir = Format.sprintf "%s/%d" database n in
     begin
-      if Sys.file_exists gen && Sys.is_directory gen then
+      if Sys.file_exists dir && Sys.is_directory dir then
         let target = shift (succ n) in
-        if n < age then Sys.rename gen target else
+        if n < age then Sys.rename dir target else
         if n > age then
           begin
             Format.printf "Deleting generation %d…@." n ;
-            Utils.rmpath gen ;
+            Utils.rmpath dir ;
           end
         else
           Format.printf "Shifting generations 1-%d…@." n
-    end ; gen
+    end ; dir
   in
   begin
     Utils.flush () ;
