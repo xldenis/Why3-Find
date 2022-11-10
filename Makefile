@@ -12,6 +12,9 @@ clean:
 build:
 	dune build
 
+test:
+	dune test
+
 lint:
 	ocp-indent -i src/*.ml src/*.mli
 
