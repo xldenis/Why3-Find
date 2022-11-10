@@ -76,7 +76,7 @@ let load_profile ~database =
   if Sys.file_exists file then
     Json.of_file file |> Calibration.of_json
   else
-    Calibration.empty ()
+    Calibration.create ()
 
 let save_profile ~database profile =
   let file = Printf.sprintf "%s/profile.json" database in

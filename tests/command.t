@@ -329,6 +329,8 @@
     --address URL proof server address (default "tcp://localhost:5555")
     --polling TIME server polling interval (default 1.0s)
     --trace Trace server protocol
+    --reftime TIME set calibration time (default 0.5s)
+    --sequential use sequential calibration algorithm
     -help  Display this list of options
     --help  Display this list of options
   

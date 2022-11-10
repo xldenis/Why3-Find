@@ -25,7 +25,7 @@
 
 type profile
 
-val empty : unit -> profile
+val create : unit -> profile
 val default : unit -> profile
 val of_json : ?default:profile -> Json.t -> profile
 val to_json : profile -> Json.t
@@ -33,6 +33,7 @@ val to_json : profile -> Json.t
 val mem : profile -> string -> bool
 val get : profile -> string -> (int * float) option
 val set : profile -> string -> int -> float -> unit
+val lock : profile -> string -> unit
 val iter : (string -> int -> float -> unit) -> profile -> unit
 
 val observed : profile -> Runner.prover -> float

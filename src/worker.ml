@@ -28,6 +28,8 @@ type worker = {
   polling : Zmq.Poll.t ;
   maxjobs : int ;
   provers : Runner.prover list ;
+  worker : Calibration.profile ;
+  server : Calibration.profile ;
 }
 
 (* -------------------------------------------------------------------------- *)
@@ -74,7 +76,8 @@ let send_ready worker =
 (* --- Message Handler                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let handler _worker = function
+let handler worker = function
+  | ["RAISE"] -> send_ready worker
   | _ -> ()
 
 (* -------------------------------------------------------------------------- *)
@@ -111,6 +114,8 @@ let connect ~server ~polling =
     polling ;
     provers = prvs ;
     maxjobs = jobs ;
+    worker = Calibration.create () ;
+    server = Calibration.create () ;
   } in
   Format.printf "Worker running…@." ;
   while true do
@@ -120,7 +125,7 @@ let connect ~server ~polling =
     let busy = Runner.running () in
     let over = Runner.pending () in
     if over > 0 then
-        Utils.progress "%d/%d overload:%d" busy jobs over
+      Utils.progress "%d/%d overload:%d" busy jobs over
     else
       Utils.progress "%d/%d" busy jobs
   done

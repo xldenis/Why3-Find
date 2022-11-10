@@ -666,13 +666,16 @@ let () = register ~name:"worker" ~args:"OPTIONS"
       let server = ref "tcp://localhost:5555" in
       let polling = ref 1.0 in
       Arg.parse_argv argv
-        (Runner.options @ [
+        begin
+          Runner.options @ [
             "--address",Arg.Set_string server,
             "URL proof server address (default \"tcp://localhost:5555\")";
             "--polling",Arg.Set_float polling,
             "TIME server polling interval (default 1.0s)";
             "--trace",Arg.Set Worker.trace,"Trace server protocol";
-          ])
+          ] @
+          Calibration.options
+        end
         failwith
         "USAGE:\n\
          \n  why3find worker [OPTIONS]\n\n\

@@ -252,11 +252,11 @@ type gauge = {
 
 type profile = (string,gauge Fibers.var) Hashtbl.t
 
-let empty () = Hashtbl.create 0
+let create () = Hashtbl.create 0
 
 let of_json ?default (js : Json.t) : profile =
   let open Json in
-  let p = match default with Some p -> p | None -> empty () in
+  let p = match default with Some p -> p | None -> create () in
   List.iter (fun js ->
       try
         let prv = jfield_exn "prover" js |> jstring in
@@ -338,14 +338,20 @@ let iter f profile =
 let mem (profile: profile) prv = Hashtbl.mem profile prv
 
 let set (profile: profile) prv size time =
-  let gv = Fibers.var ~init:{ size ; time ; alpha = None } () in
-  Hashtbl.replace profile prv gv
+  let init = { size ; time ; alpha = None } in
+  try
+    Fibers.set (Hashtbl.find profile prv) init
+  with Not_found ->
+    Hashtbl.replace profile prv @@ Fibers.var ~init ()
 
 let get (profile: profile) prv =
   try
     let { size ; time } = Fibers.find @@ Hashtbl.find profile prv
     in Some(size,time)
   with Not_found -> None
+
+let lock (profile: profile) prv =
+  Hashtbl.replace profile prv @@ Fibers.var ()
 
 let gamma env ~(src:profile) ~(tgt:profile) prv =
   let id = Runner.id prv in
@@ -364,7 +370,7 @@ let gamma env ~(src:profile) ~(tgt:profile) prv =
 
 let default () =
   try Wenv.get "profile" ~of_json:(of_json ?default:None)
-  with Not_found -> empty ()
+  with Not_found -> create ()
 
 let calibrate_provers ~saved env provers =
   Fibers.run @@
@@ -377,7 +383,7 @@ let calibrate_provers ~saved env provers =
         ) provers
     in
     Utils.flush () ;
-    let profile = empty () in
+    let profile = create () in
     List.iter
       (fun (prv,res) ->
          match res with

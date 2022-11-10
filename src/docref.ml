@@ -271,9 +271,9 @@ let parse ~wenv ~henv file =
 let derived src id =
   Printf.sprintf "%s.%s.html" (String.concat "." src.lib) id
 
-let empty () = {
+let create () = {
   lib = [] ; urlbase = "" ;
-  profile = Calibration.empty () ;
+  profile = Calibration.create () ;
   theories = Mstr.empty ;
 }
 

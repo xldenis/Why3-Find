@@ -865,7 +865,7 @@ let document_title ~title ~page =
 
 let process_markdown ~wenv ~henv ~out:dir ~title file =
   begin
-    let src = Docref.empty () in
+    let src = Docref.create () in
     let input = Token.input ~doc:true file in
     let basename = Filename.chop_extension @@ Filename.basename file in
     let page = String.capitalize_ascii basename in
