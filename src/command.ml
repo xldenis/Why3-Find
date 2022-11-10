@@ -619,6 +619,7 @@ let () = register ~name:"server" ~args:"OPTIONS"
       let prune = ref 0 in
       let database = ref "why3server" in
       let address = ref "tcp://*:5555" in
+      let polling = ref 1.0 in
       Arg.parse_argv argv [
         "--stats",Arg.Set stats,"Print cache disk usage";
         "--prune",Arg.Set_int prune,
@@ -627,6 +628,8 @@ let () = register ~name:"server" ~args:"OPTIONS"
         "DIR Database (default \"why3server\")";
         "--address",Arg.Set_string address,
         "URL server address (default \"tcp://*:5555\")";
+        "--polling",Arg.Set_float polling,
+        "TIME server polling interval (default 1.0s)";
         "--trace",Arg.Set Server.trace,"Trace server protocol";
       ] failwith
         "USAGE:\n\
@@ -639,6 +642,7 @@ let () = register ~name:"server" ~args:"OPTIONS"
       let prune = !prune in
       let address = !address in
       let database = !database in
+      let polling = !polling in
       Format.printf "Address  %s@." address ;
       Format.printf "Database %s@." (Utils.absolute database) ;
       if prune > 0 then Server.prune ~database ~age:prune ;
@@ -650,7 +654,7 @@ let () = register ~name:"server" ~args:"OPTIONS"
           else
             Format.printf "  (empty)@."
         end ;
-      Server.establish ~address ~database ;
+      Server.establish ~address ~database ~polling ;
     end
 
 (* -------------------------------------------------------------------------- *)

@@ -89,6 +89,7 @@ type server = {
   context : Zmq.Context.t ;
   socket : [ `Router ] Zmq.Socket.t ;
   polling : Zmq.Poll.t ;
+  mutable activity : bool ;
   database : string ;
   profile : Calibration.profile ;
   index : task TaskIndex.t;
@@ -221,8 +222,8 @@ let send_prove server goal timeout data id =
 let send_result server goal status time id =
   send server id ["RESULT";goal.prover;goal.digest;status;string_of_float time]
 
-let send_hiring server id =
-  send server id ["HIRING"]
+let send_raise server id =
+  send server id ["RAISE"]
 
 (* -------------------------------------------------------------------------- *)
 (* --- PROFILE Command                                                    --- *)
@@ -454,26 +455,21 @@ let print_stats server =
 (* --- Server Main Program                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let poll server =
-  let mask = Zmq.Poll.poll ~timeout:1000 server.polling in
-  mask.(0) <> None
+let poll ~timeout server =
+  let mask = Zmq.Poll.poll ~timeout server.polling in
+  let lo = not server.activity in
+  let hi = mask.(0) <> None in
+  server.activity <- hi ;
+  if lo && hi then
+    begin
+      Fibers.Queue.iter server.workers (fun w -> send_raise server w.worker) ;
+      Fibers.Queue.clear server.workers ;
+    end
 
-let stuck server =
-  try
-    Fibers.Queue.iter server.pending
-      (fun task -> if task.loading = [] && task.running = [] then raise Exit) ;
-    false
-  with Exit -> true
-
-let hire server =
-  begin
-    Fibers.Queue.iter server.workers (fun w -> send_hiring server w.worker) ;
-    Fibers.Queue.clear server.workers ;
-  end
-
-let establish ~database ~address =
+let establish ~database ~address ~polling =
   let context = Zmq.Context.create () in
   let socket = Zmq.Socket.(create context router) in
+  let timeout = int_of_float (polling *. 1e3) in
   let polling = Zmq.Poll.(mask_of [| socket , In |]) in
   let profile = load_profile ~database in
   Zmq.Socket.bind socket address  ;
@@ -486,15 +482,15 @@ let establish ~database ~address =
     pending = Fibers.Queue.create () ;
     workers = Fibers.Queue.create () ;
     index = TaskIndex.create 0 ;
+    activity = false ;
   } in
   Format.printf "Server is running…@." ;
   while true do
-    let activity = poll server in
+    poll ~timeout server ;
     let time = Unix.time () in
     flush ~time server ;
     Fibers.Queue.iter server.pending (process server ~time) ;
     Fibers.Queue.filter server.pending (fun { waiting } -> waiting <> []) ;
-    if not activity && stuck server then hire server ;
     print_stats server ;
   done
 

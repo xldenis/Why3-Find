@@ -114,15 +114,15 @@ Usually sent in response to a `GET` command from the Client.
 Upload proof data from the Client to the Server.
 Usually sent in response to a `DOWNLOAD` message from the Server.
 
-### HIRING
+### RAISE
 
     Usage: Server -> Worker
-    Format: [ HIRING ]
+    Format: [ RAISE ]
 
-Sent by Server to Workers to claim available cores. This message makes the
+Sent by Server to previously known Workers for update. This message makes the
 Server able to keep track of silently disconnected workers after a period of
 inactivity. Workers are invited to re-emit `READY` messages in response to the
-`HIRING` message.
+`RAISE` message.
 
 ### READY
 
