@@ -299,6 +299,9 @@ let gauge env profile prv : gauge Fibers.t =
         end
     in Hashtbl.replace profile p gv ; gv
 
+let profile env profile prv =
+  let+ { size ; time } = gauge env profile prv in (size,time)
+
 let alpha env prv ~size ~time : float Fibers.t =
   let timeout = 5.0 *. (max 1.0 time) in
   let+ result = Runner.prove env
@@ -350,16 +353,18 @@ let get (profile: profile) prv =
     in Some(size,time)
   with Not_found -> None
 
-let lock (profile: profile) prv =
-  if not @@ Hashtbl.mem profile prv then
-    Hashtbl.replace profile prv @@ Fibers.var ()
+let init (profile: profile) prv =
+  if Hashtbl.mem profile prv then false
+  else
+    (Hashtbl.replace profile prv @@ Fibers.var () ; true)
 
 let gamma env ~(src:profile) ~(tgt:profile) prv =
   let id = Runner.id prv in
-  let ga = Fibers.find @@ Hashtbl.find src id in
-  let gb = Fibers.find @@ Hashtbl.find tgt id in
+  let* ga = Fibers.get @@ Hashtbl.find src id
+  and* gb = Fibers.get @@ Hashtbl.find tgt id
+  in
   if ga.size = gb.size then
-    Fibers.return @@ gb.time /. ga.time
+    Fibers.return (gb.time /. ga.time)
   else
     let+ a = velocity env src prv
     and* b = velocity env tgt prv

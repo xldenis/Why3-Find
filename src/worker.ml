@@ -24,11 +24,12 @@
 (* -------------------------------------------------------------------------- *)
 
 type worker = {
+  env : Wenv.env ;
   socket : [ `Dealer ] Zmq.Socket.t ;
   polling : Zmq.Poll.t ;
   maxjobs : int ;
-  provers : Runner.prover list ;
-  worker : Calibration.profile ;
+  provers : string list ;
+  runner : Calibration.profile ;
   server : Calibration.profile ;
 }
 
@@ -69,15 +70,26 @@ let recv worker fn =
 (* -------------------------------------------------------------------------- *)
 
 let send_ready worker =
-  send worker
-    ("READY"::string_of_int worker.maxjobs::List.map Runner.id worker.provers)
+  send worker ("READY"::string_of_int worker.maxjobs::worker.provers)
 
 (* -------------------------------------------------------------------------- *)
-(* --- PROFILE                                                            --- *)
+(* --- CALIBRATION                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-let do_profile worker prv size time =
+let send_profile worker prv size time =
+  send worker ["PROFILE";prv;string_of_int size;string_of_float time]
+
+let recv_profile worker prv size time =
   Calibration.set worker.server prv size time
+
+let gamma worker prv =
+  let id = Runner.id prv in
+  if Calibration.init worker.server id then
+    Fibers.await
+      (Calibration.profile worker.env worker.runner prv)
+      (fun (size,time) -> send_profile worker id size time) ;
+  Calibration.gamma ~src:worker.server ~tgt:worker.runner
+[@@ warning "-32"]
 
 (* -------------------------------------------------------------------------- *)
 (* --- Message Handler                                                    --- *)
@@ -86,9 +98,10 @@ let do_profile worker prv size time =
 let handler worker msg =
   try
     match msg with
-    | ["RAISE"] -> send_ready worker
+    | ["RAISE"] ->
+      send_ready worker
     | ["PROFILE";prv;size;time] ->
-      do_profile worker prv (int_of_string size) (float_of_string time)
+      recv_profile worker prv (int_of_string size) (float_of_string time)
     | _ -> ()
   with Invalid_argument _ -> ()
 
@@ -110,11 +123,11 @@ let flush worker handler =
 (* -------------------------------------------------------------------------- *)
 
 let connect ~server ~polling =
-  let wenv = Wenv.init () in
-  let prvs = Runner.all wenv in
-  let jobs = Runner.maxjobs wenv in
+  let env = Wenv.init () in
+  let prvs = List.map Runner.id @@ Runner.all env in
+  let jobs = Runner.maxjobs env in
   Utils.flush () ;
-  List.iter (fun prv -> Format.printf "Prover %s@." (Runner.id prv)) prvs ;
+  List.iter (Format.printf "Prover %s@.") prvs ;
   Format.printf "Server %s@." server ;
   let context = Zmq.Context.create () in
   let socket = Zmq.Socket.(create context dealer) in
@@ -122,11 +135,12 @@ let connect ~server ~polling =
   let polling = Zmq.Poll.(mask_of [| socket , In |]) in
   Zmq.Socket.connect socket server ;
   let worker = {
+    env ;
     socket ;
     polling ;
     provers = prvs ;
     maxjobs = jobs ;
-    worker = Calibration.create () ;
+    runner = Calibration.create () ;
     server = Calibration.create () ;
   } in
   Format.printf "Worker running…@." ;
