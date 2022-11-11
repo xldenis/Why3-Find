@@ -89,7 +89,6 @@ let save_profile ~database profile =
 type server = {
   socket : [ `Router ] Zmq.Socket.t ;
   polling : Zmq.Poll.t ;
-  mutable activity : bool ;
   database : string ;
   profile : Calibration.profile ;
   index : task TaskIndex.t;
@@ -98,7 +97,6 @@ type server = {
 }
 
 let trace = ref false
-let chrono = ref @@ Unix.time ()
 
 let send server emitter msg =
   if !trace then
@@ -117,11 +115,9 @@ let recv server ~time fn =
     if !trace then
       begin
         Utils.flush () ;
-        let delta = time -. !chrono in
-        Format.printf "RECV@%a %a (%a)@."
+        Format.printf "RECV@%a %a@."
           Utils.pp_hex identity
-          Utils.pp_args msg
-          Utils.pp_time delta ;
+          Utils.pp_args msg ;
       end ;
     fn { time ; identity } msg ; true
   | exception Unix.Unix_error(EAGAIN,_,_) -> false
@@ -433,10 +429,7 @@ let handler server id msg =
   with Invalid_argument _ | Not_found -> ()
 
 let flush ~time server =
-  begin
-    while recv server ~time (handler server) do () done ;
-    chrono := time ;
-  end
+  while recv server ~time (handler server) do () done
 
 (* -------------------------------------------------------------------------- *)
 (* --- Server Statistics                                                  --- *)
@@ -472,10 +465,7 @@ let print_stats server =
 
 let poll ~timeout server =
   let mask = Zmq.Poll.poll ~timeout server.polling in
-  let lo = not server.activity in
-  let hi = mask.(0) <> None in
-  server.activity <- (hi || Fibers.Queue.size server.pending > 0) ;
-  if lo && hi then
+  if Array.for_all (fun evt -> evt = None) mask then
     begin
       Fibers.Queue.iter server.workers
         (fun w ->
@@ -498,6 +488,7 @@ let establish ~database ~address ~polling =
   let timeout = int_of_float (polling *. 1e3) in
   let polling = Zmq.Poll.(mask_of [| socket , In |]) in
   let profile = load_profile ~database in
+  Zmq.Socket.set_linger_period socket 0 ;
   Zmq.Socket.bind socket address  ;
   let server = {
     profile ;
@@ -507,18 +498,26 @@ let establish ~database ~address ~polling =
     pending = Fibers.Queue.create () ;
     workers = Fibers.Queue.create () ;
     index = TaskIndex.create 0 ;
-    activity = false ;
   } in
   Format.printf "Server is running…@." ;
-  while true do
-    poll ~timeout server ;
-    let time = Unix.time () in
-    flush ~time server ;
-    Fibers.Queue.iter server.pending (process server ~time) ;
-    Fibers.Queue.filter server.pending alive_task ;
-    Fibers.Queue.filter server.workers alive_worker ;
-    print_stats server ;
-  done
+  try
+    Sys.catch_break true ;
+    while true do
+      poll ~timeout server ;
+      let time = Unix.time () in
+      flush ~time server ;
+      Fibers.Queue.iter server.pending (process server ~time) ;
+      Fibers.Queue.filter server.pending alive_task ;
+      Fibers.Queue.filter server.workers alive_worker ;
+      print_stats server ;
+    done
+  with Sys.Break ->
+    Zmq.Socket.unbind socket address ;
+    Zmq.Socket.close socket ;
+    Zmq.Context.terminate context ;
+    Utils.flush () ;
+    Format.printf "Terminated@." ;
+    exit 0
 
 (* -------------------------------------------------------------------------- *)
 (* --- Shifting Database                                                  --- *)

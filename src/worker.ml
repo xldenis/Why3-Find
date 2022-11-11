@@ -25,8 +25,12 @@
 
 type worker = {
   env : Wenv.env ;
-  socket : [ `Dealer ] Zmq.Socket.t ;
-  polling : Zmq.Poll.t ;
+  context : Zmq.Context.t ;
+  timeout : int ;
+  address : string ;
+  mutable hangup : int ;
+  mutable socket : [ `Dealer ] Zmq.Socket.t ;
+  mutable polling : Zmq.Poll.t ;
   maxjobs : int ;
   provers : string list ;
   runner : Calibration.profile ;
@@ -78,18 +82,13 @@ let send_ready worker =
 
 let send_profile worker prv size time =
   send worker ["PROFILE";prv;string_of_int size;string_of_float time]
+[@@ warning "-32"]
 
 let recv_profile worker prv size time =
-  Calibration.set worker.server prv size time
-
-let gamma worker prv =
-  let id = Runner.id prv in
-  if Calibration.init worker.server id then
-    Fibers.await
-      (Calibration.profile worker.env worker.runner prv)
-      (fun (size,time) -> send_profile worker id size time) ;
-  Calibration.gamma ~src:worker.server ~tgt:worker.runner
-[@@ warning "-32"]
+  begin
+    Calibration.set worker.server prv size time ;
+    Calibration.set worker.runner prv size time ;
+  end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Message Handler                                                    --- *)
@@ -109,14 +108,45 @@ let handler worker msg =
 (* --- Worker Lifecycle                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-let poll ~timeout worker =
+let connect context address =
+  let socket = Zmq.Socket.(create context dealer) in
+  let polling = Zmq.Poll.(mask_of [| socket , In |]) in
+  Zmq.Socket.set_linger_period socket 0 ;
+  Zmq.Socket.connect socket address ;
+  Zmq.Socket.set_reconnect_interval_max socket 20 ;
+  socket , polling
+
+let poll worker =
   if Fibers.pending () > 0 then
     (Fibers.yield () ; Unix.sleepf 0.001)
   else
-    ignore @@ Zmq.Poll.poll ~timeout worker.polling
+    let mask = Zmq.Poll.poll ~timeout:worker.timeout worker.polling in
+    if Array.for_all (fun evt -> evt = None) mask then
+      begin
+        let hangup = worker.hangup in
+        worker.hangup <- succ hangup ;
+        if hangup > 5 then
+          begin
+            Utils.flush () ;
+            Format.printf "Reconnect to %s…@." worker.address ;
+            Zmq.Socket.disconnect worker.socket worker.address ;
+            Zmq.Socket.close worker.socket ;
+            let socket,polling = connect worker.context worker.address in
+            worker.socket <- socket ;
+            worker.polling <- polling ;
+          end ;
+        if hangup > 10 then
+          begin
+            Zmq.Socket.close worker.socket ;
+            Zmq.Context.terminate worker.context ;
+            Utils.flush () ;
+            Format.printf "Abandon!@." ;
+            exit 1
+          end
+      end
 
 let flush worker handler =
-  while recv worker handler do Fibers.yield () done
+  while recv worker handler do worker.hangup <- 0 ; Fibers.yield () done
 
 (* -------------------------------------------------------------------------- *)
 (* --- Worker Main Loop                                                   --- *)
@@ -130,14 +160,16 @@ let connect ~server ~polling =
   List.iter (Format.printf "Prover %s@.") prvs ;
   Format.printf "Server %s@." server ;
   let context = Zmq.Context.create () in
-  let socket = Zmq.Socket.(create context dealer) in
   let timeout = int_of_float (polling *. 1e3) in
-  let polling = Zmq.Poll.(mask_of [| socket , In |]) in
-  Zmq.Socket.connect socket server ;
+  let socket,polling = connect context server in
   let worker = {
     env ;
+    context ;
+    timeout ;
+    address = server ;
     socket ;
     polling ;
+    hangup = 0 ;
     provers = prvs ;
     maxjobs = jobs ;
     runner = Calibration.create () ;
@@ -145,15 +177,27 @@ let connect ~server ~polling =
   } in
   Format.printf "Worker running…@." ;
   send_ready worker ;
-  while true do
-    poll ~timeout worker ;
-    flush worker (handler worker) ;
-    let busy = Runner.running () in
-    let over = Runner.pending () in
-    if over > 0 then
-      Utils.progress "%d/%d overload:%d" busy jobs over
-    else
-      Utils.progress "%d/%d" busy jobs
-  done
+  try
+    Sys.catch_break true ;
+    while true do
+      poll worker ;
+      flush worker (handler worker) ;
+      let busy = Runner.running () in
+      let over = Runner.pending () in
+      let hangup = worker.hangup in
+      Utils.progress "%d/%d%t" busy jobs
+        (fun fmt ->
+           if hangup > 0 then Format.fprintf fmt " hangup:%d" hangup ;
+           if over > 0 then Format.fprintf fmt " overload:%d" over ;
+        ) ;
+    done
+  with Sys.Break ->
+    Zmq.Socket.disconnect worker.socket server ;
+    Zmq.Socket.close worker.socket ;
+    Zmq.Context.terminate worker.context ;
+    Utils.flush () ;
+    Format.printf "Terminated@." ;
+    exit 0
+
 
 (* -------------------------------------------------------------------------- *)

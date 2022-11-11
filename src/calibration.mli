@@ -35,14 +35,9 @@ val get : profile -> string -> (int * float) option
 val set : profile -> string -> int -> float -> unit
 val iter : (string -> int -> float -> unit) -> profile -> unit
 
-val init : profile -> string -> bool
-
 val observed : profile -> Runner.prover -> float
 val velocity : Wenv.env -> profile -> Runner.prover -> float Fibers.t
 val profile : Wenv.env -> profile -> Runner.prover -> (int * float) Fibers.t
-
-val gamma : Wenv.env ->
-  src:profile -> tgt:profile -> Runner.prover -> float Fibers.t
 
 val calibrate_provers : saved:bool -> Wenv.env -> Runner.prover list -> unit
 val velocity_provers : Wenv.env -> Runner.prover list -> unit

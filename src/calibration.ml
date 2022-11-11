@@ -345,30 +345,13 @@ let set (profile: profile) prv size time =
   try
     Fibers.set (Hashtbl.find profile prv) init
   with Not_found ->
-    Hashtbl.replace profile prv @@ Fibers.var ~init ()
+    Hashtbl.add profile prv @@ Fibers.var ~init ()
 
 let get (profile: profile) prv =
   try
     let { size ; time } = Fibers.find @@ Hashtbl.find profile prv
     in Some(size,time)
   with Not_found -> None
-
-let init (profile: profile) prv =
-  if Hashtbl.mem profile prv then false
-  else
-    (Hashtbl.replace profile prv @@ Fibers.var () ; true)
-
-let gamma env ~(src:profile) ~(tgt:profile) prv =
-  let id = Runner.id prv in
-  let* ga = Fibers.get @@ Hashtbl.find src id
-  and* gb = Fibers.get @@ Hashtbl.find tgt id
-  in
-  if ga.size = gb.size then
-    Fibers.return (gb.time /. ga.time)
-  else
-    let+ a = velocity env src prv
-    and* b = velocity env tgt prv
-    in b /. a
 
 (* -------------------------------------------------------------------------- *)
 (* --- Calibration                                                        --- *)
