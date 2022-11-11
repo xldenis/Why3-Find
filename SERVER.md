@@ -74,19 +74,23 @@ in a typical order of events:
 
 ### PROFILE
 
-    Usage: Client <-> Worker <-> Server
+    Usage: Client <-> Server -> Worker
     Format: [ PROFILE | prv | size | time ]
+
+    Usage: Worker -> Server
+    Format: [ PROFILE | prv ]
 
 Updates the target calibration with the given prover profile, if undefined yet.
 Any participant to the cluster shall first announce to each others their
-respective prover profile. This is usually done this way: Client and Worker
-announce their respective calibration profile, and the Server replies
-with its own profile for the announced provers.
-Hence, all participants known each-other profiles.
+respective prover profile, if any. This is usually done this way: Client
+announce its calibration profile to the Server, which replies back its own
+profile. Worker does not need to calibrate themselves, they simply ask the
+Server to send its profile by emitting a `PROFILE` message with no size nor
+time.
 
-Notice that Clients and Workers are both responsible for converting times
-with respect to Server calibration profile. The Server _never_ convert times
-on his own size.
+Notice that Clients and Workers are both responsible for converting proof times
+and timeouts with respect to Server calibration profile. The Server _never_
+convert times on its own.
 
 ### GET
 

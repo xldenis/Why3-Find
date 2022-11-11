@@ -230,7 +230,12 @@ let send_raise server id =
 (* --- PROFILE Command                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let do_profile server id prv s t =
+let get_profile server id prv =
+  match Calibration.get server.profile prv with
+  | Some(size,time) -> send_profile server id prv size time
+  | None -> ()
+
+let upd_profile server id prv s t =
   let { profile ; database } = server in
   let size,time =
     match Calibration.get profile prv with
@@ -411,8 +416,10 @@ let process server ~time task =
 let handler server id msg =
   try
     match msg with
+    | ["PROFILE";prover] ->
+      get_profile server id prover
     | ["PROFILE";prover;size;time] ->
-      do_profile server id prover (int_of_string size) (float_of_string time)
+      upd_profile server id prover (int_of_string size) (float_of_string time)
     | ["GET";prover;digest;timeout] ->
       do_get server id { prover ; digest } (float_of_string timeout)
     | ["UPLOAD";prover;digest;data] ->

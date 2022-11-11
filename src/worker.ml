@@ -20,7 +20,17 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Worker                                                       --- *)
+(* --- Worker                                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+(* -------------------------------------------------------------------------- *)
+(* --- Proof Task                                                         --- *)
+(* -------------------------------------------------------------------------- *)
+
+type goal = { prover : string ; digest : string }
+
+(* -------------------------------------------------------------------------- *)
+(* --- Worker State                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
 type worker = {
@@ -33,8 +43,8 @@ type worker = {
   mutable polling : Zmq.Poll.t ;
   maxjobs : int ;
   provers : string list ;
-  runner : Calibration.profile ;
-  server : Calibration.profile ;
+  profile : Calibration.profile ;
+  pending : (goal,unit Fibers.t) Hashtbl.t ;
 }
 
 (* -------------------------------------------------------------------------- *)
@@ -80,15 +90,8 @@ let send_ready worker =
 (* --- CALIBRATION                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-let send_profile worker prv size time =
-  send worker ["PROFILE";prv;string_of_int size;string_of_float time]
-[@@ warning "-32"]
-
 let recv_profile worker prv size time =
-  begin
-    Calibration.set worker.server prv size time ;
-    Calibration.set worker.runner prv size time ;
-  end
+  Calibration.set worker.profile prv size time
 
 (* -------------------------------------------------------------------------- *)
 (* --- Message Handler                                                    --- *)
@@ -172,8 +175,8 @@ let connect ~server ~polling =
     hangup = 0 ;
     provers = prvs ;
     maxjobs = jobs ;
-    runner = Calibration.create () ;
-    server = Calibration.create () ;
+    profile = Calibration.create () ;
+    pending = Hashtbl.create 0 ;
   } in
   Format.printf "Worker running…@." ;
   send_ready worker ;
@@ -192,6 +195,7 @@ let connect ~server ~polling =
         ) ;
     done
   with Sys.Break ->
+    send worker ["HANGUP"] ;
     Zmq.Socket.disconnect worker.socket server ;
     Zmq.Socket.close worker.socket ;
     Zmq.Context.terminate worker.context ;
