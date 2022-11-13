@@ -240,6 +240,9 @@
     -D  same as --driver
     -c force cache update
     -j JOBS max parallel provers
+    --server URL proof server address (default none)
+    --polling TIME server polling interval (default 1.0s)
+    --trace Trace server protocol
     -f force rebuild proofs
     -u update proofs (default)
     -r replay proofs (no update)
@@ -303,8 +306,8 @@
   
     --stats Print cache disk usage
     --prune AGE Prune cache generations older than AGE
-    --database DIR Database (default "why3server")
     --address URL server address (default "tcp://*:5555")
+    --database DIR Database (default "why3server")
     --polling TIME server polling interval (default 1.0s)
     --trace Trace server protocol
     -help  Display this list of options
@@ -326,7 +329,7 @@
   
     -c force cache update
     -j JOBS max parallel provers
-    --address URL proof server address (default "tcp://localhost:5555")
+    --server URL proof server address (default "tcp://localhost:5555")
     --polling TIME server polling interval (default 1.0s)
     --trace Trace server protocol
     --reftime TIME set calibration time (default 0.5s)

@@ -458,6 +458,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
         begin
           Wenv.options () @
           Runner.options @
+          Client.options @
           [
             "-f", Arg.Unit (set mode `Force), "force rebuild proofs";
             "-u", Arg.Unit (set mode `Update), "update proofs (default)";
@@ -624,10 +625,10 @@ let () = register ~name:"server" ~args:"OPTIONS"
         "--stats",Arg.Set stats,"Print cache disk usage";
         "--prune",Arg.Set_int prune,
         "AGE Prune cache generations older than AGE";
-        "--database",Arg.Set_string database,
-        "DIR Database (default \"why3server\")";
         "--address",Arg.Set_string address,
         "URL server address (default \"tcp://*:5555\")";
+        "--database",Arg.Set_string database,
+        "DIR Database (default \"why3server\")";
         "--polling",Arg.Set_float polling,
         "TIME server polling interval (default 1.0s)";
         "--trace",Arg.Set Server.trace,"Trace server protocol";
@@ -668,7 +669,7 @@ let () = register ~name:"worker" ~args:"OPTIONS"
       Arg.parse_argv argv
         begin
           Runner.options @ [
-            "--address",Arg.Set_string server,
+            "--server",Arg.Set_string server,
             "URL proof server address (default \"tcp://localhost:5555\")";
             "--polling",Arg.Set_float polling,
             "TIME server polling interval (default 1.0s)";
