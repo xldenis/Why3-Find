@@ -329,15 +329,6 @@ let observed profile prv =
     | _ -> 1.0
   with Not_found -> 1.0
 
-let iter f profile =
-  List.iter (fun (p,n,t) -> f p n t) @@
-  List.sort (fun (p,_,_) (q,_,_) -> String.compare p q) @@
-  Hashtbl.fold (fun p g w ->
-      match Fibers.peek g with
-      | None -> w
-      | Some g -> (p,g.size,g.time)::w
-    ) profile []
-
 let mem = Hashtbl.mem
 
 let set (profile: profile) prv size time =
@@ -352,6 +343,20 @@ let get (profile: profile) prv =
     let { size ; time } = Fibers.find @@ Hashtbl.find profile prv
     in Some(size,time)
   with Not_found -> None
+
+let lock (profile: profile) prv =
+  if Hashtbl.mem profile prv then
+    ( Hashtbl.add profile prv @@ Fibers.var () ; true )
+  else false
+
+let iter f profile =
+  List.iter (fun (p,n,t) -> f p n t) @@
+  List.sort (fun (p,_,_) (q,_,_) -> String.compare p q) @@
+  Hashtbl.fold (fun p g w ->
+      match Fibers.peek g with
+      | None -> w
+      | Some g -> (p,g.size,g.time)::w
+    ) profile []
 
 (* -------------------------------------------------------------------------- *)
 (* --- Calibration                                                        --- *)

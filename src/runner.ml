@@ -125,6 +125,18 @@ let select env provers =
 type result =
   | NoResult | Failed | Unknown of float | Timeout of float | Valid of float
 
+let merge a b =
+  match a,b with
+  | NoResult,c | c,NoResult -> c
+  | Failed,c | c,Failed -> c
+  | Valid ta , Valid tb -> Valid (min ta tb)
+  | Valid _ , (Unknown _ | Timeout _) -> a
+  | (Unknown _ | Timeout _) , Valid _ -> b
+  | Unknown ta , Unknown tb -> Unknown (min ta tb)
+  | Unknown _ , Timeout _ -> a
+  | Timeout _ , Unknown _ -> b
+  | Timeout ta , Timeout tb -> Timeout (max ta tb)
+
 let pp_result fmt = function
   | NoResult -> Format.pp_print_string fmt "No Result"
   | Failed -> Format.pp_print_string fmt "Failed"
