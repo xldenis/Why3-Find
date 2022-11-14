@@ -24,7 +24,6 @@
 (* -------------------------------------------------------------------------- *)
 
 open Wenv
-open Why3.Task
 
 type prover = {
   config : Why3.Whyconf.config_prover ;
@@ -59,11 +58,17 @@ type callback =
   Why3.Call_provers.prover_result ->
   unit
 
+val notify : env -> callback option -> prover -> result -> unit
+
 val prove : env ->
   ?name:string ->
   ?cancel:unit Fibers.signal ->
   ?callback:callback ->
-  task -> prover -> float -> result Fibers.t
+  Why3.Task.task -> prover -> float -> result Fibers.t
+
+val prove_buffer : env ->
+  ?cancel:unit Fibers.signal ->
+  Buffer.t -> prover -> float -> result Fibers.t
 
 val options : (string * Arg.spec * string) list
 val pending : unit -> int

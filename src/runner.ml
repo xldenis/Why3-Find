@@ -324,14 +324,16 @@ let limit env t =
     limit_steps = (-1) ;
   }
 
-let notify callback prv limit pr =
+let notify_cb callback prv limit pr =
   Option.iter (fun f -> f prv.config.prover limit pr) callback
+
+type prepared_task = Prepared of Task.task | Buffered of Buffer.t
 
 let call_prover (env : Wenv.env)
     ?(name : string option)
     ?(cancel : unit Fibers.signal option)
     ?(callback : callback option)
-    ~(prepared : Task.task)
+    ~(prepared : prepared_task)
     ~(prover : prover)
     ~(timeout : float) () =
   let main = Whyconf.get_main env.wconfig in
@@ -345,9 +347,17 @@ let call_prover (env : Wenv.env)
   let cancel = match cancel with None -> Fibers.signal () | Some s -> s in
   let libdir = Whyconf.libdir main in
   let datadir = Whyconf.datadir main in
-  let call = Driver.prove_task_prepared
-      ~command:(Whyconf.get_complete_command prover.config ~with_steps:false)
-      ~libdir ~datadir ~limit prover.driver prepared in
+  let call =
+    match prepared with
+    | Prepared task ->
+      Driver.prove_task_prepared
+        ~command:(Whyconf.get_complete_command prover.config ~with_steps:false)
+        ~libdir ~datadir ~limit prover.driver task
+    | Buffered buffer ->
+      Driver.prove_buffer_prepared
+        ~command:(Whyconf.get_complete_command prover.config ~with_steps:false)
+        ~libdir ~datadir ~limit prover.driver buffer
+  in
   let kill () =
     if not !killed then
       begin
@@ -397,7 +407,7 @@ let call_prover (env : Wenv.env)
             if !killed then Timeout pr.pr_time else Failed
         in
         if !started then stop ?name () else unschedule () ;
-        notify callback prover limit pr ;
+        notify_cb callback prover limit pr ;
         Some result
     end
 
@@ -418,12 +428,12 @@ let pr ~s ?(t = 0.0) ans =
     pr_models = [] ;
   }
 
-let notify_cached env prover (callback : callback option) cached =
+let notify env (callback : callback option) prover result =
   match callback with
   | None -> ()
   | Some f ->
     let fire f p l r = f p.config.prover l r in
-    match cached with
+    match result with
     | NoResult -> ()
     | Valid t -> fire f prover (limit env t) (pr ~s:0  ~t Valid)
     | Timeout t -> fire f prover (limit env t) (pr ~s:1  ~t Timeout)
@@ -434,22 +444,26 @@ let fits ~timeout = function
   | NoResult -> false
   | Failed -> true
   | Unknown _ -> true
-  | Valid t -> t <= timeout
+  | Valid t -> t <= timeout *. 1.25
   | Timeout t -> timeout <= t
 
 let prove env ?name ?cancel ?callback task prover timeout =
-  let prepared = Driver.prepare_task prover.driver task in
-  let entry = prepared,prover in
+  let task = Driver.prepare_task prover.driver task in
+  let entry = task,prover in
   let cached = get entry in
   if fits ~timeout cached then
     (incr hits ;
-     notify_cached env prover callback cached ;
+     notify env callback prover cached ;
      Fibers.return cached)
   else
     (incr miss ;
      Fibers.map
        (fun result -> set entry result ; result)
-       (call_prover env ?name ?cancel ?callback ~prepared ~prover ~timeout ()))
+       (call_prover env ?name ?cancel ?callback
+          ~prepared:(Prepared task) ~prover ~timeout ()))
+
+let prove_buffer env ?cancel buffer prover timeout =
+  call_prover env ?cancel ~prepared:(Buffered buffer) ~prover ~timeout ()
 
 (* -------------------------------------------------------------------------- *)
 (* --- Options                                                            --- *)

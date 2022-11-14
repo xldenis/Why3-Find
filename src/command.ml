@@ -458,7 +458,6 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
         begin
           Wenv.options () @
           Runner.options @
-          Client.options @
           [
             "-f", Arg.Unit (set mode `Force), "force rebuild proofs";
             "-u", Arg.Unit (set mode `Update), "update proofs (default)";
@@ -467,6 +466,8 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
             "-i", Arg.Set ide, "run why-3 IDE on error(s) (implies -s)";
             "-s", Arg.Set session, "save why3 session";
             "-h", Arg.Set axioms, "report hypotheses and axioms";
+          ] @
+          Client.options @ [
             "--local", Arg.Set Hammer.local, "no calibration (local times)";
             "--modules",  Arg.Unit (set log `Modules), "list results by module";
             "--theories", Arg.Unit (set log `Theories), "list results by theory";

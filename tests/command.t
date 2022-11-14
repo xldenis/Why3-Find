@@ -240,9 +240,6 @@
     -D  same as --driver
     -c force cache update
     -j JOBS max parallel provers
-    --server URL proof server address (default none)
-    --polling TIME server polling interval (default 1.0s)
-    --trace Trace server protocol
     -f force rebuild proofs
     -u update proofs (default)
     -r replay proofs (no update)
@@ -250,6 +247,9 @@
     -i run why-3 IDE on error(s) (implies -s)
     -s save why3 session
     -h report hypotheses and axioms
+    --server URL proof server address (default none)
+    --polling TIME server polling interval (default 1.0s)
+    --trace Trace server protocol
     --local no calibration (local times)
     --modules list results by module
     --theories list results by theory
