@@ -120,7 +120,7 @@ let rec seqlookup ~progress q prv rg best =
         ( Utils.progress "%s (%d)" (name prv) n ; None )
       else Some (name prv)
     in
-    let* result = Runner.prove q.env ?name (generate n) prv q.time_out in
+    let* result = Runner.prove q.env ?name prv (generate n) q.time_out in
     match result with
     | Valid t ->
       let best = choose q.time best (Some (n,t)) in
@@ -167,7 +167,7 @@ let ptry c ~cancel ?(upper=[]) ?(lower=[]) n =
       else Some (name prv)
     in
     let q = c.qenv in
-    let+ r = Runner.prove q.env ?name ~cancel (generate n) prv q.time_out in
+    let+ r = Runner.prove q.env ?name ~cancel prv (generate n) q.time_out in
     match r with
     | Valid t ->
       c.best <- choose q.time c.best (Some (n,t)) ;
@@ -306,7 +306,7 @@ let alpha env prv ~size ~time : float Fibers.t =
   let timeout = 5.0 *. (max 1.0 time) in
   let+ result = Runner.prove env
       ~name:(Runner.name prv)
-      (generate size) prv timeout in
+      prv (generate size) timeout in
   match result with
   | Valid t -> t /. time
   | _ ->

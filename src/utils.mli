@@ -30,8 +30,9 @@ val locate : string -> (string * string) option
 val chdir : string -> unit
 val absolute : string -> string
 
-val load : file:string -> string
-val save : file:string -> string -> unit
+val load : file:string -> Buffer.t -> unit
+val readfile : file:string -> string
+val writefile : file:string -> string -> unit
 
 val readdir : (string -> unit) -> string -> unit
 val iterpath :

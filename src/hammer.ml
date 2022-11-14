@@ -98,7 +98,7 @@ let prove env ?cancel prv timeout : strategy = fun n ->
   let name = Session.goal_name n.goal in
   let+ local = Runner.prove env
       ?cancel ~name ~callback:(Session.result n.goal)
-      task prv time in
+      prv task time in
   match local with
   | Valid t -> Prover( Runner.name prv, Utils.round @@ t /. alpha )
   | _ -> Stuck

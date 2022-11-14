@@ -208,9 +208,18 @@ module Cache = Hashtbl.Make
       let equal (t1,p1) (t2,p2) = (p1 == p2) && (Task.task_equal t1 t2)
     end)
 
+let digest task = Why3.Termcode.(task_checksum task |> string_of_checksum)
+
+let data prv task =
+  let buffer = Buffer.create 2048 in
+  let fmt = Format.formatter_of_buffer buffer in
+  ignore @@ Driver.print_task_prepared prv.driver fmt task ;
+  Format.pp_print_flush fmt () ;
+  Buffer.contents buffer
+
 let file (t,p) =
   Lazy.force checkcache ;
-  let hash = Why3.Termcode.(task_checksum t |> string_of_checksum) in
+  let hash = digest t in
   let h2 = String.sub hash 0 2 in
   Printf.sprintf ".why3find/%s/%s/%s.json" (id p) h2 hash
 
@@ -428,41 +437,60 @@ let pr ~s ?(t = 0.0) ans =
     pr_models = [] ;
   }
 
-let notify env (callback : callback option) prover result =
-  match callback with
-  | None -> ()
-  | Some f ->
-    let fire f p l r = f p.config.prover l r in
-    match result with
-    | NoResult -> ()
-    | Valid t -> fire f prover (limit env t) (pr ~s:0  ~t Valid)
-    | Timeout t -> fire f prover (limit env t) (pr ~s:1  ~t Timeout)
-    | Unknown t -> fire f prover (limit env t) (pr ~s:1  ~t (Unknown "cached"))
-    | Failed -> fire f prover (limit env 1.0) (pr ~s:2 (Failure "cached"))
+let notify env prover result cb =
+  let fire cb p l r = cb p.config.prover l r in
+  match result with
+  | NoResult -> ()
+  | Valid t -> fire cb prover (limit env t) (pr ~s:0  ~t Valid)
+  | Timeout t -> fire cb prover (limit env t) (pr ~s:1  ~t Timeout)
+  | Unknown t -> fire cb prover (limit env t) (pr ~s:1  ~t (Unknown "cached"))
+  | Failed -> fire cb prover (limit env 1.0) (pr ~s:2 (Failure "cached"))
 
-let fits ~timeout = function
-  | NoResult -> false
-  | Failed -> true
-  | Unknown _ -> true
-  | Valid t -> t <= timeout *. 1.25
-  | Timeout t -> timeout <= t
+let crop ~timeout result =
+  match result with
+  | NoResult -> None
+  | Failed | Unknown _ -> Some result
+  | Timeout t -> if timeout <= t then Some result else None
+  | Valid t ->
+    if t <= timeout *. 1.25 then Some result else Some (Timeout timeout)
 
-let prove env ?name ?cancel ?callback task prover timeout =
+let prove env ?name ?cancel ?callback prover task timeout =
   let task = Driver.prepare_task prover.driver task in
   let entry = task,prover in
   let cached = get entry in
-  if fits ~timeout cached then
-    (incr hits ;
-     notify env callback prover cached ;
-     Fibers.return cached)
-  else
-    (incr miss ;
-     Fibers.map
-       (fun result -> set entry result ; result)
-       (call_prover env ?name ?cancel ?callback
-          ~prepared:(Prepared task) ~prover ~timeout ()))
+  match crop ~timeout cached with
+  | Some cached ->
+    incr hits ;
+    Option.iter (notify env prover cached) callback ;
+    Fibers.return cached
+  | None ->
+    incr miss ;
+    Fibers.map
+      (fun result -> set entry result ; result)
+      (call_prover env ?name ?cancel ?callback
+         ~prepared:(Prepared task) ~prover ~timeout ())
 
-let prove_buffer env ?cancel buffer prover timeout =
+type prooftask = Why3.Task.task
+
+let store_cached prover task result =
+  set (task,prover) result
+
+let prove_cached prover task timeout =
+  let task = Driver.prepare_task prover.driver task in
+  let cached = get (task,prover) in
+  match crop ~timeout cached with
+  | Some cached ->
+    incr hits ;
+    `Cached cached
+  | None ->
+    incr miss ;
+    `Prepared task
+
+let prove_prepared env ?name ?cancel ?callback prover task timeout =
+  call_prover env ?name ?cancel ?callback
+    ~prepared:(Prepared task) ~prover ~timeout ()
+
+let prove_buffer env ?cancel prover buffer timeout =
   call_prover env ?cancel ~prepared:(Buffered buffer) ~prover ~timeout ()
 
 (* -------------------------------------------------------------------------- *)

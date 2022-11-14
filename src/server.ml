@@ -170,10 +170,10 @@ let set_result server task result =
 [@@ warning "-32"]
 
 let set_data server goal data =
-  Utils.save ~file:(filename server goal ".data") data
+  Utils.writefile ~file:(filename server goal ".data") data
 
 let get_data server goal =
-  Utils.load ~file:(filename server goal ".data")
+  Utils.readfile ~file:(filename server goal ".data")
 
 let get_task server goal =
   try TaskIndex.find server.index goal with Not_found ->
