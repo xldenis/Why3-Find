@@ -41,6 +41,7 @@ val relaxed : string -> bool
 
 val all : env -> prover list
 val default : env -> prover list
+val find : env -> string -> prover
 val prover : env -> string -> prover
 val select : env -> string list -> prover list
 val merge : result -> result -> result

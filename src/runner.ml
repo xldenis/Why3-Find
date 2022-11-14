@@ -74,25 +74,27 @@ let relax name =
 
 let relaxed p = (String.lowercase_ascii p = p)
 
-let prover env name =
-  try
-    match find_exact env name with
+let find env name =
+  match find_exact env name with
+  | Some prv -> prv
+  | None ->
+    match find_exact env (String.lowercase_ascii name) with
     | Some prv -> prv
     | None ->
-      match find_exact env (String.lowercase_ascii name) with
-      | Some prv -> prv
-      | None ->
-        match String.split_on_char ',' name with
-        | shortname :: _ :: _ ->
-          begin
-            match find_exact env (String.lowercase_ascii shortname) with
-            | Some prv ->
-              Format.eprintf "Warning: prover %S not found, fallback to %a.@."
-                name pp_prover prv ;
-              prv
-            | None -> raise Not_found
-          end
-        | _ -> raise Not_found
+      match String.split_on_char ',' name with
+      | shortname :: _ :: _ ->
+        begin
+          match find_exact env (String.lowercase_ascii shortname) with
+          | Some prv ->
+            Format.eprintf "Warning: prover %S not found, fallback to %a.@."
+              name pp_prover prv ;
+            prv
+          | None -> raise Not_found
+        end
+      | _ -> raise Not_found
+
+let prover env name =
+  try find env name
   with Not_found ->
     Format.eprintf "Error: prover %S not found." name ;
     exit 2

@@ -44,7 +44,7 @@ type worker = {
   maxjobs : int ;
   provers : string list ;
   profile : Calibration.profile ;
-  pending : (goal,unit Fibers.t) Hashtbl.t ;
+  pending : (goal,unit Fibers.signal) Hashtbl.t ;
 }
 
 (* -------------------------------------------------------------------------- *)
@@ -90,8 +90,62 @@ let send_ready worker =
 (* --- CALIBRATION                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
+let send_profile worker prv =
+  send worker ["PROFILE";prv]
+
 let recv_profile worker prv size time =
   Calibration.set worker.profile prv size time
+
+(* -------------------------------------------------------------------------- *)
+(* --- KILL                                                               --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_kill worker goal =
+  try
+    let cancel = Hashtbl.find worker.pending goal in
+    Hashtbl.remove worker.pending goal ;
+    Fibers.emit cancel ()
+  with Not_found -> ()
+
+(* -------------------------------------------------------------------------- *)
+(* --- RESULT                                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let send_result worker goal (alpha,result) =
+  let status,time = match result with
+    | Runner.NoResult -> "NoResult",0.0
+    | Runner.Failed -> "Failed",0.0
+    | Runner.Valid t -> "Valid",t
+    | Runner.Unknown t -> "Unknown",t
+    | Runner.Timeout t -> "Timeout",t
+  in
+  send worker
+    ["RESULT";goal.prover;goal.digest;status;string_of_float @@ time /. alpha]
+
+(* -------------------------------------------------------------------------- *)
+(* --- PROVE                                                              --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_prove worker goal timeout data =
+  do_kill worker goal ;
+  try
+    let env = worker.env in
+    let cancel = Fibers.signal () in
+    let prover = Runner.find env goal.prover in
+    let buffer = Buffer.create (String.length data) in
+    Buffer.add_string buffer data ;
+    Hashtbl.add worker.pending goal cancel ;
+    if Calibration.lock worker.profile goal.prover then
+      send_profile worker goal.prover ;
+    let job =
+      let open Fibers.Monad in
+      let* alpha = Calibration.velocity env worker.profile prover in
+      let timeout = alpha *. timeout in
+      let* result = Runner.prove_buffer env ~cancel prover buffer timeout in
+      Hashtbl.remove worker.pending goal ;
+      Fibers.return (alpha,result)
+    in Fibers.await job (send_result worker goal)
+  with Not_found -> ()
 
 (* -------------------------------------------------------------------------- *)
 (* --- Message Handler                                                    --- *)
@@ -104,6 +158,10 @@ let handler worker msg =
       send_ready worker
     | ["PROFILE";prv;size;time] ->
       recv_profile worker prv (int_of_string size) (float_of_string time)
+    | ["KILL";prover;digest] ->
+      do_kill worker { prover ; digest }
+    | ["PROVE";prover;digest;timeout;data] ->
+      do_prove worker { prover ; digest } (float_of_string timeout) data
     | _ -> ()
   with Invalid_argument _ -> ()
 
@@ -165,6 +223,7 @@ let connect ~server ~polling =
   let context = Zmq.Context.create () in
   let timeout = int_of_float (polling *. 1e3) in
   let socket,polling = connect context server in
+  let profile = Calibration.create () in
   let worker = {
     env ;
     context ;
@@ -175,7 +234,7 @@ let connect ~server ~polling =
     hangup = 0 ;
     provers = prvs ;
     maxjobs = jobs ;
-    profile = Calibration.create () ;
+    profile ;
     pending = Hashtbl.create 0 ;
   } in
   Format.printf "Worker running…@." ;
