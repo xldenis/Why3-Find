@@ -348,7 +348,7 @@ let get (profile: profile) prv =
   with Not_found -> None
 
 let lock (profile: profile) prv =
-  if Hashtbl.mem profile prv then
+  if not @@ Hashtbl.mem profile prv then
     ( Hashtbl.add profile prv @@ Fibers.var () ; true )
   else false
 
