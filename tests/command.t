@@ -252,7 +252,6 @@
     --server URL Proof Server address (default: "tcp://HOST:PORT")
     --polling TIME server polling interval (default 1.0s)
     --trace Trace server protocol
-    --local no calibration (local times)
     --modules list results by module
     --theories list results by theory
     --goals list results by goals
@@ -334,6 +333,7 @@
     --server URL proof server address (default "tcp://localhost:5555")
     --polling TIME server polling interval (default 1.0s)
     --trace Trace server protocol
+    --local no calibration (use local times)
     --reftime TIME set calibration time (default 0.5s)
     --sequential use sequential calibration algorithm
     -help  Display this list of options

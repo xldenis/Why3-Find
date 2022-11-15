@@ -468,7 +468,6 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
             "-h", Arg.Set axioms, "report hypotheses and axioms";
           ] @
           Client.options @ [
-            "--local", Arg.Set Hammer.local, "no calibration (local times)";
             "--modules",  Arg.Unit (set log `Modules), "list results by module";
             "--theories", Arg.Unit (set log `Theories), "list results by theory";
             "--goals", Arg.Unit (set log `Goals), "list results by goals";

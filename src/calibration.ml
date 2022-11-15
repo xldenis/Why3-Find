@@ -314,13 +314,16 @@ let alpha env prv ~size ~time : float Fibers.t =
       Runner.pp_prover prv size Runner.pp_result result ;
     exit 2
 
+let local = ref false
+
 let velocity env profile prv : float Fibers.t =
-  let*g = gauge env profile prv in
-  match g.alpha with
-  | Some a -> Fibers.get a
-  | None ->
-    let ga = Fibers.result @@ alpha env prv ~size:g.size ~time:g.time in
-    g.alpha <- Some ga ; Fibers.get ga
+  if !local then Fibers.return 1.0 else
+    let* g = gauge env profile prv in
+    match g.alpha with
+    | Some a -> Fibers.get a
+    | None ->
+      let ga = Fibers.result @@ alpha env prv ~size:g.size ~time:g.time in
+      g.alpha <- Some ga ; Fibers.get ga
 
 let observed profile prv =
   try
@@ -363,8 +366,9 @@ let iter f profile =
 (* -------------------------------------------------------------------------- *)
 
 let default () =
-  try Wenv.get "profile" ~of_json:(of_json ?default:None)
-  with Not_found -> create ()
+  if !local then create () else
+    try Wenv.get "profile" ~of_json:(of_json ?default:None)
+    with Not_found -> create ()
 
 let calibrate_provers ~saved env provers =
   Fibers.run @@
@@ -430,6 +434,7 @@ let velocity_provers env provers =
 (* -------------------------------------------------------------------------- *)
 
 let options = [
+  "--local", Arg.Set local, "no calibration (use local times)";
   "--reftime", Arg.Set_float reftime, "TIME set calibration time (default 0.5s)" ;
   "--sequential", Arg.Set sequential, "use sequential calibration algorithm" ;
 ]

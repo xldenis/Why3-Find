@@ -84,15 +84,8 @@ let rec smap (f : 'a -> strategy) (xs : 'a list) : strategy =
 (* --- Try Prover on Node                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let local = ref false
-
 let prove env ?cancel prv timeout : strategy = fun n ->
-  let* alpha =
-    if !local then
-      Fibers.return 1.0
-    else
-      Calibration.velocity env n.profile prv
-  in
+  let* alpha = Calibration.velocity env n.profile prv in
   let time = timeout *. alpha in
   let task = Session.goal_task n.goal in
   let name = Session.goal_name n.goal in

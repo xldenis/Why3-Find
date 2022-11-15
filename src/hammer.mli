@@ -27,7 +27,6 @@ open Crc
 open Calibration
 open Session
 
-val local : bool ref
 val schedule :
   profile -> ?replay:bool -> ?depth:int -> goal -> crc -> crc Fibers.t
 
