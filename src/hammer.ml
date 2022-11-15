@@ -111,15 +111,17 @@ let prove env ?client ?cancel prover timeout : strategy = fun n ->
         Fibers.map to_profile @@
         Fibers.finally ~handler:cache_runner @@
         Fibers.finally ~handler:(watch kill_server) @@
-        Runner.prove_prepared env ~name ~cancel:kill_runner ~callback
-          prover task runner_time
+        (Format.printf "PROVE PREPARED %s@." (Runner.digest task) ;
+         Runner.prove_prepared env ~name ~cancel:kill_runner ~callback
+          prover task runner_time)
       and* server =
         match client with
         | None -> Fibers.return Runner.NoResult
         | Some cl ->
           Fibers.finally ~handler:cache_server @@
           Fibers.finally ~handler:(Runner.store_cached prover task) @@
-          Client.prove cl n.profile ~cancel:kill_server prover task timeout
+          (Format.printf "PROVE SERVER %s@." (Runner.digest task) ;
+           Client.prove cl n.profile ~cancel:kill_server prover task timeout)
       in Runner.merge runner server
   in
   match verdict with

@@ -116,7 +116,7 @@ let recv server ~time fn =
     if !trace then
       begin
         Utils.flush () ;
-        Format.printf "%a RECV <- %a@."
+        Format.printf "@%a RECV <- %a@."
           Utils.pp_hex identity
           Utils.pp_args msg ;
       end ;
