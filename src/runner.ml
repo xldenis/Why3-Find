@@ -388,7 +388,8 @@ let call_prover (env : Wenv.env)
       canceled := true ;
       if !started then kill () ;
     end in
-  Fibers.hook cancel interrupt Fibers.async
+  Fibers.hook ?signal:cancel ~handler:interrupt @@
+  Fibers.async @@
     begin fun () ->
       let t0 = Unix.gettimeofday () in
       if !started && (!canceled || !clockwall < t0) then kill () ;

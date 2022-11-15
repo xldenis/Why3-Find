@@ -133,11 +133,11 @@ val on : 'a signal -> ('a -> unit) -> unit
 (** Un-register a hook on the signal. *)
 val off : 'a signal -> ('a -> unit) -> unit
 
-(** [hook s h f] registers the handler [h] on signal [s]
-    during the computation [f  ()] ; the handler [h]
-    is removed from [s] when the
-    computation terminates. *)
-val hook : 'a signal option -> ('a -> unit) -> ('b -> 'c t) -> 'b -> 'c t
+(** [hook ~signal:s ~handler:h f] registers the handler [h] on signal [s] until
+    the fiber [f] returns. Does nothing if signal or handler are undefined.
+
+    Returns {b identity}, so as hooks can be chained. *)
+val hook : ?signal:'a signal -> ?handler:('a -> unit) -> 'b t -> 'b t
 
 (** Remove all registered hooks. *)
 val clear : 'a signal -> unit

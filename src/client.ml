@@ -44,16 +44,19 @@ let options = [
 type goal = { prover : string ; digest : string }
 type task = {
   goal : goal ;
-  task : Runner.prooftask ;
+  prv : Runner.prover ;
+  tsk : Runner.prooftask ;
   mutable timeout : float ;
-  result : Runner.result Fibers.var ;
+  channel : Runner.result Fibers.signal ;
 }
 
 type client = {
   env : Wenv.env ;
+  context : Zmq.Context.t ;
   socket : [`Dealer] Zmq.Socket.t ;
   profile : Calibration.profile ;
   pending : (goal,task) Hashtbl.t ;
+  mutable terminated : bool ;
 }
 
 (* -------------------------------------------------------------------------- *)
@@ -71,7 +74,7 @@ let connect env =
     let profile = Calibration.create () in
     let pending = Hashtbl.create 0 in
     Zmq.Socket.connect socket address ;
-    Some { env ; socket ; profile ; pending }
+    Some { env ; context ; socket ; profile ; pending ; terminated = false }
 
 (* -------------------------------------------------------------------------- *)
 (* --- Socket                                                             --- *)
@@ -95,10 +98,8 @@ let recv client fn =
         Utils.flush () ;
         Format.printf "RECV %a@." Utils.pp_args msg ;
       end ;
-    fn msg ;
-    true
-  with Unix.Unix_error(EAGAIN,_,_) -> false
-[@@ warning "-32"]
+    fn msg
+  with Unix.Unix_error(EAGAIN,_,_) -> ()
 
 (* -------------------------------------------------------------------------- *)
 (* --- Messages Sent                                                      --- *)
@@ -111,21 +112,24 @@ let send_profile client prover (size,time) =
 let send_get client goal timeout =
   send client ["GET";goal.prover;goal.digest;string_of_float timeout]
 
+let send_upload client goal data =
+  send client ["UPLOAD";goal.prover;goal.digest;data]
+
 let send_kill client goal =
   send client ["KILL";goal.prover;goal.digest]
-[@@ warning "-32"]
 
 (* -------------------------------------------------------------------------- *)
 (* --- PROVE                                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-let get_task client prover task =
-  let goal = { prover = Runner.id prover ; digest = Runner.digest task } in
+let get_task client prv tsk =
+  let goal = { prover = Runner.id prv ; digest = Runner.digest tsk } in
   try Hashtbl.find client.pending goal with Not_found ->
-    let task = { goal ; task ; timeout = 0.0 ; result = Fibers.var () } in
+    let channel = Fibers.signal () in
+    let task = { goal ; prv ; tsk ; timeout = 0.0 ; channel } in
     Hashtbl.add client.pending goal task ; task
 
-let prove_client client profile prover task timeout =
+let prove client profile ?cancel prover task timeout =
   let open Fibers.Monad in
   let env = client.env in
   (* project profile *)
@@ -144,13 +148,86 @@ let prove_client client profile prover task timeout =
       and* vs = Calibration.velocity env client.profile prover
       in vs /. vp in
   (* server timeout *)
-  let timeout = timeout /. gamma in
+  let time = timeout /. gamma in
   let task = get_task client prover task in
-  if 0.0 < task.timeout && task.timeout < timeout then
+  if 0.0 < task.timeout && task.timeout < time then
     begin
-      task.timeout <- timeout ;
-      send_get client task.goal timeout ;
+      task.timeout <- time ;
+      send_get client task.goal time ;
     end ;
-  Fibers.map (Runner.map (( *. ) gamma)) @@ Fibers.get task.result
+  let result = Fibers.var () in
+  let resolve rs =
+    let rp = Runner.map (fun t -> t *. gamma) rs in
+    match Runner.crop ~timeout rp with
+    | None -> send_get client task.goal task.timeout
+    | Some rp -> Fibers.set result rp
+  in
+  let interrupt () =
+    send_kill client task.goal ;
+    Fibers.set result NoResult
+  in
+  Fibers.hook ~signal:task.channel ~handler:resolve @@
+  Fibers.hook ?signal:cancel ~handler:interrupt @@
+  Fibers.get result
+
+(* -------------------------------------------------------------------------- *)
+(* --- CALIBRATION                                                        --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_profile client prover size time =
+  Calibration.set client.profile prover size time
+
+(* -------------------------------------------------------------------------- *)
+(* --- RESULT                                                             --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_result client goal status time =
+  let task = Hashtbl.find client.pending goal in
+  Fibers.emit task.channel @@
+  match status with
+  | "NoResult" -> Runner.NoResult
+  | "Valid" -> Runner.Valid time
+  | "Unknown" -> Runner.Unknown time
+  | "Timeout" -> Runner.Timeout time
+  | _ -> Runner.Failed
+
+(* -------------------------------------------------------------------------- *)
+(* --- DOWNLOAD                                                           --- *)
+(* -------------------------------------------------------------------------- *)
+
+let do_download client goal =
+  let task = Hashtbl.find client.pending goal in
+  send_upload client goal (Runner.data task.prv task.tsk)
+
+(* -------------------------------------------------------------------------- *)
+(* --- SERVER Handler                                                     --- *)
+(* -------------------------------------------------------------------------- *)
+
+let handler client msg =
+  try match msg with
+  | ["PROFILE";prover;size;time] ->
+    do_profile client prover (int_of_string size) (float_of_string time)
+  | ["RESULT";prover;digest;status;time] ->
+    do_result client { prover ; digest } status (float_of_string time)
+  | ["DOWNLOAD";prover;digest] ->
+    do_download client { prover ; digest }
+  | _ -> ()
+  with Not_found | Invalid_argument _ -> ()
+
+(* -------------------------------------------------------------------------- *)
+(* --- Running                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
+let start client =
+  Fibers.async
+    (fun () ->
+       if client.terminated then Some ()
+       else ( recv client (handler client) ; None ))
+
+let terminate client =
+  send client ["HANGUP"] ;
+  Zmq.Socket.close client.socket ;
+  Zmq.Context.terminate client.context ;
+  client.terminated <- true
 
 (* -------------------------------------------------------------------------- *)

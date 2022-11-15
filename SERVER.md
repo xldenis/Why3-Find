@@ -54,7 +54,7 @@ in a typical order of events:
 | `GET`      | `C -> S`         | Proof request                 |
 | `DOWNLOAD` | `C <- S`         | Proof data download request   |
 | `UPLOAD`   | `C -> S`         | Proof data upload to server   |
-| `HIRING`   | `S -> W`         | Workers needed                |
+| `RAISE`    | `S -> W`         | Workers needed                |
 | `READY`    | `W -> S`         | Available worker              |
 | `PROVE`    | `S -> W`         | Proof task request to worker  |
 | `RESULT`   | `C <-> S <- W`   | Proof result transfer         |
