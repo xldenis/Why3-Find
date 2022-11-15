@@ -52,7 +52,6 @@ type worker = {
 (* -------------------------------------------------------------------------- *)
 
 let trace = ref false
-let chrono = ref @@ Unix.time ()
 
 let send worker msg =
   if !trace then
@@ -68,12 +67,7 @@ let recv worker fn =
     if !trace then
       begin
         Utils.flush () ;
-        let time = Unix.time () in
-        let delta = time -. !chrono in
-        Format.printf "RECV %a (%a)@."
-          Utils.pp_args msg
-          Utils.pp_time delta ;
-        chrono := time ;
+        Format.printf "RECV %a@." Utils.pp_args msg ;
       end ;
     fn msg ;
     true

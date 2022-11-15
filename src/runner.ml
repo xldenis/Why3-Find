@@ -139,6 +139,13 @@ let merge a b =
   | Timeout _ , Unknown _ -> b
   | Timeout ta , Timeout tb -> Timeout (max ta tb)
 
+let map f = function
+  | NoResult -> NoResult
+  | Failed -> Failed
+  | Valid t -> Valid (f t)
+  | Unknown t -> Unknown (f t)
+  | Timeout t -> Timeout (f t)
+
 let pp_result fmt = function
   | NoResult -> Format.pp_print_string fmt "No Result"
   | Failed -> Format.pp_print_string fmt "Failed"
@@ -355,7 +362,6 @@ let call_prover (env : Wenv.env)
   let canceled = ref false in
   update_client env ;
   schedule () ;
-  let cancel = match cancel with None -> Fibers.signal () | Some s -> s in
   let libdir = Whyconf.libdir main in
   let datadir = Whyconf.datadir main in
   let call =

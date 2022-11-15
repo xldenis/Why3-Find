@@ -26,11 +26,9 @@
 type client
 
 val options : (string * Arg.spec * string) list
-val connect : unit -> client option
-
-val prove : client ->
-  alpha:float ->
-  cancel:Runner.result Fibers.signal ->
-  Why3.Task.task -> Runner.prover -> float -> Runner.result Fibers.t
+val connect : Wenv.env -> client option
+val prove_client : client ->
+  Calibration.profile ->
+  Runner.prover -> Runner.prooftask -> float -> Runner.result Fibers.t
 
 (* -------------------------------------------------------------------------- *)

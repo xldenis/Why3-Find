@@ -134,12 +134,15 @@ let on = Queue.push
 let off q k = Queue.filter q (fun k0 -> k0 != k)
 let clear = Queue.clear
 let hook s k f x =
-  on s k ;
-  try
-    let+ r = f x in
-    off s k ; r
-  with exn ->
-    off s k ; raise exn
+  match s with
+  | None -> f x
+  | Some s ->
+    on s k ;
+    try
+      let+ r = f x in
+      off s k ; r
+    with exn ->
+      off s k ; raise exn
 
 (* -------------------------------------------------------------------------- *)
 (* --- Variables                                                          --- *)
