@@ -146,7 +146,7 @@ let prove client profile ?cancel prover task timeout =
   (* server timeout *)
   let time = timeout /. gamma in
   let task = get_task client prover task in
-  if 0.0 < task.timeout && task.timeout < time then
+  if task.timeout < time then
     begin
       task.timeout <- time ;
       send_get client task.goal time ;

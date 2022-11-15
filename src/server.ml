@@ -248,11 +248,11 @@ let finalize server id task status time =
   begin
     List.iter
       (fun e ->
-         if e @<> id then send_result server id task.goal status time)
+         if e @<> id then send_result server e task.goal status time)
       task.waiting ;
     List.iter
       (fun w ->
-         if w.worker @<> id then send_kill server id task.goal ;
+         if w.worker @<> id then send_kill server w.worker task.goal ;
          w.busy <- max 0 (pred w.busy))
       task.running ;
     task.waiting <- [] ;
