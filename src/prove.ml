@@ -47,8 +47,7 @@ let load_theories (env : Wenv.env) file =
     let tmap,format = Why3.Env.(read_file base_language env.wenv file) in
     M.bindings tmap |> List.map snd |> List.sort byloc , format
   with error ->
-    Utils.flush () ;
-    Format.printf "%s@." (Printexc.to_string error) ;
+    Utils.log "%s@." (Printexc.to_string error) ;
     exit 2
 
 (* -------------------------------------------------------------------------- *)

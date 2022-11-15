@@ -184,10 +184,7 @@ let version = ".why3find/v1"
 let destroycache () =
   begin
     if Utils.tty then
-      begin
-        Utils.flush () ;
-        Format.printf "Upgrading cache (%s)@." (Filename.basename version) ;
-      end ;
+      Utils.log "Upgrading cache (%s)@." (Filename.basename version) ;
     Utils.rmpath cachedir ;
   end
 

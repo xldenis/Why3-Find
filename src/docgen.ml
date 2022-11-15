@@ -955,8 +955,7 @@ let process ~wenv ~henv ~out ~title file =
 
 let generate ~out ~title ~files =
   begin
-    Utils.flush () ;
-    Format.printf "Generated %s@." @@ Utils.absolute out ;
+    Utils.log "Generated %s@." @@ Utils.absolute out ;
     let wenv, henv = Docref.init () in
     Utils.mkdirs @@ Filename.concat out "fonts" ;
     shared ~out ~file:"style.css" ;

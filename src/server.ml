@@ -101,12 +101,9 @@ let trace = ref false
 
 let send server emitter msg =
   if !trace then
-    begin
-      Utils.flush () ;
-      Format.printf "@%a SEND -> %a@."
-        Utils.pp_hex emitter.identity
-        Utils.pp_args msg ;
-    end ;
+    Utils.log "@%a SEND -> %a@."
+      Utils.pp_hex emitter.identity
+      Utils.pp_args msg ;
   Zmq.Socket.send_all server.socket (emitter.identity :: msg)
 
 let recv server ~time fn =
@@ -114,12 +111,9 @@ let recv server ~time fn =
   | [] -> true
   | identity::msg ->
     if !trace then
-      begin
-        Utils.flush () ;
-        Format.printf "@%a RECV <- %a@."
-          Utils.pp_hex identity
-          Utils.pp_args msg ;
-      end ;
+      Utils.log "@%a RECV <- %a@."
+        Utils.pp_hex identity
+        Utils.pp_args msg ;
     fn { time ; identity } msg ; true
   | exception Unix.Unix_error(EAGAIN,_,_) -> false
 
@@ -523,8 +517,7 @@ let establish ~database ~address ~polling =
     Zmq.Socket.unbind socket address ;
     Zmq.Socket.close socket ;
     Zmq.Context.terminate context ;
-    Utils.flush () ;
-    Format.printf "Terminated@." ;
+    Utils.log "Terminated@." ;
     exit 0
 
 (* -------------------------------------------------------------------------- *)

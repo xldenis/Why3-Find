@@ -76,8 +76,7 @@ let connect env =
       let profile = Calibration.create () in
       let pending = Hashtbl.create 0 in
       Zmq.Socket.connect socket address ;
-      Utils.flush () ;
-      Format.printf "Server %s@." address ;
+      Utils.log "Server %s@." address ;
       { env ; context ; socket ; profile ; pending ; terminated = false }
     end @@ resolve ()
 
@@ -87,20 +86,14 @@ let connect env =
 
 let send client msg =
   if !trace then
-    begin
-      Utils.flush () ;
-      Format.printf "SEND -> %a@." Utils.pp_args msg ;
-    end ;
+    Utils.log "SEND -> %a@." Utils.pp_args msg ;
   Zmq.Socket.send_all client.socket msg
 
 let recv client fn =
   try
     let msg = Zmq.Socket.recv_all ~block:false client.socket in
     if !trace then
-      begin
-        Utils.flush () ;
-        Format.printf "<- RECV %a@." Utils.pp_args msg ;
-      end ;
+      Utils.log "<- RECV %a@." Utils.pp_args msg ;
     fn msg
   with Unix.Unix_error(EAGAIN,_,_) -> ()
 

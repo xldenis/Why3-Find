@@ -55,20 +55,14 @@ let trace = ref false
 
 let send worker msg =
   if !trace then
-    begin
-      Utils.flush () ;
-      Format.printf "SEND -> %a@." Utils.pp_args msg ;
-    end ;
+    Utils.log "SEND -> %a@." Utils.pp_args msg ;
   Zmq.Socket.send_all worker.socket msg
 
 let recv worker fn =
   try
     let msg = Zmq.Socket.recv_all ~block:false worker.socket in
     if !trace then
-      begin
-        Utils.flush () ;
-        Format.printf "<- RECV %a@." Utils.pp_args msg ;
-      end ;
+      Utils.log "<- RECV %a@." Utils.pp_args msg ;
     fn msg ;
     true
   with Unix.Unix_error(EAGAIN,_,_) -> false
@@ -182,8 +176,7 @@ let poll worker =
         worker.hangup <- succ hangup ;
         if hangup > 5 then
           begin
-            Utils.flush () ;
-            Format.printf "Reconnect to %s…@." worker.address ;
+            Utils.log "Reconnect to %s…@." worker.address ;
             Zmq.Socket.disconnect worker.socket worker.address ;
             Zmq.Socket.close worker.socket ;
             let socket,polling = connect worker.context worker.address in
@@ -194,8 +187,7 @@ let poll worker =
           begin
             Zmq.Socket.close worker.socket ;
             Zmq.Context.terminate worker.context ;
-            Utils.flush () ;
-            Format.printf "Abandon!@." ;
+            Utils.log "Abandon!@." ;
             exit 1
           end
       end
@@ -252,8 +244,7 @@ let connect ~server ~polling =
     Zmq.Socket.disconnect worker.socket server ;
     Zmq.Socket.close worker.socket ;
     Zmq.Context.terminate worker.context ;
-    Utils.flush () ;
-    Format.printf "Terminated@." ;
+    Utils.log "Terminated@." ;
     exit 0
 
 

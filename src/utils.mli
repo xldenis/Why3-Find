@@ -57,6 +57,7 @@ val round : float -> float
 
 val tty : bool
 val flush : unit -> unit
+val log : ('a,Format.formatter,unit) format -> 'a
 val progress : ('a,Format.formatter,unit) format -> 'a
 val failwith : ('a, Format.formatter, unit, 'b) format4 -> 'a
 

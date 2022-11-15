@@ -159,8 +159,7 @@ let rec stats a b =
 
 let print_stats () =
   begin
-    Utils.flush () ;
-    Format.printf "Proofs %t"
+    Utils.log "Proofs %t"
       (pp_result ~proved:!nproved ~stuck:!nstuck) ;
     if !fixed + !broken + !minimized + !updated = 0 then
       if !nproved >0 then

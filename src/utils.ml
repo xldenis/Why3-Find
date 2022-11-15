@@ -41,6 +41,10 @@ let progress msg =
 
 let flush () = if tty then Format.printf "\r\027[K"
 
+let log msg =
+  flush () ;
+  Format.printf msg
+
 open Format
 
 let nop _ = ()
