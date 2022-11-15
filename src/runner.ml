@@ -251,11 +251,14 @@ let get e =
     let r = if !cache then read e else NoResult in
     Cache.add hash e r ; r
 
-let set e r =
-  match r with
+let set e r1 =
+  let r0 = try Cache.find hash e with Not_found -> NoResult in
+  match merge r0 r1 with
   | NoResult -> ()
-  | Failed -> Cache.replace hash e r
-  | Valid _ | Unknown _ | Timeout _ -> Cache.replace hash e r ; write e r
+  | Failed ->
+    Cache.replace hash e Failed
+  | (Valid _ | Unknown _ | Timeout _) as r ->
+    Cache.replace hash e r ; write e r
 
 (* -------------------------------------------------------------------------- *)
 (* --- Running Prover                                                     --- *)

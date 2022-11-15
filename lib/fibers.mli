@@ -136,8 +136,12 @@ val off : 'a signal -> ('a -> unit) -> unit
 (** [hook ~signal:s ~handler:h f] registers the handler [h] on signal [s] until
     the fiber [f] returns. Does nothing if signal or handler are undefined.
 
-    Returns {b identity}, so as hooks can be chained. *)
+    Returns {b identity}, hence hooks can be chained. *)
 val hook : ?signal:'a signal -> ?handler:('a -> unit) -> 'b t -> 'b t
+
+(** [Hook on task finalization.]
+    Returns {b identity}, hence finalization hooks can be chained. *)
+val finally : ?handler:('a -> unit) -> 'a t -> 'a t
 
 (** Remove all registered hooks. *)
 val clear : 'a signal -> unit

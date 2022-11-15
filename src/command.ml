@@ -497,8 +497,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
           begin
             let pkgs = Wenv.packages () in
             Format.printf "proof failed: running why3 ide %s@." f ;
-            let hammer = Meta.shared "hammer.cfg" in
-            exec ~prefix:["ide";"--extra-config";hammer] ~pkgs [| f |]
+            exec ~prefix:["ide"] ~pkgs [| f |]
           end
     end
 
@@ -907,8 +906,7 @@ let () = register ~name:"ide" ~args:"[-p PKG] FILE"
          \n  -p|--package PKG package dependency\
          \n  --extra-config FILE additional configuration file\
          \n";
-      let hammer = Meta.shared "hammer.cfg" in
-      exec ~prefix:["ide";"--extra-config";hammer] ~configs:[] ~skip:1 argv
+      exec ~prefix:["ide"] ~configs:[] ~skip:1 argv
     end
 
 (* -------------------------------------------------------------------------- *)

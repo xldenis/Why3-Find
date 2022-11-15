@@ -138,6 +138,8 @@ let hook ?signal ?handler fn =
   | Some s, Some h -> on s h ; await fn (fun _ -> off s h) ; fn
   | _ -> fn
 
+let finally ?handler fn = Option.iter (await fn) handler ; fn
+
 (* -------------------------------------------------------------------------- *)
 (* --- Variables                                                          --- *)
 (* -------------------------------------------------------------------------- *)

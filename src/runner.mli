@@ -74,8 +74,6 @@ val data : prover -> prooftask -> string
 val prove_cached : prover -> Why3.Task.task -> float ->
   [ `Cached of result | `Prepared of prooftask ]
 
-val store_cached : prover -> prooftask -> result -> unit
-
 val prove_prepared : env ->
   ?name:string ->
   ?cancel:unit Fibers.signal ->
@@ -85,6 +83,9 @@ val prove_prepared : env ->
 val prove_buffer : env ->
   ?cancel:unit Fibers.signal ->
   prover -> Buffer.t -> float -> result Fibers.t
+
+val notify : env -> prover -> result -> callback -> unit
+val store_cached : prover -> prooftask -> result -> unit
 
 val options : (string * Arg.spec * string) list
 val pending : unit -> int

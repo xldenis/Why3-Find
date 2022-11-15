@@ -85,17 +85,56 @@ let rec smap (f : 'a -> strategy) (xs : 'a list) : strategy =
 (* --- Try Prover on Node                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let prove env ?cancel prv timeout : strategy = fun n ->
-  let* alpha = Calibration.velocity env n.profile prv in
-  let time = timeout *. alpha in
+let prove env ?client ?cancel prover timeout : strategy = fun n ->
   let task = Session.goal_task n.goal in
   let name = Session.goal_name n.goal in
+  let* alpha = Calibration.velocity env n.profile prover in
+  let to_profile = Runner.map (fun t -> t /. alpha) in
+  let to_runner = Runner.map (fun t -> t *. alpha) in
+  let runner_time = timeout *. alpha in
+  let callback = Session.result n.goal in
+  let+ verdict =
+    match Runner.prove_cached prover task runner_time with
+    | `Cached result ->
+      Runner.notify env prover result callback ;
+      Fibers.return (to_profile result)
+    | `Prepared task ->
+      let kill_runner = Fibers.signal () in
+      let kill_server = Fibers.signal () in
+      let watch kill =
+        function Runner.Valid _ -> Fibers.emit kill () | _ -> () in
+      let cache_runner = Runner.store_cached prover task in
+      let cache_server r = Runner.store_cached prover task (to_runner r) in
+      Fibers.hook ?signal:cancel ~handler:(Fibers.emit kill_runner) @@
+      Fibers.hook ?signal:cancel ~handler:(Fibers.emit kill_server) @@
+      let+ runner =
+        Fibers.map to_profile @@
+        Fibers.finally ~handler:cache_runner @@
+        Fibers.finally ~handler:(watch kill_server) @@
+        Runner.prove_prepared env ~name ~cancel:kill_runner ~callback
+          prover task runner_time
+      and* server =
+        match client with
+        | None -> Fibers.return Runner.NoResult
+        | Some cl ->
+          Fibers.finally ~handler:cache_server @@
+          Fibers.finally ~handler:(Runner.store_cached prover task) @@
+          Client.prove cl n.profile ~cancel:kill_server prover task timeout
+      in Runner.merge runner server
+  in
+  match verdict with
+  | Valid t -> Prover( Runner.name prover, Utils.round t )
+  | _ -> Stuck
+
+(*
   let+ local = Runner.prove env
       ?cancel ~name ~callback:(Session.result n.goal)
       prv task time in
   match local with
   | Valid t -> Prover( Runner.name prv, Utils.round @@ t /. alpha )
   | _ -> Stuck
+*)
+
 
 (* -------------------------------------------------------------------------- *)
 (* --- Try Transformation on Node                                         --- *)
