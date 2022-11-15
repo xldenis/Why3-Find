@@ -161,12 +161,12 @@ let apply env depth tr hs : strategy = fun n ->
 let hammer0 env prvs time : strategy =
   smap (fun prv -> prove env prv time) prvs
 
-let hammer1 env prvs time : strategy = fun n ->
+let hammer1 env prvs ?client time : strategy = fun n ->
   let cancel = Fibers.signal () in
   let watch r = if r <> Stuck then Fibers.emit cancel () ; r in
   let+ results =
     Fibers.all @@ List.map
-      (fun prv -> watch @+ prove env ~cancel prv time n) prvs
+      (fun prv -> watch @+ prove env ?client ~cancel prv time n) prvs
   in try List.find (fun r -> r <> Stuck) results with Not_found -> Stuck
 
 let hammer2 env trfs depth : strategy =
@@ -174,9 +174,9 @@ let hammer2 env trfs depth : strategy =
 
 let hammer henv =
   hammer0 henv.env henv.provers (henv.time *. 0.2) >>>
-  hammer1 henv.env henv.provers henv.time >>>
+  hammer1 henv.env henv.provers ?client:henv.client henv.time >>>
   hammer2 henv.env henv.transfs henv.maxdepth >>>
-  hammer1 henv.env henv.provers (henv.time *. 2.0)
+  hammer1 henv.env henv.provers ?client:henv.client (henv.time *. 2.0)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Node Processing                                                    --- *)
@@ -186,8 +186,11 @@ let select p prvs = List.find (fun prv -> Runner.name prv = p) prvs
 
 let overhead t = max (t *. 2.0) 1.0
 
-let prove h p t = prove h.env (select p h.provers) (overhead t)
-let update h p t = prove h p t >>> hammer h
+let replay h p t =
+  let client = if t > h.time *. 0.2 then h.client else None in
+  prove h.env ?client (select p h.provers) (overhead t)
+
+let update h p t = replay h p t >>> hammer h
 
 let transf h id cs =
   apply h.env h.maxdepth id cs >>>
@@ -206,7 +209,7 @@ let process h : strategy = fun n ->
   | Stuck -> if n.replay then stuck else hammer h n
   | Prover(p,t) ->
     if n.replay then
-      prove h p t n
+      replay h p t n
     else
       update h p t n
   | Transf { id ; children } ->
