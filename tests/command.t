@@ -247,7 +247,9 @@
     -i run why-3 IDE on error(s) (implies -s)
     -s save why3 session
     -h report hypotheses and axioms
-    --server URL proof server address (default none)
+    --host HOST Proof Server host (default: none)
+    --port PORT Proof Server port (default: 5555)
+    --server URL Proof Server address (default: "tcp://HOST:PORT")
     --polling TIME server polling interval (default 1.0s)
     --trace Trace server protocol
     --local no calibration (local times)

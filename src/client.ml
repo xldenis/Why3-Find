@@ -31,11 +31,11 @@ let trace = ref false
 
 let options = [
   "--host",Arg.Set_string host,
-  "TCP server host (default none)" ;
+  "HOST Proof Server host (default: none)" ;
   "--port",Arg.Set_int port,
-  "TCP server port (default 5555)" ;
+  "PORT Proof Server port (default: 5555)" ;
   "--server",Arg.Set_string server,
-  "URL proof server address (default \"tcp://host:port\", if any)";
+  "URL Proof Server address (default: \"tcp://HOST:PORT\")" ;
   "--polling",Arg.Set_float polling,
   "TIME server polling interval (default 1.0s)";
   "--trace",Arg.Set trace,"Trace server protocol";
