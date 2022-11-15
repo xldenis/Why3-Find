@@ -79,6 +79,7 @@ let load_profile ~database =
     Calibration.create ()
 
 let save_profile ~database profile =
+  Utils.mkdirs database ;
   let file = Printf.sprintf "%s/profile.json" database in
   Json.to_file file @@ Calibration.to_json profile
 
