@@ -85,13 +85,11 @@ let connect env =
 (* --- Socket                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-let trace = ref false
-
 let send client msg =
   if !trace then
     begin
       Utils.flush () ;
-      Format.printf "SEND %a@." Utils.pp_args msg ;
+      Format.printf "SEND -> %a@." Utils.pp_args msg ;
     end ;
   Zmq.Socket.send_all client.socket msg
 
@@ -101,7 +99,7 @@ let recv client fn =
     if !trace then
       begin
         Utils.flush () ;
-        Format.printf "RECV %a@." Utils.pp_args msg ;
+        Format.printf "<- RECV %a@." Utils.pp_args msg ;
       end ;
     fn msg
   with Unix.Unix_error(EAGAIN,_,_) -> ()

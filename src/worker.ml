@@ -57,7 +57,7 @@ let send worker msg =
   if !trace then
     begin
       Utils.flush () ;
-      Format.printf "SEND %a@." Utils.pp_args msg ;
+      Format.printf "SEND -> %a@." Utils.pp_args msg ;
     end ;
   Zmq.Socket.send_all worker.socket msg
 
@@ -67,7 +67,7 @@ let recv worker fn =
     if !trace then
       begin
         Utils.flush () ;
-        Format.printf "RECV %a@." Utils.pp_args msg ;
+        Format.printf "<- RECV %a@." Utils.pp_args msg ;
       end ;
     fn msg ;
     true
