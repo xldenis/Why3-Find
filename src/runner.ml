@@ -393,44 +393,44 @@ let call_prover (env : Wenv.env)
     end in
   Fibers.hook ?signal:cancel ~handler:interrupt @@
   Fibers.async @@
-    begin fun () ->
-      let t0 = Unix.gettimeofday () in
-      if !started && (!canceled || !clockwall < t0) then kill () ;
-      let query =
-        try Call_provers.query_call call with e -> InternalFailure e in
-      match query with
-      | NoUpdates
-      | ProverInterrupted ->
-        None
-      | ProverStarted ->
-        if not !started then
-          begin
-            start ?name () ;
-            clockwall := Unix.gettimeofday () +. timeout ;
-            started := true ;
-          end ;
-        None
-      | InternalFailure _ ->
+  begin fun () ->
+    let t0 = Unix.gettimeofday () in
+    if !started && (!canceled || !clockwall < t0) then kill () ;
+    let query =
+      try Call_provers.query_call call with e -> InternalFailure e in
+    match query with
+    | NoUpdates
+    | ProverInterrupted ->
+      None
+    | ProverStarted ->
+      if not !started then
         begin
-          if !started then stop ?name () ;
-          Some Failed
-        end
-      | ProverFinished pr ->
-        let result =
-          match pr.pr_answer with
-          | Valid -> Valid pr.pr_time
-          | Timeout -> Timeout pr.pr_time
-          | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
-            Unknown pr.pr_time
-          | Failure _ ->
-            if !killed then NoResult else Failed
-          | HighFailure ->
-            if !killed then Timeout pr.pr_time else Failed
-        in
-        if !started then stop ?name () else unschedule () ;
-        notify_cb callback prover limit pr ;
-        Some result
-    end
+          start ?name () ;
+          clockwall := Unix.gettimeofday () +. timeout ;
+          started := true ;
+        end ;
+      None
+    | InternalFailure _ ->
+      begin
+        if !started then stop ?name () ;
+        Some Failed
+      end
+    | ProverFinished pr ->
+      let result =
+        match pr.pr_answer with
+        | Valid -> Valid pr.pr_time
+        | Timeout -> Timeout pr.pr_time
+        | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
+          Unknown pr.pr_time
+        | Failure _ ->
+          if !killed then NoResult else Failed
+        | HighFailure ->
+          if !killed then Timeout pr.pr_time else Failed
+      in
+      if !started then stop ?name () else unschedule () ;
+      notify_cb callback prover limit pr ;
+      Some result
+  end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Running Prover with Cache                                          --- *)

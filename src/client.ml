@@ -63,18 +63,23 @@ type client = {
 (* --- Connection                                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
+let resolve () =
+  if !server <> "" then Some !server else
+  if !host <> "" then Some (Printf.sprintf "tcp://%s:%d" !host !port) else
+    None
+
 let connect env =
-  if !server = "" then None else
-  if !host = "" then None else
-    let address =
-      if !server = "" then Printf.sprintf "tcp://%s:%d" !host !port
-      else !server in
-    let context = Zmq.Context.create () in
-    let socket = Zmq.Socket.(create context dealer) in
-    let profile = Calibration.create () in
-    let pending = Hashtbl.create 0 in
-    Zmq.Socket.connect socket address ;
-    Some { env ; context ; socket ; profile ; pending ; terminated = false }
+  Option.map
+    begin fun address ->
+      let context = Zmq.Context.create () in
+      let socket = Zmq.Socket.(create context dealer) in
+      let profile = Calibration.create () in
+      let pending = Hashtbl.create 0 in
+      Zmq.Socket.connect socket address ;
+      Utils.flush () ;
+      Format.printf "Server %s@." address ;
+      { env ; context ; socket ; profile ; pending ; terminated = false }
+    end @@ resolve ()
 
 (* -------------------------------------------------------------------------- *)
 (* --- Socket                                                             --- *)
@@ -205,13 +210,13 @@ let do_download client goal =
 
 let handler client msg =
   try match msg with
-  | ["PROFILE";prover;size;time] ->
-    do_profile client prover (int_of_string size) (float_of_string time)
-  | ["RESULT";prover;digest;status;time] ->
-    do_result client { prover ; digest } status (float_of_string time)
-  | ["DOWNLOAD";prover;digest] ->
-    do_download client { prover ; digest }
-  | _ -> ()
+    | ["PROFILE";prover;size;time] ->
+      do_profile client prover (int_of_string size) (float_of_string time)
+    | ["RESULT";prover;digest;status;time] ->
+      do_result client { prover ; digest } status (float_of_string time)
+    | ["DOWNLOAD";prover;digest] ->
+      do_download client { prover ; digest }
+    | _ -> ()
   with Not_found | Invalid_argument _ -> ()
 
 (* -------------------------------------------------------------------------- *)
