@@ -33,6 +33,7 @@ val schedule :
 type henv = {
   env : Wenv.env ;
   time : float ;
+  client : Client.client option ;
   maxdepth : int ;
   provers : Runner.prover list ;
   transfs : string list ;

@@ -336,7 +336,11 @@ let prove_files ~mode ~session ~log ~axioms ~files =
       | `Default -> if List.length files > 1 then `Modules else `Theories
       | #log0 as l -> l in
     List.iter (process ~env ~mode ~session ~log ~axioms ~unsuccess) files ;
-    Hammer.run { env ; time ; maxdepth ; provers ; transfs ; minimize } ;
+    Hammer.run {
+      env ;
+      client = Client.connect env ;
+      time ; maxdepth ; provers ; transfs ; minimize ;
+    } ;
     if Utils.tty then
       begin
         Runner.print_stats () ;

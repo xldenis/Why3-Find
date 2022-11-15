@@ -218,16 +218,14 @@ let handler client msg =
 (* --- Running                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
-let start client =
-  Fibers.async
-    (fun () ->
-       if client.terminated then Some ()
-       else ( recv client (handler client) ; None ))
+let yield client =
+  recv client (handler client)
 
 let terminate client =
-  send client ["HANGUP"] ;
-  Zmq.Socket.close client.socket ;
-  Zmq.Context.terminate client.context ;
-  client.terminated <- true
+  begin
+    send client ["HANGUP"] ;
+    Zmq.Socket.close client.socket ;
+    Zmq.Context.terminate client.context ;
+  end
 
 (* -------------------------------------------------------------------------- *)

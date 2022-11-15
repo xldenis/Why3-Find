@@ -32,7 +32,7 @@ val prove : client ->
   ?cancel:unit Fibers.signal ->
   Runner.prover -> Runner.prooftask -> float -> Runner.result Fibers.t
 
-val start : client -> unit Fibers.t
+val yield : client -> unit
 val terminate : client -> unit
 
 (* -------------------------------------------------------------------------- *)

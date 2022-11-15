@@ -29,6 +29,7 @@ open Fibers.Monad
 type henv = {
   env : Wenv.env ;
   time : float ;
+  client : Client.client option ;
   maxdepth : int ;
   provers : Runner.prover list ;
   transfs : string list ;
@@ -181,19 +182,27 @@ let process h : strategy = fun n ->
 (* --- Main Loop                                                          --- *)
 (* -------------------------------------------------------------------------- *)
 
-let rec exec (s : strategy) =
-  Fibers.yield () ;
-  let n2 = Queue.length q2 in
-  let n1 = Queue.length q1 in
-  let nq = Runner.pending () in
-  let nr = Runner.running () in
-  Utils.progress "%d/%d/%d/%d%t" n2 n1 nq nr Runner.pp_goals ;
-  match pop () with
-  | None ->
-    if Fibers.pending () > 0 then (Unix.sleepf 0.01 ; exec s)
-  | Some node ->
-    Fibers.await (s @> node) (Fibers.set node.result) ; exec s
-
-let run henv = exec (process henv)
+let run henv =
+  try
+    while true do
+      Fibers.yield () ;
+      Option.iter Client.yield henv.client ;
+      let n2 = Queue.length q2 in
+      let n1 = Queue.length q1 in
+      let nq = Runner.pending () in
+      let nr = Runner.running () in
+      Utils.progress "%d/%d/%d/%d%t" n2 n1 nq nr Runner.pp_goals ;
+      match pop () with
+      | Some node ->
+        Fibers.await
+          (process henv node)
+          (Fibers.set node.result)
+      | None ->
+        if Fibers.pending () > 0
+        then Unix.sleepf 0.01
+        else raise Exit
+    done
+  with Exit ->
+    Option.iter Client.terminate henv.client
 
 (* -------------------------------------------------------------------------- *)
