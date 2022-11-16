@@ -390,7 +390,7 @@ let call_prover (env : Wenv.env)
       canceled := true ;
       if !started then kill () ;
     end in
-  Fibers.hook ?signal:cancel ~handler:interrupt @@
+  Fibers.monitor ?signal:cancel ~handler:interrupt @@
   Fibers.async @@
   begin fun () ->
     let t0 = Unix.gettimeofday () in
@@ -464,6 +464,12 @@ let crop ~timeout result =
   | Timeout t -> if timeout <= t then Some result else None
   | Valid t ->
     if t <= timeout *. 1.25 then Some result else Some (Timeout timeout)
+
+let definitive ~timeout result =
+  match result with
+  | NoResult -> false
+  | Timeout t -> timeout <= t
+  | Failed | Unknown _ | Valid _ -> true
 
 let prove env ?name ?cancel ?callback prover task timeout =
   let task = Driver.prepare_task prover.driver task in

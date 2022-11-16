@@ -46,6 +46,7 @@ val prover : env -> string -> prover
 val select : env -> string list -> prover list
 val map : (float -> float) -> result -> result
 val crop : timeout:float -> result -> result option
+val definitive : timeout:float -> result -> bool
 val merge : result -> result -> result
 
 val pp_prover : Format.formatter -> prover -> unit

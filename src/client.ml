@@ -126,43 +126,37 @@ let get_task client prv tsk =
     let task = { goal ; prv ; tsk ; timeout = 0.0 ; channel } in
     Hashtbl.add client.pending goal task ; task
 
-let request client profile ?cancel prover task timeout =
+let request client profile prover task timeout =
   let open Fibers.Monad in
   let env = client.env in
   let task = get_task client prover task in
-  (* cancelable result *)
-  let result = Fibers.var () in
-  let interrupt () = Fibers.set result Runner.NoResult in
-  Fibers.hook ?signal:cancel ~handler:interrupt @@
-  (* project profile *)
-  let* alpha = Calibration.profile env profile prover in
-  if Calibration.lock client.profile (Runner.id prover) then
-    send_profile client prover alpha ;
-  (* server profile *)
-  let* beta = Calibration.profile env client.profile prover in
-  (* t-project / t-server *)
-  let* gamma =
-    let (np,tp) = alpha in
-    let (ns,ts) = beta in
-    if np = ns then Fibers.return @@ tp /. ts else
-      (* vp = tp / tr ; vs = tr / ts *)
-      let+ vp = Calibration.velocity env profile prover
-      and* vs = Calibration.velocity env client.profile prover
-      in vs /. vp in
-  (* server timeout *)
-  let time = timeout /. gamma in
-  if task.timeout < time then
+  Fibers.background
     begin
-      task.timeout <- time ;
-      send_get client task.goal time ;
+      (* project profile *)
+      let* project = Calibration.profile env profile prover in
+      if Calibration.lock client.profile (Runner.id prover) then
+        send_profile client prover project ;
+      (* server profile *)
+      let* server = Calibration.profile env client.profile prover in
+      (* t-project / t-server *)
+      let* gamma =
+        let (np,tp) = project in
+        let (ns,ts) = server in
+        if np = ns then Fibers.return @@ tp /. ts else
+          (* vp = tp / tr ; vs = tr / ts *)
+          let+ vp = Calibration.velocity env profile prover
+          and* vs = Calibration.velocity env client.profile prover
+      in vs /. vp in
+      (* server timeout *)
+      let time = timeout /. gamma in
+      if task.timeout < time then
+        begin
+          task.timeout <- time ;
+          send_get client task.goal time ;
+        end ;
+      Fibers.return ()
     end ;
-  let resolve rs =
-    let rp = Runner.map (fun t -> t *. gamma) rs in
-    match Runner.crop ~timeout rp with
-    | None -> send_get client task.goal task.timeout
-    | Some rp -> Fibers.set result rp in
-  Fibers.hook ~signal:task.channel ~handler:resolve @@
-  Fibers.get result
+  task.channel
 
 (* -------------------------------------------------------------------------- *)
 (* --- CALIBRATION                                                        --- *)
@@ -177,13 +171,15 @@ let do_profile client prover size time =
 
 let do_result client goal status time =
   let task = Hashtbl.find client.pending goal in
-  Fibers.emit task.channel @@
-  match status with
-  | "NoResult" -> Runner.NoResult
-  | "Valid" -> Runner.Valid time
-  | "Unknown" -> Runner.Unknown time
-  | "Timeout" -> Runner.Timeout time
-  | _ -> Runner.Failed
+  let result =
+    match status with
+    | "NoResult" -> Runner.NoResult
+    | "Valid" -> Runner.Valid time
+    | "Unknown" -> Runner.Unknown time
+    | "Timeout" -> Runner.Timeout time
+    | _ -> Runner.Failed
+  in
+  Fibers.emit task.channel result
 
 (* -------------------------------------------------------------------------- *)
 (* --- DOWNLOAD                                                           --- *)

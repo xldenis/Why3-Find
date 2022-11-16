@@ -30,10 +30,7 @@
 (** The time of computations that produces an ['a]. *)
 type 'a t
 
-(** Binds the continuation to the result of the computation. *)
-val await : 'a t -> ('a -> unit) -> unit
-
-(** [return v] bounds value [v] to its awaiting continuations. *)
+(** [return v] computation that immediately returns [v]. *)
 val return : 'a -> 'a t
 
 (** Monadic [bind a f] operator binds result [v] of [a]
@@ -137,21 +134,14 @@ val on : 'a signal -> ('a -> unit) -> unit
 (** Un-register a hook on the signal. *)
 val off : 'a signal -> ('a -> unit) -> unit
 
+(** Register a hook that automatically disconnect itself on first emit. *)
+val once : 'a signal -> ('a -> unit) -> unit
+
 (** At most one hook is connected to the signal. *)
 val connected : 'a signal -> bool
 
 (** Remove all hooks on the signal. *)
 val disconnect : 'a signal -> unit
-
-(** [hook ~signal:s ~handler:h f] registers the handler [h] on signal [s] until
-    the fiber [f] returns. Does nothing if signal or handler are undefined.
-
-    Returns {b identity}, hence hooks can be chained. *)
-val hook : ?signal:'a signal -> ?handler:('a -> unit) -> 'b t -> 'b t
-
-(** [Hook on task finalization.]
-    Returns {b identity}, hence finalization hooks can be chained. *)
-val finally : ?handler:('a -> unit) -> 'a t -> 'a t
 
 (** Remove all registered hooks. *)
 val clear : 'a signal -> unit
@@ -185,8 +175,8 @@ val peek : 'a var -> 'a option
     @raise Not_found *)
 val find : 'a var -> 'a
 
-(** [result f] returns a variable that captures the result of fiber [f]. *)
-val result : 'a t -> 'a var
+(** [defined x] returns [true] is the variable [x] has been assigned. *)
+val defined : 'a var -> bool
 
 (** {1 Mutual Exclusion} *)
 
@@ -226,8 +216,36 @@ val flush : ?polling:int -> unit -> unit
 (** [sleep ms] asynchronously waits for (at least) [ms] milliseconds. *)
 val sleep : int -> unit t
 
-(** {1 Main Loop} *)
+(** {1 Computation Results} *)
 
-val run : ?polling:int -> ?callback:('a -> unit) -> 'a t -> unit
+(** [result f] starts computation [f] and immediately returns a variable
+    that will eventually capture the result of [f]. *)
+val result : 'a t -> 'a var
+
+(** [finally ~callback f] starts computation [f], eventually passing
+    its result to [callback], while immediately returning [f] for chaining.
+
+    Default [~callback] is [ignore]. *)
+val finally : ?callback:('a -> unit) -> 'a t -> 'a t
+
+(** [background f k] starts computation [f] and immediately returns.
+    Result of computation will be eventually passed to continuation [k].
+
+    Default [~callback] is [ignore].
+    This is the same as [ignore @@ finally ?callback f].
+*)
+val background : ?callback:('a -> unit) -> 'a t -> unit
+
+(** [monitor ~signal ~handler f] starts computation [f] and returns [f]
+    immediately for chaining,
+    while connecting [handler] to [signal] until termination when specified.
+*)
+val monitor : ?signal:'a signal -> ?handler:('a -> unit) -> 'b t -> 'b t
+
+(** [await f] waits until the end of computation [f],
+    yielding periodically until termination.
+
+    Default [~polling] interval is [10] milliseconds. *)
+val await : ?polling:int -> 'a t -> 'a
 
 (**************************************************************************)

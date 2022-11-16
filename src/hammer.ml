@@ -98,33 +98,13 @@ let prove env ?client ?cancel prover timeout : strategy = fun n ->
       Runner.notify env prover result callback ;
       Fibers.return (to_profile result)
     | `Prepared task ->
-      Option.iter
-        (fun cl ->
-           let server =
-             Fibers.hook ?signal:cancel
-               ~handler:(fun () ->
-                   Utils.log "SERVER %a %s CANCELED@."
-                     Runner.pp_prover prover
-                     (Runner.digest task)
-               ) @@
-             Client.request cl n.profile prover task timeout in
-           Fibers.await server (fun r ->
-               Utils.log "SERVER %a %s %a@."
-                 Runner.pp_prover prover
-                 (Runner.digest task)
-                 Runner.pp_result r
-             ) ;
-        ) client ;
+      ignore client ;
       let kill = Fibers.signal () in
-      let served = Fibers.var () in
-      let+ runner =
-        Fibers.hook ?signal:cancel ~handler:(Fibers.emit kill) @@
-        Fibers.map to_profile @@
-        Fibers.finally ~handler:(Runner.store_cached prover task) @@
-        Runner.prove_prepared env ~name ~cancel:kill ~callback
-          prover task runner_time
-      and* server = Fibers.get served
-      in Runner.merge runner server
+      Fibers.monitor ?signal:cancel ~handler:(Fibers.emit kill) @@
+      Fibers.map to_profile @@
+      Fibers.finally ~callback:(Runner.store_cached prover task) @@
+      Runner.prove_prepared env ~name ~cancel:kill ~callback
+        prover task runner_time
   in match verdict with
   | Valid t -> Prover( Runner.name prover, Utils.round t )
   | _ -> Stuck
@@ -224,21 +204,30 @@ let process h : strategy = fun n ->
 let run henv =
   let exception Break in
   try
+    let p2 = ref 0 in
+    let p1 = ref 0 in
     while true do
       Fibers.yield () ;
       Option.iter Client.yield henv.client ;
-      let n2 = Queue.length q2 in
-      let n1 = Queue.length q1 in
+      let n2 = Queue.length q2 + !p2 in
+      let n1 = Queue.length q1 + !p1 in
       let nq = Runner.pending () in
       let nr = Runner.running () in
+      let total = n2 + n1 + nq + nr in
       Utils.progress "%d/%d/%d/%d%t" n2 n1 nq nr Runner.pp_goals ;
       match pop () with
       | Some node ->
-        Fibers.await
-          (process henv node)
-          (Fibers.set node.result)
+        Fibers.background @@
+        begin
+          let pr = if complete node.hint then p2 else p1 in
+          incr pr ;
+          let* r = process henv node in
+          decr pr ;
+          Fibers.set node.result r ;
+          Fibers.return ()
+        end
       | None ->
-        if nq + nr > 0
+        if total > 0
         then Unix.sleepf 0.01
         else raise Break
     done

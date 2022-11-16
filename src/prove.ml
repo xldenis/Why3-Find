@@ -285,6 +285,7 @@ type log0 = [ `Modules | `Theories | `Goals | `Proofs ]
 type log = [ `Default | log0 ]
 
 let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
+  Fibers.background @@
   begin
     if not @@ String.ends_with ~suffix:".mlw" file then
       begin
@@ -298,22 +299,20 @@ let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
     let theories, format = load_theories env file in
     let session = Session.create ~session ~dir ~file ~format theories in
     let profile, strategy = load_proofs fp in
-    let results =
+    let* proofs =
       Fibers.all @@ List.map
         (prove_theory mode profile strategy)
         (Session.theories session)
     in
-    Fibers.await results
-      begin fun proofs ->
-        Session.save session ;
-        save_proofs ~mode dir fp profile proofs ;
-        let henv =
-          if axioms then
-            Some (Axioms.init env)
-          else None in
-        let failed = report_results log henv ~lib proofs in
-        if failed then unsuccess := file :: !unsuccess ;
-      end
+    Session.save session ;
+    save_proofs ~mode dir fp profile proofs ;
+    let henv =
+      if axioms then
+        Some (Axioms.init env)
+      else None in
+    let failed = report_results log henv ~lib proofs in
+    if failed then unsuccess := file :: !unsuccess ;
+    Fibers.return ()
   end
 
 (* -------------------------------------------------------------------------- *)
@@ -341,6 +340,7 @@ let prove_files ~mode ~session ~log ~axioms ~files =
     } ;
     if Utils.tty then
       begin
+        Utils.flush () ;
         Runner.print_stats () ;
         Crc.print_stats () ;
         if axioms then print_axioms_stats () ;

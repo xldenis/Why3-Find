@@ -29,7 +29,6 @@ let return v k = k v
 let bind ta fb k = ta (fun x -> fb x k)
 let apply ta f k = ta (fun x -> k (f x))
 let map f ta k = ta (fun x -> k (f x))
-let await f k = f k
 let par a b k =
   let x = ref None in
   let y = ref None in
@@ -132,16 +131,10 @@ let signal = Queue.create
 let emit s v = Queue.iter s (fun f -> f v)
 let on = Queue.push
 let off q k = Queue.filter q (fun k0 -> k0 != k)
+let once q k = let rec fn v = k v ; off q fn in on q fn
 let clear = Queue.clear
 let connected s = Queue.length s > 0
 let disconnect = Queue.clear
-
-let hook ?signal ?handler fn =
-  match signal, handler with
-  | Some s, Some h -> on s h ; await fn (fun _ -> off s h) ; fn
-  | _ -> fn
-
-let finally ?handler fn = Option.iter (await fn) handler ; fn
 
 (* -------------------------------------------------------------------------- *)
 (* --- Variables                                                          --- *)
@@ -157,8 +150,8 @@ let var ?init () =
 let get v k = match !v with Done r -> k r | Wait q -> Queue.push q k
 let set v r = match !v with Done _ -> () | Wait q -> v := Done r ; emit q r
 let peek v = match !v with Done r -> Some r | Wait _ -> None
+let defined v = match !v with Done _ -> true | Wait _ -> false
 let find v = match !v with Done r -> r | Wait _ -> raise Not_found
-let result f = let x = var () in f (set x) ; x
 
 (* -------------------------------------------------------------------------- *)
 (* --- List Combinators                                                   --- *)
@@ -270,7 +263,7 @@ let sync m f x =
     incr m ; raise e
 
 (* -------------------------------------------------------------------------- *)
-(* --- Polling                                                            --- *)
+(* --- Sleep                                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
 let sleep n =
@@ -280,12 +273,26 @@ let sleep n =
       if Unix.time () < t then None else Some ()
     end
 
-let flush ?(polling=10) () =
-  while pending () > 0 do
-    Unix.sleepf (float polling *. 1e-3) ;
-    yield () ;
-  done
+(* -------------------------------------------------------------------------- *)
+(* --- Results & Monitoring                                               --- *)
+(* -------------------------------------------------------------------------- *)
 
-let run ?polling ?(callback=ignore) f = f callback ; flush ?polling ()
+let result f = let x = var () in f (set x) ; x
+
+let flush ?(polling=10) () =
+  let interval = float polling *. 1e-3 in
+  while pending () > 0 do yield () ; Unix.sleepf interval done
+
+let finally ?(callback=ignore) f = f callback ; f
+
+let background ?(callback=ignore) f = f callback
+
+let monitor ?signal ?handler fn =
+  match signal, handler with
+  | Some s, Some h -> on s h ; fn (fun _ -> off s h) ; fn
+  | _ -> fn
+
+let await ?polling f =
+  let r = result f in flush ?polling () ; find r
 
 (* -------------------------------------------------------------------------- *)

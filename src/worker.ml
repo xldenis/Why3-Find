@@ -125,14 +125,15 @@ let do_prove worker goal timeout data =
     Hashtbl.add worker.pending goal cancel ;
     if Calibration.lock worker.profile goal.prover then
       send_profile worker goal.prover ;
-    let job =
-      let open Fibers.Monad in
-      let* alpha = Calibration.velocity env worker.profile prover in
-      let timeout = alpha *. timeout in
-      let* result = Runner.prove_buffer env ~cancel prover buffer timeout in
-      Hashtbl.remove worker.pending goal ;
-      Fibers.return (alpha,result)
-    in Fibers.await job (send_result worker goal)
+    Fibers.background ~callback:(send_result worker goal)
+      begin
+        let open Fibers.Monad in
+        let* alpha = Calibration.velocity env worker.profile prover in
+        let timeout = alpha *. timeout in
+        let* result = Runner.prove_buffer env ~cancel prover buffer timeout in
+        Hashtbl.remove worker.pending goal ;
+        Fibers.return (alpha,result)
+      end
   with Not_found -> ()
 
 (* -------------------------------------------------------------------------- *)

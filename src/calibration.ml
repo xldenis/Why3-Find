@@ -233,12 +233,11 @@ let qhash = Hashtbl.create 0
 let calibrate ?(progress=false) env prv : (int * float) option Fibers.t =
   try Hashtbl.find qhash (id prv)
   with Not_found ->
-    let v = Fibers.var () in
-    let c = Fibers.get v in
-    Hashtbl.add qhash (id prv) c ;
+    let p = Fibers.var () in
     let q = qenv env !reftime in
-    let job = lookup ~progress q prv in
-    Fibers.await job (Fibers.set v) ; c
+    Fibers.background ~callback:(Fibers.set p) (lookup ~progress q prv) ;
+    let getp = Fibers.get p in
+    Hashtbl.add qhash (id prv) getp ; getp
 
 (* -------------------------------------------------------------------------- *)
 (* --- Profile                                                            --- *)
@@ -371,7 +370,7 @@ let default () =
     with Not_found -> create ()
 
 let calibrate_provers ~saved env provers =
-  Fibers.run @@
+  Fibers.await @@
   begin
     let q = qenv env !reftime in
     let* results =
@@ -398,7 +397,7 @@ let calibrate_provers ~saved env provers =
   end
 
 let velocity_provers env provers =
-  Fibers.run @@
+  Fibers.await @@
   begin
     let profile = default () in
     let* results =
