@@ -344,8 +344,27 @@ let limit env t =
     limit_steps = (-1) ;
   }
 
-let notify_cb callback prv limit pr =
-  Option.iter (fun f -> f prv.config.prover limit pr) callback
+let notify env prover result cb =
+  let fire cb p l r = cb p.config.prover l r in
+  let pr ~s ?(t = 0.0) ans =
+    Why3.Call_provers.{
+      pr_answer = ans ;
+      pr_status = Unix.WEXITED s ;
+      pr_time = t ;
+      pr_steps = 0 ;
+      pr_output = "Cached" ;
+      pr_models = [] ;
+    }
+  in
+  match result with
+  | NoResult -> ()
+  | Valid t -> fire cb prover (limit env t) (pr ~s:0 ~t Valid)
+  | Timeout t -> fire cb prover (limit env t) (pr ~s:1 ~t Timeout)
+  | Unknown t -> fire cb prover (limit env t) (pr ~s:1 ~t (Unknown "why3find"))
+  | Failed -> fire cb prover (limit env 1.0) (pr ~s:2 (Failure "why3find"))
+
+let notify_pr prv limit pr cb =
+  cb prv.config.prover limit pr
 
 type prepared_task = Prepared of Task.task | Buffered of Buffer.t
 
@@ -362,6 +381,7 @@ let call_prover (env : Wenv.env)
   let started = ref false in
   let killed = ref false in
   let canceled = ref false in
+  let timedout = ref false in
   update_client env ;
   schedule () ;
   let libdir = Whyconf.libdir main in
@@ -394,7 +414,12 @@ let call_prover (env : Wenv.env)
   Fibers.async @@
   begin fun () ->
     let t0 = Unix.gettimeofday () in
-    if !started && (!canceled || !clockwall < t0) then kill () ;
+    if !started then
+      begin
+        if !canceled then kill ()
+        else if not !timedout && !clockwall < t0 then
+          (timedout := true ; kill ()) ;
+      end ;
     let query =
       try Call_provers.query_call call with e -> InternalFailure e in
     match query with
@@ -405,7 +430,7 @@ let call_prover (env : Wenv.env)
       if not !started then
         begin
           start ?name () ;
-          clockwall := Unix.gettimeofday () +. timeout ;
+          clockwall := Unix.gettimeofday () +. timeout *. 1.5 ;
           started := true ;
         end ;
       None
@@ -415,19 +440,28 @@ let call_prover (env : Wenv.env)
         Some Failed
       end
     | ProverFinished pr ->
-      let result =
+      let result, precise =
         match pr.pr_answer with
-        | Valid -> Valid pr.pr_time
-        | Timeout -> Timeout pr.pr_time
+        | Valid ->
+          Valid pr.pr_time, true
+        | Timeout ->
+          Timeout timeout, false
         | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
-          Unknown pr.pr_time
-        | Failure _ ->
-          if !killed then NoResult else Failed
-        | HighFailure ->
-          if !killed then Timeout pr.pr_time else Failed
+          Unknown pr.pr_time, true
+        | Failure _ | HighFailure ->
+          (if !canceled then NoResult else
+           if !timedout then Timeout timeout else
+             Failed), false
       in
       if !started then stop ?name () else unschedule () ;
-      notify_cb callback prover limit pr ;
+      begin match callback with
+        | Some cb ->
+            if precise then
+              notify_pr prover limit pr cb
+            else
+              notify env prover result cb
+        | None -> ()
+      end ;
       Some result
   end
 
@@ -437,25 +471,6 @@ let call_prover (env : Wenv.env)
 
 let hits = ref 0
 let miss = ref 0
-
-let pr ~s ?(t = 0.0) ans =
-  Why3.Call_provers.{
-    pr_answer = ans ;
-    pr_status = Unix.WEXITED s ;
-    pr_time = t ;
-    pr_steps = 0 ;
-    pr_output = "Cached" ;
-    pr_models = [] ;
-  }
-
-let notify env prover result cb =
-  let fire cb p l r = cb p.config.prover l r in
-  match result with
-  | NoResult -> ()
-  | Valid t -> fire cb prover (limit env t) (pr ~s:0  ~t Valid)
-  | Timeout t -> fire cb prover (limit env t) (pr ~s:1  ~t Timeout)
-  | Unknown t -> fire cb prover (limit env t) (pr ~s:1  ~t (Unknown "cached"))
-  | Failed -> fire cb prover (limit env 1.0) (pr ~s:2 (Failure "cached"))
 
 let crop ~timeout result =
   match result with
