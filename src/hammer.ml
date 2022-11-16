@@ -131,25 +131,34 @@ let apply env depth tr hs : strategy = fun n ->
 (* --- Hammer Strategy                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let hammer0 env prvs time : strategy =
-  smap (fun prv -> prove env prv time) prvs
+let hammer0 h : strategy =
+  let time = h.time *. 0.2 in
+  smap (fun prv -> prove h.env prv time) h.provers
 
-let hammer1 env prvs ?client time : strategy = fun n ->
+let hammer13 h time : strategy = fun n ->
   let cancel = Fibers.signal () in
   let watch r = if r <> Stuck then Fibers.emit cancel () ; r in
   let+ results =
     Fibers.all @@ List.map
-      (fun prv -> watch @+ prove env ?client ~cancel prv time n) prvs
+      (fun prv -> watch @+ prove h.env ?client:h.client ~cancel prv time n)
+      h.provers
   in try List.find (fun r -> r <> Stuck) results with Not_found -> Stuck
 
-let hammer2 env trfs depth : strategy =
-  smap (fun tr -> apply env depth tr []) trfs
+let hammer1 h = hammer13 h h.time
+let hammer3 h = hammer13 h (2.0 *. h.time)
+
+let hammer2 ?excluded h : strategy =
+  smap
+    (fun tr -> apply h.env h.maxdepth tr [])
+    (match excluded with
+     | None -> h.transfs
+     | Some id -> List.filter (fun t -> t <> id) h.transfs)
 
 let hammer henv =
-  hammer0 henv.env henv.provers (henv.time *. 0.2) >>>
-  hammer1 henv.env henv.provers ?client:henv.client henv.time >>>
-  hammer2 henv.env henv.transfs henv.maxdepth >>>
-  hammer1 henv.env henv.provers ?client:henv.client (henv.time *. 2.0)
+  hammer0 henv >>>
+  hammer1 henv >>>
+  hammer2 henv >>>
+  hammer3 henv
 
 (* -------------------------------------------------------------------------- *)
 (* --- Node Processing                                                    --- *)
@@ -167,15 +176,15 @@ let update h p t = replay h p t >>> hammer h
 
 let transf h id cs =
   apply h.env h.maxdepth id cs >>>
-  hammer1 h.env h.provers h.time >>>
-  hammer2 h.env (List.filter (fun f -> f <> id) h.transfs) h.maxdepth >>>
-  hammer1 h.env h.provers (h.time *. 2.0)
+  hammer1 h >>>
+  hammer2 ~excluded:id h >>>
+  hammer3 h
 
 let reduce h id cs =
-  hammer1 h.env h.provers h.time >>>
+  hammer1 h >>>
   apply h.env h.maxdepth id cs >>>
-  hammer2 h.env (List.filter (fun f -> f <> id) h.transfs) h.maxdepth >>>
-  hammer1 h.env h.provers (h.time *. 2.0)
+  hammer2 ~excluded:id h >>>
+  hammer3 h
 
 let process h : strategy = fun n ->
   try
