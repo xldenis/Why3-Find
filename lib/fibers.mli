@@ -99,7 +99,7 @@ module Queue :
 sig
   type 'a t
   val create : unit -> 'a t
-  val size : 'a t -> int
+  val length : 'a t -> int
   val pop : 'a t -> 'a
   val push : 'a t -> 'a -> unit
   val iter : 'a t -> ('a -> unit) -> unit
@@ -136,6 +136,12 @@ val on : 'a signal -> ('a -> unit) -> unit
 
 (** Un-register a hook on the signal. *)
 val off : 'a signal -> ('a -> unit) -> unit
+
+(** At most one hook is connected to the signal. *)
+val connected : 'a signal -> bool
+
+(** Remove all hooks on the signal. *)
+val disconnect : 'a signal -> unit
 
 (** [hook ~signal:s ~handler:h f] registers the handler [h] on signal [s] until
     the fiber [f] returns. Does nothing if signal or handler are undefined.

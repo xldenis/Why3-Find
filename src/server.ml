@@ -357,7 +357,7 @@ let do_hangup server id =
 
 let schedule server ~time task =
   try
-    let n = Fibers.Queue.size server.workers in
+    let n = Fibers.Queue.length server.workers in
     for _ = 1 to n do
       let w = Fibers.Queue.pop server.workers in
       Fibers.Queue.push server.workers w ;
@@ -456,7 +456,7 @@ let print_stats server =
          busy := w.busy + !busy ;
          cores := w.cores + !cores ;
       );
-    let workers = Fibers.Queue.size server.workers in
+    let workers = Fibers.Queue.length server.workers in
     Utils.progress "Tasks:%d/%d/%d  Workers:%d(%d/%d)"
       !waiting !loading !running workers !busy !cores
   end

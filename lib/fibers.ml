@@ -61,7 +61,7 @@ module Queue :
 sig
   type 'a t
   val create : unit -> 'a t
-  val size : 'a t -> int
+  val length : 'a t -> int
   val push : 'a t -> 'a -> unit
   val pop : 'a t -> 'a
   val iter : 'a t -> ('a -> unit) -> unit
@@ -78,7 +78,7 @@ struct
 
   let create () = { size = 0 ; head = [] ; tail = [] }
 
-  let size q =
+  let length q =
     let n = q.size in
     if 0 <= n then n
     else
@@ -133,6 +133,9 @@ let emit s v = Queue.iter s (fun f -> f v)
 let on = Queue.push
 let off q k = Queue.filter q (fun k0 -> k0 != k)
 let clear = Queue.clear
+let connected s = Queue.length s > 0
+let disconnect = Queue.clear
+
 let hook ?signal ?handler fn =
   match signal, handler with
   | Some s, Some h -> on s h ; await fn (fun _ -> off s h) ; fn
@@ -215,7 +218,7 @@ let first f ts =
 
 let queue : (unit -> bool) Queue.t = Queue.create ()
 
-let pending () = Queue.size queue
+let pending () = Queue.length queue
 
 let async f =
   let x = var () in
