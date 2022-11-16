@@ -43,6 +43,10 @@ let proved = function
   | Prover _ -> 1
   | Transf { proved } -> proved
 
+let size = function
+  | Stuck | Prover _ -> 1
+  | Transf { stuck ; proved } -> stuck + proved
+
 let complete = function
   | Stuck -> false
   | Prover _ -> true
@@ -137,25 +141,50 @@ let unchanged = ref 0
 let nproved = ref 0
 let nstuck = ref 0
 
+let (+=) r n = r := !r + n
+
 let rec stats a b =
-  incr (if complete b then nproved else nstuck) ;
-  match a, b with
-  | Stuck, Stuck -> incr unchanged
-  | Stuck, _ -> incr (if complete b then fixed else updated)
-  | _, Stuck -> incr (if complete a then broken else updated)
-  | Prover _, Prover _ -> incr (if a = b then unchanged else updated)
-  | Transf _ , Prover _ -> incr (if complete a then minimized else fixed)
-  | Transf { id = f0 ; children = cs0 } ,
-    Transf { id = f1 ; children = cs1 }
-    when f0 = f1 && List.length cs0 = List.length cs1 ->
-    List.iter2 stats cs0 cs1
-  | _ ->
-    let r =
-      match complete a, complete b with
-      | true, true | false, false -> updated
-      | true, false -> broken
-      | false, true -> fixed
-    in incr r
+  begin
+    match a, b with
+
+    | Stuck, Stuck ->
+      incr unchanged ;
+      incr nstuck ;
+
+    | Stuck, _ ->
+      (if complete b then fixed else updated) += size b ;
+      nstuck += stuck b ;
+      nproved += proved b ;
+
+    | _, Stuck ->
+      incr (if complete a then broken else updated) ;
+      incr nstuck ;
+
+    | Prover _, Prover _ ->
+      incr (if a = b then unchanged else updated) ;
+      incr nproved ;
+
+    | Transf _ , Prover _ ->
+      incr (if complete a then minimized else fixed) ;
+      incr nproved ;
+
+    | Transf { id = f0 ; children = cs0 } ,
+      Transf { id = f1 ; children = cs1 }
+      when f0 = f1 && List.length cs0 = List.length cs1 ->
+      List.iter2 stats cs0 cs1
+
+    | _ ->
+      let r =
+        match complete a, complete b with
+        | true, true | false, false -> updated
+        | true, false -> broken
+        | false, true -> fixed
+      in
+      r += size b ;
+      nstuck += stuck b ;
+      nproved += proved b ;
+
+  end
 
 let print_stats () =
   begin
