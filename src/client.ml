@@ -113,6 +113,7 @@ let send_upload client goal data =
 
 let send_kill client goal =
   send client ["KILL";goal.prover;goal.digest]
+[@@ warning "-32"]
 
 (* -------------------------------------------------------------------------- *)
 (* --- PROVE                                                              --- *)
@@ -125,9 +126,14 @@ let get_task client prv tsk =
     let task = { goal ; prv ; tsk ; timeout = 0.0 ; channel } in
     Hashtbl.add client.pending goal task ; task
 
-let prove client profile ?cancel prover task timeout =
+let request client profile ?cancel prover task timeout =
   let open Fibers.Monad in
   let env = client.env in
+  let task = get_task client prover task in
+  (* cancelable result *)
+  let result = Fibers.var () in
+  let interrupt () = Fibers.set result Runner.NoResult in
+  Fibers.hook ?signal:cancel ~handler:interrupt @@
   (* project profile *)
   let* alpha = Calibration.profile env profile prover in
   if Calibration.lock client.profile (Runner.id prover) then
@@ -145,25 +151,17 @@ let prove client profile ?cancel prover task timeout =
       in vs /. vp in
   (* server timeout *)
   let time = timeout /. gamma in
-  let task = get_task client prover task in
   if task.timeout < time then
     begin
       task.timeout <- time ;
       send_get client task.goal time ;
     end ;
-  let result = Fibers.var () in
   let resolve rs =
     let rp = Runner.map (fun t -> t *. gamma) rs in
     match Runner.crop ~timeout rp with
     | None -> send_get client task.goal task.timeout
-    | Some rp -> Fibers.set result rp
-  in
-  let interrupt () =
-    send_kill client task.goal ;
-    Fibers.set result NoResult
-  in
+    | Some rp -> Fibers.set result rp in
   Fibers.hook ~signal:task.channel ~handler:resolve @@
-  Fibers.hook ?signal:cancel ~handler:interrupt @@
   Fibers.get result
 
 (* -------------------------------------------------------------------------- *)
@@ -215,13 +213,16 @@ let handler client msg =
 (* -------------------------------------------------------------------------- *)
 
 let yield client =
-  recv client (handler client)
+  try recv client (handler client)
+  with exn ->
+    Utils.log "Client Error (%s)" @@ Printexc.to_string exn
 
 let terminate client =
-  begin
+  try
     send client ["HANGUP"] ;
     Zmq.Socket.close client.socket ;
     Zmq.Context.terminate client.context ;
-  end
+  with exn ->
+    Utils.log "Client Killed (%s)" @@ Printexc.to_string exn
 
 (* -------------------------------------------------------------------------- *)

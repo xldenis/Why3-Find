@@ -90,7 +90,6 @@ let prove env ?client ?cancel prover timeout : strategy = fun n ->
   let name = Session.goal_name n.goal in
   let* alpha = Calibration.velocity env n.profile prover in
   let to_profile = Runner.map (fun t -> t /. alpha) in
-  let to_runner = Runner.map (fun t -> t *. alpha) in
   let runner_time = timeout *. alpha in
   let callback = Session.result n.goal in
   let+ verdict =
@@ -99,44 +98,36 @@ let prove env ?client ?cancel prover timeout : strategy = fun n ->
       Runner.notify env prover result callback ;
       Fibers.return (to_profile result)
     | `Prepared task ->
-      let kill_runner = Fibers.signal () in
-      let kill_server = Fibers.signal () in
-      let watch kill =
-        function Runner.Valid _ -> Fibers.emit kill () | _ -> () in
-      let cache_runner = Runner.store_cached prover task in
-      let cache_server r = Runner.store_cached prover task (to_runner r) in
-      Fibers.hook ?signal:cancel ~handler:(Fibers.emit kill_runner) @@
-      Fibers.hook ?signal:cancel ~handler:(Fibers.emit kill_server) @@
+      Option.iter
+        (fun cl ->
+           let server =
+             Fibers.hook ?signal:cancel
+               ~handler:(fun () ->
+                   Utils.log "SERVER %a %s CANCELED@."
+                     Runner.pp_prover prover
+                     (Runner.digest task)
+               ) @@
+             Client.request cl n.profile prover task timeout in
+           Fibers.await server (fun r ->
+               Utils.log "SERVER %a %s %a@."
+                 Runner.pp_prover prover
+                 (Runner.digest task)
+                 Runner.pp_result r
+             ) ;
+        ) client ;
+      let kill = Fibers.signal () in
+      let served = Fibers.var () in
       let+ runner =
+        Fibers.hook ?signal:cancel ~handler:(Fibers.emit kill) @@
         Fibers.map to_profile @@
-        Fibers.finally ~handler:cache_runner @@
-        Fibers.finally ~handler:(watch kill_server) @@
-        (Format.printf "PROVE PREPARED %s@." (Runner.digest task) ;
-         Runner.prove_prepared env ~name ~cancel:kill_runner ~callback
-          prover task runner_time)
-      and* server =
-        match client with
-        | None -> Fibers.return Runner.NoResult
-        | Some cl ->
-          Fibers.finally ~handler:cache_server @@
-          Fibers.finally ~handler:(Runner.store_cached prover task) @@
-          (Format.printf "PROVE SERVER %s@." (Runner.digest task) ;
-           Client.prove cl n.profile ~cancel:kill_server prover task timeout)
+        Fibers.finally ~handler:(Runner.store_cached prover task) @@
+        Runner.prove_prepared env ~name ~cancel:kill ~callback
+          prover task runner_time
+      and* server = Fibers.get served
       in Runner.merge runner server
-  in
-  match verdict with
+  in match verdict with
   | Valid t -> Prover( Runner.name prover, Utils.round t )
   | _ -> Stuck
-
-(*
-  let+ local = Runner.prove env
-      ?cancel ~name ~callback:(Session.result n.goal)
-      prv task time in
-  match local with
-  | Valid t -> Prover( Runner.name prv, Utils.round @@ t /. alpha )
-  | _ -> Stuck
-*)
-
 
 (* -------------------------------------------------------------------------- *)
 (* --- Try Transformation on Node                                         --- *)
@@ -207,26 +198,31 @@ let reduce h id cs =
   hammer1 h.env h.provers (h.time *. 2.0)
 
 let process h : strategy = fun n ->
-  match n.hint with
-  | Stuck -> if n.replay then stuck else hammer h n
-  | Prover(p,t) ->
-    if n.replay then
+  try
+    match n.hint with
+    | Stuck -> if n.replay then stuck else hammer h n
+    | Prover(p,t) ->
+      if n.replay then
       replay h p t n
-    else
-      update h p t n
-  | Transf { id ; children } ->
-    if h.minimize then
-      reduce h id children n
-    else if n.replay then
-      apply h.env h.maxdepth id children n
-    else
-      transf h id children n
+      else
+        update h p t n
+    | Transf { id ; children } ->
+      if h.minimize then
+        reduce h id children n
+      else if n.replay then
+        apply h.env h.maxdepth id children n
+      else
+        transf h id children n
+  with exn ->
+    Utils.log "Process Error (%s)" @@ Printexc.to_string exn ;
+    stuck
 
 (* -------------------------------------------------------------------------- *)
 (* --- Main Loop                                                          --- *)
 (* -------------------------------------------------------------------------- *)
 
 let run henv =
+  let exception Break in
   try
     while true do
       Fibers.yield () ;
@@ -242,11 +238,11 @@ let run henv =
           (process henv node)
           (Fibers.set node.result)
       | None ->
-        if Fibers.pending () > 0
+        if nq + nr > 0
         then Unix.sleepf 0.01
-        else raise Exit
+        else raise Break
     done
-  with Exit ->
+  with Break ->
     Option.iter Client.terminate henv.client
 
 (* -------------------------------------------------------------------------- *)

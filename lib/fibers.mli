@@ -119,6 +119,10 @@ val seq : 'a t list -> 'a list t
     they _all_ have terminated. *)
 val all : 'a t list -> 'a list t
 
+(** [find f ks] runs all continuations in {i parallel} and returns
+    the _first_ result that satisfies the filter [f], if any. *)
+val first : ('a -> 'b option) -> 'a t list -> 'b option t
+
 (** {1 Signals} *)
 
 (** Inter tasks communication. *)

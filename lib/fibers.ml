@@ -192,6 +192,23 @@ let rec seq ts =
     let* rs = seq ts in
     return (r::rs)
 
+let first f ts =
+  if ts = [] then return None else
+    let r = var () in
+    let count = ref 0 in
+    let update x =
+      decr count ;
+      match f x with
+      | None -> if !count <= 0 then set r None
+      | Some _ as m -> set r m
+    in
+    List.iter
+      (fun t ->
+         incr count ;
+         t update
+      ) ts ;
+    get r
+
 (* -------------------------------------------------------------------------- *)
 (* --- Asynchronous Tasks                                                 --- *)
 (* -------------------------------------------------------------------------- *)
@@ -203,9 +220,13 @@ let pending () = Queue.size queue
 let async f =
   let x = var () in
   let yd () =
-    match f () with
-    | None -> true
-    | Some v -> set x v ; false
+    try
+      match f () with
+      | None -> true
+      | Some v -> set x v ; false
+    with exn ->
+      Format.eprintf "[Fibers] yield error (%s)" @@ Printexc.to_string exn ;
+      false
   in Queue.push queue yd ; get x
 
 let yield =

@@ -27,10 +27,11 @@ type client
 
 val options : (string * Arg.spec * string) list
 val connect : Wenv.env -> client option
-val prove : client ->
+val request : client ->
   Calibration.profile ->
-  ?cancel:unit Fibers.signal ->
-  Runner.prover -> Runner.prooftask -> float -> Runner.result Fibers.t
+  ?cancel:(unit Fibers.signal) ->
+  Runner.prover -> Runner.prooftask -> float ->
+  Runner.result Fibers.t
 
 val yield : client -> unit
 val terminate : client -> unit

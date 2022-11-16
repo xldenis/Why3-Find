@@ -305,7 +305,6 @@ let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
     in
     Fibers.await results
       begin fun proofs ->
-        Utils.flush () ;
         Session.save session ;
         save_proofs ~mode dir fp profile proofs ;
         let henv =
