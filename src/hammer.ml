@@ -98,13 +98,25 @@ let prove env ?client ?cancel prover timeout : strategy = fun n ->
       Runner.notify env prover result callback ;
       Fibers.return (to_profile result)
     | `Prepared task ->
-      ignore client ;
       let kill = Fibers.signal () in
-      Fibers.monitor ?signal:cancel ~handler:(Fibers.emit kill) @@
-      Fibers.map to_profile @@
-      Fibers.finally ~callback:(Runner.store_cached prover task) @@
-      Runner.prove_prepared env ~name ~cancel:kill ~callback
-        prover task runner_time
+      let runner =
+        Fibers.monitor ?signal:cancel ~handler:(Fibers.emit kill) @@
+        Fibers.map to_profile @@
+        Fibers.finally ~callback:(Runner.store_cached prover task) @@
+        Runner.prove_prepared env ~name ~cancel:kill ~callback
+          prover task runner_time
+      in match client with
+      | None -> runner
+      | Some cl ->
+        let result = Fibers.result runner in
+        let signal = Client.request cl n.profile prover task timeout in
+        let handler r =
+          match Runner.crop ~timeout r with
+          | Some r ->
+            Fibers.set result r ;
+            Fibers.emit kill ()
+          | None -> ()
+        in Fibers.monitor ~signal ~handler runner
   in match verdict with
   | Valid t -> Prover( Runner.name prover, Utils.round t )
   | _ -> Stuck

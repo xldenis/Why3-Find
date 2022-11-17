@@ -179,6 +179,8 @@ let do_result client goal status time =
     | "Timeout" -> Runner.Timeout time
     | _ -> Runner.Failed
   in
+  (*TODO: store converted in local cache *)
+  (*TODO: free signal if result is definitive *)
   Fibers.emit task.channel result
 
 (* -------------------------------------------------------------------------- *)
