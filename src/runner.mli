@@ -86,7 +86,7 @@ val prove_buffer : env ->
   prover -> Buffer.t -> float -> result Fibers.t
 
 val notify : env -> prover -> result -> callback -> unit
-val store_cached : prover -> prooftask -> result -> unit
+val update : prover -> prooftask -> result -> unit
 
 val options : (string * Arg.spec * string) list
 val pending : unit -> int

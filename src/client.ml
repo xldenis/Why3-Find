@@ -179,8 +179,13 @@ let do_result client goal status time =
     | "Timeout" -> Runner.Timeout time
     | _ -> Runner.Failed
   in
-  (*TODO: store converted in local cache *)
-  (*TODO: free signal if result is definitive *)
+  Fibers.background
+    ~callback:(fun alpha ->
+        Runner.update task.prv task.tsk @@
+        Runner.map (fun t -> t *. alpha) result
+      ) (Calibration.velocity client.env client.profile task.prv) ;
+  if Runner.definitive ~timeout:task.timeout result then
+    Hashtbl.remove client.pending task.goal ;
   Fibers.emit task.channel result
 
 (* -------------------------------------------------------------------------- *)

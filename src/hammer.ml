@@ -102,7 +102,7 @@ let prove env ?client ?cancel prover timeout : strategy = fun n ->
       let runner =
         Fibers.monitor ?signal:cancel ~handler:(Fibers.emit kill) @@
         Fibers.map to_profile @@
-        Fibers.finally ~callback:(Runner.store_cached prover task) @@
+        Fibers.finally ~callback:(Runner.update prover task) @@
         Runner.prove_prepared env ~name ~cancel:kill ~callback
           prover task runner_time
       in match client with

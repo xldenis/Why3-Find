@@ -504,7 +504,7 @@ let prove env ?name ?cancel ?callback prover task timeout =
 
 type prooftask = Why3.Task.task
 
-let store_cached prover task result =
+let update prover task result =
   set (task,prover) result
 
 let prove_cached prover task timeout =

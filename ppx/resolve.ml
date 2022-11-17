@@ -58,7 +58,7 @@ let lookup jfile =
        if Sys.file_exists jfile then Some jfile else None)
   @@ Global.Sites.packages
 
-let load_module ~qid ?export () =
+let load_module ~qid ?name () =
   let path = String.split_on_char '.' qid in
   let basename = String.concat "__" path in
   let pkg = List.hd path in
@@ -66,7 +66,7 @@ let load_module ~qid ?export () =
   let js = Json.of_file @@
     match lookup jfile with None -> raise Not_found | Some f -> f in
   let omodule = String.capitalize_ascii basename in
-  let emodule = match export with Some e -> e | None ->
+  let emodule = match name with Some e -> e | None ->
     String.capitalize_ascii @@ List.hd @@ List.rev path
   in List.iter
     (fun js ->
@@ -122,7 +122,7 @@ let re = Str.regexp " *as *"
 let use import =
   match Str.split_delim re import with
   | [qid] -> load_module ~qid ()
-  | [qid;export] -> load_module ~qid ~export ()
+  | [qid;name] -> load_module ~qid ~name ()
   | _ -> ()
 
 let use_rule_sig =
