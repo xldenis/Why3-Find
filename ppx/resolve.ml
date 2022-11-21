@@ -51,20 +51,21 @@ let mk_constr ~lident ~loc ~lid prm =
 let mk_pattern ~lident ~loc ~lid prm =
   Ast_builder.Default.ppat_construct ~loc { loc = lid ; txt = lident } prm
 
-let lookup jfile =
-  List.find_map
-    (fun d ->
-       let jfile = Filename.concat d jfile in
-       if Sys.file_exists jfile then Some jfile else None)
-  @@ Global.Sites.packages
+let lookup ~pkg jfile =
+  if Sys.file_exists jfile then Some jfile else
+    List.find_map
+      (fun d ->
+         let jfile = Filename.concat d @@ Filename.concat pkg @@ jfile in
+         if Sys.file_exists jfile then Some jfile else None)
+    @@ Global.Sites.packages
 
 let load_module ~qid ?name () =
   let path = String.split_on_char '.' qid in
   let basename = String.concat "__" path in
   let pkg = List.hd path in
-  let jfile = Filename.concat pkg @@ Filename.concat "lib" basename ^ ".json" in
+  let jfile = Filename.concat "lib" basename ^ ".json" in
   let js = Json.of_file @@
-    match lookup jfile with None -> raise Not_found | Some f -> f in
+    match lookup ~pkg jfile with None -> raise Not_found | Some f -> f in
   let omodule = String.capitalize_ascii basename in
   let emodule = match name with Some e -> e | None ->
     String.capitalize_ascii @@ List.hd @@ List.rev path
