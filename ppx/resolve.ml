@@ -107,17 +107,19 @@ let resolve (type a) ~(scope: a scope) ~loc ~lid : a =
 (* --- Errors                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-let error ~lid exn =
-  let loc = lid.loc in
-  let qid = String.concat "." @@ Astlib.Longident.flatten lid.txt in
-  match exn with
+let error_exn ~loc ~kind ~text = function
   | Not_found ->
-    Location.error_extensionf ~loc "Why3 identifier %S not found" qid
+    Location.error_extensionf ~loc "Why3 %s %S not found" kind text
   | Failure msg ->
-    Location.error_extensionf ~loc "Why3 identifier %S is invalid (%s)" qid msg
+    Location.error_extensionf ~loc "Why3 %s %S is invalid (%s)" kind text msg
   | exn ->
-    Location.error_extensionf ~loc "Why3 identifier %S parse error (%s)" qid
+    Location.error_extensionf ~loc "Why3 %s %S error (%s)" kind text
       (Printexc.to_string exn)
+
+let error ~lid ~kind exn =
+  let loc = lid.loc in
+  let text = String.concat "." @@ Astlib.Longident.flatten lid.txt in
+  error_exn ~loc ~kind ~text exn
 
 (* -------------------------------------------------------------------------- *)
 (* --- Expression Resolution                                              --- *)
@@ -128,21 +130,24 @@ let resolve_expression ~loc (exp: expression) : expression =
   | Pexp_ident lid ->
     begin
       try resolve ~scope:values ~loc ~lid
-      with exn -> Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
+      with exn -> Ast_builder.Default.pexp_extension ~loc @@
+        error ~kind:"value" ~lid exn
     end
   | Pexp_field(exp,lid) ->
     begin
       try resolve ~scope:fields ~loc ~lid exp with exn ->
-        Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
+        Ast_builder.Default.pexp_extension ~loc @@
+        error ~kind:"field" ~lid exn
     end
   | Pexp_construct(lid,prm) ->
     begin
       try resolve ~scope:constr ~loc ~lid prm with exn ->
-        Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
+        Ast_builder.Default.pexp_extension ~loc @@
+        error ~kind:"constructor" ~lid exn
     end
   | _ ->
     Ast_builder.Default.pexp_extension ~loc @@
-    Location.error_extensionf ~loc "Can not resolve such a Why3 expression"
+    Location.error_extensionf ~loc "Why3: can not resolve such an expression"
 
 (* -------------------------------------------------------------------------- *)
 (* --- Use Rules                                                          --- *)
@@ -169,10 +174,9 @@ let use_rule_sig =
           attr_name = { loc ; txt = "ignore" } ;
           attr_payload = PSig [] ;
         }
-      with _exn ->
+      with exn ->
         Ast_builder.Default.psig_extension ~loc
-          (Location.error_extensionf
-             ~loc:import.loc "Invalid Why-3 use %S" import.txt) []
+          (error_exn ~loc:import.loc ~kind:"use" ~text:import.txt exn) []
     end
 
 let use_rule_struct =
@@ -204,7 +208,7 @@ let type_rule =
     begin fun ~ctxt lid cts ->
       let loc = Expansion_context.Extension.extension_point_loc ctxt in
       try resolve ~scope:types ~loc ~lid cts with exn ->
-        Ast_builder.Default.ptyp_extension ~loc @@ error ~lid exn
+        Ast_builder.Default.ptyp_extension ~loc @@ error ~lid ~kind:"type" exn
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -232,7 +236,8 @@ let pattern_rule =
       let loc = Expansion_context.Extension.extension_point_loc ctxt in
       let prm = Option.map snd lprm in
       try resolve ~scope:pattern ~loc ~lid prm with exn ->
-        Ast_builder.Default.ppat_extension ~loc @@ error ~lid exn
+        Ast_builder.Default.ppat_extension ~loc @@
+        error ~lid ~kind:"constrcutor" exn
     end
 
 (* -------------------------------------------------------------------------- *)
