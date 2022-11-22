@@ -146,7 +146,7 @@
   $ why3find extract --help
   USAGE:
   
-    why3find extract [OPTIONS] PKG MODULE...
+    why3find extract [OPTIONS] MODULE...
   
   DESCRIPTION:
   
