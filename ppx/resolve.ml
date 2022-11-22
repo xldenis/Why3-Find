@@ -107,13 +107,21 @@ let resolve (type a) ~(scope: a scope) ~loc ~lid : a =
 (* --- Errors                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
+(* borrowed from ppxlib.0.28.0 *)
+let error_extensionf ~loc msg =
+  Format.kasprintf
+    (fun str ->
+       Ppxlib_ast.Location_error.to_extension @@
+       Ppxlib_ast.Location_error.make ~loc ~sub:[] str)
+    msg
+
 let error_exn ~loc ~kind ~text = function
   | Not_found ->
-    Location.error_extensionf ~loc "Why3 %s %S not found" kind text
+    error_extensionf ~loc "Why3 %s %S not found" kind text
   | Failure msg ->
-    Location.error_extensionf ~loc "Why3 %s %S is invalid (%s)" kind text msg
+    error_extensionf ~loc "Why3 %s %S is invalid (%s)" kind text msg
   | exn ->
-    Location.error_extensionf ~loc "Why3 %s %S error (%s)" kind text
+    error_extensionf ~loc "Why3 %s %S error (%s)" kind text
       (Printexc.to_string exn)
 
 let error ~lid ~kind exn =
@@ -147,7 +155,7 @@ let resolve_expression ~loc (exp: expression) : expression =
     end
   | _ ->
     Ast_builder.Default.pexp_extension ~loc @@
-    Location.error_extensionf ~loc "Why3: can not resolve such an expression"
+    error_extensionf ~loc "Why3: can not resolve such an expression"
 
 (* -------------------------------------------------------------------------- *)
 (* --- Use Rules                                                          --- *)
@@ -194,7 +202,7 @@ let use_rule_struct =
         }
       with _exn ->
         Ast_builder.Default.pstr_extension ~loc
-          (Location.error_extensionf ~loc "Invalid Why-3 use %S" import) []
+          (error_extensionf ~loc "Invalid Why-3 use %S" import) []
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -232,9 +240,8 @@ let pattern_rule =
   Extension.V3.declare "why3"
     Extension.Context.pattern
     Ast_pattern.(ppat (ppat_construct __' __) __)
-    begin fun ~ctxt lid lprm _when ->
+    begin fun ~ctxt lid prm _when ->
       let loc = Expansion_context.Extension.extension_point_loc ctxt in
-      let prm = Option.map snd lprm in
       try resolve ~scope:pattern ~loc ~lid prm with exn ->
         Ast_builder.Default.ppat_extension ~loc @@
         error ~lid ~kind:"constrcutor" exn

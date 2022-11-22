@@ -27,7 +27,7 @@
      (ocaml (>= 4.12.0))
      (yojson (>= 1.7.0))
      (zmq (>= 5.0.0))
-     (ppxlib (>= 0.27.0)))
+     (ppxlib (>= 0.24.0)))
   (sites
     (lib packages)
     (share resources))
