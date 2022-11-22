@@ -1,5 +1,5 @@
 (library
-  (name why3utils)
+  (name utils)
   (public_name why3find.lib)
   (flags (:standard "-w" "-9"))
   (libraries unix yojson dune-site))
