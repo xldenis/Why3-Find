@@ -64,12 +64,17 @@ let load_module ~qid ?name () =
   let basename = String.concat "__" path in
   let pkg = List.hd path in
   let jfile = Filename.concat "lib" basename ^ ".json" in
+  Format.printf "CWD %s@." @@ Sys.getcwd () ;
+  Format.printf "LOOKUP %s / %s / %b@." pkg jfile (Sys.file_exists jfile) ;
   let js = Json.of_file @@
-    match lookup ~pkg jfile with None -> raise Not_found | Some f -> f in
+    match lookup ~pkg jfile with
+    | None -> raise Not_found
+    | Some f -> f in
   let omodule = String.capitalize_ascii basename in
   let emodule = match name with Some e -> e | None ->
-    String.capitalize_ascii @@ List.hd @@ List.rev path
-  in List.iter
+    String.capitalize_ascii @@ List.hd @@ List.rev path in
+  Format.printf "JLIST@." ;
+  List.iter
     (fun js ->
        try
          let kind = Json.jfield_exn "kind" js |> Json.jstring in
@@ -113,6 +118,31 @@ let error ~lid exn =
   | exn ->
     Location.error_extensionf ~loc "Why3 identifier %S parse error (%s)" qid
       (Printexc.to_string exn)
+
+(* -------------------------------------------------------------------------- *)
+(* --- Expression Resolution                                              --- *)
+(* -------------------------------------------------------------------------- *)
+
+let resolve_expression ~loc (exp: expression) : expression =
+  match exp.pexp_desc with
+  | Pexp_ident lid ->
+    begin
+      try resolve ~scope:values ~loc ~lid
+      with exn -> Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
+    end
+  | Pexp_field(exp,lid) ->
+    begin
+      try resolve ~scope:fields ~loc ~lid exp with exn ->
+        Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
+    end
+  | Pexp_construct(lid,prm) ->
+    begin
+      try resolve ~scope:constr ~loc ~lid prm with exn ->
+        Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
+    end
+  | _ ->
+    Ast_builder.Default.pexp_extension ~loc @@
+    Location.error_extensionf ~loc "Can not resolve such a Why3 expression"
 
 (* -------------------------------------------------------------------------- *)
 (* --- Use Rules                                                          --- *)
@@ -178,45 +208,16 @@ let type_rule =
     end
 
 (* -------------------------------------------------------------------------- *)
-(* --- Value Rule                                                         --- *)
+(* --- Expression Rule                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let value_rule =
+let expr_rule =
   Extension.V3.declare "why3"
     Extension.Context.expression
-    Ast_pattern.(single_expr_payload (pexp_ident __'))
-    begin fun ~ctxt lid ->
+    Ast_pattern.(single_expr_payload __)
+    begin fun ~ctxt exp ->
       let loc = Expansion_context.Extension.extension_point_loc ctxt in
-      try resolve ~scope:values ~loc ~lid with exn ->
-        Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- Field Rule                                                         --- *)
-(* -------------------------------------------------------------------------- *)
-
-let field_rule =
-  Extension.V3.declare "why3"
-    Extension.Context.expression
-    Ast_pattern.(single_expr_payload (pexp_field __ __'))
-    begin fun ~ctxt exp lid ->
-      let loc = Expansion_context.Extension.extension_point_loc ctxt in
-      try resolve ~scope:fields ~loc ~lid exp with exn ->
-        Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
-    end
-
-(* -------------------------------------------------------------------------- *)
-(* --- Constructor Rule                                                   --- *)
-(* -------------------------------------------------------------------------- *)
-
-let constr_rule =
-  Extension.V3.declare "why3"
-    Extension.Context.expression
-    Ast_pattern.(single_expr_payload (pexp_construct __' __))
-    begin fun ~ctxt lid prm ->
-      let loc = Expansion_context.Extension.extension_point_loc ctxt in
-      try resolve ~scope:constr ~loc ~lid prm with exn ->
-        Ast_builder.Default.pexp_extension ~loc @@ error ~lid exn
+      resolve_expression ~loc exp
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -243,9 +244,7 @@ let () = Driver.register_transformation
         use_rule_sig ;
         use_rule_struct ;
         type_rule ;
-        value_rule ;
-        field_rule ;
-        constr_rule ;
+        expr_rule ;
         pattern_rule ;
       ]) "why3find"
 
