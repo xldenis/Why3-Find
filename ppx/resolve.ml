@@ -148,7 +148,7 @@ let resolve_expression ~loc (exp: expression) : expression =
 (* --- Use Rules                                                          --- *)
 (* -------------------------------------------------------------------------- *)
 
-let re = Str.regexp " *as *"
+let re = Str.regexp " +as +"
 
 let use import =
   match Str.split_delim re import with
