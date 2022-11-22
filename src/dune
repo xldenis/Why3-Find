@@ -2,7 +2,7 @@
   (name main)
   (package why3find)
   (public_name why3find)
-  (flags (:standard "-w" "-9" "-open" "Why3utils"))
+  (flags (:standard "-w" "-9" "-open" "Utils"))
   (libraries why3find.lib why3 str zmq))
 
 (rule
