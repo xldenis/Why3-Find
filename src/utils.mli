@@ -30,12 +30,20 @@ val locate : string -> (string * string) option
 val chdir : string -> unit
 val absolute : string -> string
 
+val load : file:string -> Buffer.t -> unit
+val readfile : file:string -> string
+val writefile : file:string -> string -> unit
+
 val readdir : (string -> unit) -> string -> unit
 val iterpath :
   ?enter:(string -> unit) ->
   ?file:(string -> unit) ->
   ?leave:(string -> unit) ->
   string -> unit
+
+val pp_hex : Format.formatter -> string -> unit
+val pp_arg : Format.formatter -> string -> unit
+val pp_args : Format.formatter -> string list -> unit
 
 val pp_ok : Format.formatter -> unit
 val pp_ko : Format.formatter -> unit
@@ -49,6 +57,7 @@ val round : float -> float
 
 val tty : bool
 val flush : unit -> unit
+val log : ('a,Format.formatter,unit) format -> 'a
 val progress : ('a,Format.formatter,unit) format -> 'a
 val failwith : ('a, Format.formatter, unit, 'b) format4 -> 'a
 

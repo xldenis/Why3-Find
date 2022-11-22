@@ -865,7 +865,7 @@ let document_title ~title ~page =
 
 let process_markdown ~wenv ~henv ~out:dir ~title file =
   begin
-    let src = Docref.empty () in
+    let src = Docref.create () in
     let input = Token.input ~doc:true file in
     let basename = Filename.chop_extension @@ Filename.basename file in
     let page = String.capitalize_ascii basename in
@@ -955,8 +955,7 @@ let process ~wenv ~henv ~out ~title file =
 
 let generate ~out ~title ~files =
   begin
-    Utils.flush () ;
-    Format.printf "Generated %s@." @@ Utils.absolute out ;
+    Utils.log "Generated %s@." @@ Utils.absolute out ;
     let wenv, henv = Docref.init () in
     Utils.mkdirs @@ Filename.concat out "fonts" ;
     shared ~out ~file:"style.css" ;

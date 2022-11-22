@@ -54,7 +54,7 @@ type source = {
   theories: theory Mstr.t;
 }
 
-val empty : unit -> source
+val create : unit -> source
 val parse : wenv:Why3.Env.env -> henv:Axioms.henv -> string -> source
 val derived : source -> string -> string (* URL name *)
 

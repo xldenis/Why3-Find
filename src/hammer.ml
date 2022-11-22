@@ -29,6 +29,7 @@ open Fibers.Monad
 type henv = {
   env : Wenv.env ;
   time : float ;
+  client : Client.client option ;
   maxdepth : int ;
   provers : Runner.prover list ;
   transfs : string list ;
@@ -84,23 +85,40 @@ let rec smap (f : 'a -> strategy) (xs : 'a list) : strategy =
 (* --- Try Prover on Node                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let local = ref false
-
-let prove env ?cancel prv timeout : strategy = fun n ->
-  let* alpha =
-    if !local then
-      Fibers.return 1.0
-    else
-      Calibration.velocity env n.profile prv
-  in
-  let time = timeout *. alpha in
+let prove env ?client ?cancel prover timeout : strategy = fun n ->
   let task = Session.goal_task n.goal in
   let name = Session.goal_name n.goal in
-  let+ result = Runner.prove env
-      ?cancel ~name ~callback:(Session.result n.goal)
-      task prv time in
-  match result with
-  | Valid t -> Prover( Runner.name prv, Utils.round @@ t /. alpha )
+  let* alpha = Calibration.velocity env n.profile prover in
+  let to_profile = Runner.map (fun t -> t /. alpha) in
+  let runner_time = timeout *. alpha in
+  let callback = Session.result n.goal in
+  let+ verdict =
+    match Runner.prove_cached prover task runner_time with
+    | `Cached result ->
+      Runner.notify env prover result callback ;
+      Fibers.return (to_profile result)
+    | `Prepared task ->
+      let kill = Fibers.signal () in
+      let runner =
+        Fibers.monitor ?signal:cancel ~handler:(Fibers.emit kill) @@
+        Fibers.map to_profile @@
+        Fibers.finally ~callback:(Runner.update prover task) @@
+        Runner.prove_prepared env ~name ~cancel:kill ~callback
+          prover task runner_time
+      in match client with
+      | None -> runner
+      | Some cl ->
+        let result = Fibers.result runner in
+        let signal = Client.request cl n.profile prover task timeout in
+        let handler r =
+          match Runner.crop ~timeout r with
+          | Some r ->
+            Fibers.set result r ;
+            Fibers.emit kill ()
+          | None -> ()
+        in Fibers.monitor ~signal ~handler runner
+  in match verdict with
+  | Valid t -> Prover( Runner.name prover, Utils.round t )
   | _ -> Stuck
 
 (* -------------------------------------------------------------------------- *)
@@ -125,25 +143,34 @@ let apply env depth tr hs : strategy = fun n ->
 (* --- Hammer Strategy                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let hammer0 env prvs time : strategy =
-  smap (fun prv -> prove env prv time) prvs
+let hammer0 h : strategy =
+  let time = h.time *. 0.2 in
+  smap (fun prv -> prove h.env prv time) h.provers
 
-let hammer1 env prvs time : strategy = fun n ->
+let hammer13 h time : strategy = fun n ->
   let cancel = Fibers.signal () in
   let watch r = if r <> Stuck then Fibers.emit cancel () ; r in
   let+ results =
     Fibers.all @@ List.map
-      (fun prv -> watch @+ prove env ~cancel prv time n) prvs
+      (fun prv -> watch @+ prove h.env ?client:h.client ~cancel prv time n)
+      h.provers
   in try List.find (fun r -> r <> Stuck) results with Not_found -> Stuck
 
-let hammer2 env trfs depth : strategy =
-  smap (fun tr -> apply env depth tr []) trfs
+let hammer1 h = hammer13 h h.time
+let hammer3 h = hammer13 h (2.0 *. h.time)
+
+let hammer2 ?excluded h : strategy =
+  smap
+    (fun tr -> apply h.env h.maxdepth tr [])
+    (match excluded with
+     | None -> h.transfs
+     | Some id -> List.filter (fun t -> t <> id) h.transfs)
 
 let hammer henv =
-  hammer0 henv.env henv.provers (henv.time *. 0.2) >>>
-  hammer1 henv.env henv.provers henv.time >>>
-  hammer2 henv.env henv.transfs henv.maxdepth >>>
-  hammer1 henv.env henv.provers (henv.time *. 2.0)
+  hammer0 henv >>>
+  hammer1 henv >>>
+  hammer2 henv >>>
+  hammer3 henv
 
 (* -------------------------------------------------------------------------- *)
 (* --- Node Processing                                                    --- *)
@@ -153,54 +180,79 @@ let select p prvs = List.find (fun prv -> Runner.name prv = p) prvs
 
 let overhead t = max (t *. 2.0) 1.0
 
-let prove h p t = prove h.env (select p h.provers) (overhead t)
-let update h p t = prove h p t >>> hammer h
+let replay h p t =
+  let client = if t > h.time *. 0.2 then h.client else None in
+  prove h.env ?client (select p h.provers) (overhead t)
+
+let update h p t = replay h p t >>> hammer h
 
 let transf h id cs =
   apply h.env h.maxdepth id cs >>>
-  hammer1 h.env h.provers h.time >>>
-  hammer2 h.env (List.filter (fun f -> f <> id) h.transfs) h.maxdepth >>>
-  hammer1 h.env h.provers (h.time *. 2.0)
+  hammer1 h >>>
+  hammer2 ~excluded:id h >>>
+  hammer3 h
 
 let reduce h id cs =
-  hammer1 h.env h.provers h.time >>>
+  hammer1 h >>>
   apply h.env h.maxdepth id cs >>>
-  hammer2 h.env (List.filter (fun f -> f <> id) h.transfs) h.maxdepth >>>
-  hammer1 h.env h.provers (h.time *. 2.0)
+  hammer2 ~excluded:id h >>>
+  hammer3 h
 
 let process h : strategy = fun n ->
-  match n.hint with
-  | Stuck -> if n.replay then stuck else hammer h n
-  | Prover(p,t) ->
-    if n.replay then
-      prove h p t n
-    else
-      update h p t n
-  | Transf { id ; children } ->
-    if h.minimize then
-      reduce h id children n
-    else if n.replay then
-      apply h.env h.maxdepth id children n
-    else
-      transf h id children n
+  try
+    match n.hint with
+    | Stuck -> if n.replay then stuck else hammer h n
+    | Prover(p,t) ->
+      if n.replay then
+      replay h p t n
+      else
+        update h p t n
+    | Transf { id ; children } ->
+      if h.minimize then
+        reduce h id children n
+      else if n.replay then
+        apply h.env h.maxdepth id children n
+      else
+        transf h id children n
+  with exn ->
+    Utils.log "Process Error (%s)" @@ Printexc.to_string exn ;
+    stuck
 
 (* -------------------------------------------------------------------------- *)
 (* --- Main Loop                                                          --- *)
 (* -------------------------------------------------------------------------- *)
 
-let rec exec (s : strategy) =
-  Fibers.yield () ;
-  let n2 = Queue.length q2 in
-  let n1 = Queue.length q1 in
-  let nq = Runner.pending () in
-  let nr = Runner.running () in
-  Utils.progress "%d/%d/%d/%d%t" n2 n1 nq nr Runner.pp_goals ;
-  match pop () with
-  | None ->
-    if Fibers.pending () > 0 then (Unix.sleepf 0.01 ; exec s)
-  | Some node ->
-    Fibers.await (s @> node) (Fibers.set node.result) ; exec s
-
-let run henv = exec (process henv)
+let run henv =
+  let exception Break in
+  try
+    let p2 = ref 0 in
+    let p1 = ref 0 in
+    while true do
+      Fibers.yield () ;
+      Option.iter Client.yield henv.client ;
+      let n2 = Queue.length q2 + !p2 in
+      let n1 = Queue.length q1 + !p1 in
+      let nq = Runner.pending () in
+      let nr = Runner.running () in
+      let total = n2 + n1 + nq + nr in
+      Utils.progress "%d/%d/%d/%d%t" n2 n1 nq nr Runner.pp_goals ;
+      match pop () with
+      | Some node ->
+        Fibers.background @@
+        begin
+          let pr = if complete node.hint then p2 else p1 in
+          incr pr ;
+          let* r = process henv node in
+          decr pr ;
+          Fibers.set node.result r ;
+          Fibers.return ()
+        end
+      | None ->
+        if total > 0
+        then Unix.sleepf 0.01
+        else raise Break
+    done
+  with Break ->
+    Option.iter Client.terminate henv.client
 
 (* -------------------------------------------------------------------------- *)

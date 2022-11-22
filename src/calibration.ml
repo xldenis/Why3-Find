@@ -25,6 +25,10 @@
 
 open Why3
 
+(* -------------------------------------------------------------------------- *)
+(* --- Calibration Problems                                               --- *)
+(* -------------------------------------------------------------------------- *)
+
 let ty = Ty.create_tysymbol (Ident.id_fresh "t") [] Ty.NoDef
 let t = Ty.ty_app ty []
 let f = Term.create_fsymbol (Ident.id_fresh "f") [t;t] t
@@ -88,11 +92,10 @@ let choose t x y =
   | Some(_,tx), Some(_,ty) ->
     if Float.abs (t -. tx) < Float.abs (t -. ty) then x else y
 
-[@@@ warning "-32"]
 let pp_range fmt = function
   | Guess(p,q) -> Format.fprintf fmt "%d…%d?" p q
   | Range(p,q) -> Format.fprintf fmt "%d…%d" p q
-[@@@ warning "+32"]
+[@@ warning "-32"]
 
 type qenv = {
   env : Wenv.env ;
@@ -117,7 +120,7 @@ let rec seqlookup ~progress q prv rg best =
         ( Utils.progress "%s (%d)" (name prv) n ; None )
       else Some (name prv)
     in
-    let* result = Runner.prove q.env ?name (generate n) prv q.time_out in
+    let* result = Runner.prove q.env ?name prv (generate n) q.time_out in
     match result with
     | Valid t ->
       let best = choose q.time best (Some (n,t)) in
@@ -164,7 +167,7 @@ let ptry c ~cancel ?(upper=[]) ?(lower=[]) n =
       else Some (name prv)
     in
     let q = c.qenv in
-    let+ r = Runner.prove q.env ?name ~cancel (generate n) prv q.time_out in
+    let+ r = Runner.prove q.env ?name ~cancel prv (generate n) q.time_out in
     match r with
     | Valid t ->
       c.best <- choose q.time c.best (Some (n,t)) ;
@@ -230,12 +233,11 @@ let qhash = Hashtbl.create 0
 let calibrate ?(progress=false) env prv : (int * float) option Fibers.t =
   try Hashtbl.find qhash (id prv)
   with Not_found ->
-    let v = Fibers.var () in
-    let c = Fibers.get v in
-    Hashtbl.add qhash (id prv) c ;
+    let p = Fibers.var () in
     let q = qenv env !reftime in
-    let job = lookup ~progress q prv in
-    Fibers.await job (Fibers.set v) ; c
+    Fibers.background ~callback:(Fibers.set p) (lookup ~progress q prv) ;
+    let getp = Fibers.get p in
+    Hashtbl.add qhash (id prv) getp ; getp
 
 (* -------------------------------------------------------------------------- *)
 (* --- Profile                                                            --- *)
@@ -249,11 +251,11 @@ type gauge = {
 
 type profile = (string,gauge Fibers.var) Hashtbl.t
 
-let empty () = Hashtbl.create 0
+let create () = Hashtbl.create 0
 
 let of_json ?default (js : Json.t) : profile =
   let open Json in
-  let p = match default with Some p -> p | None -> empty () in
+  let p = match default with Some p -> p | None -> create () in
   List.iter (fun js ->
       try
         let prv = jfield_exn "prover" js |> jstring in
@@ -270,10 +272,10 @@ let to_json (p : profile) : Json.t =
       | None -> js
       | Some { size ; time } ->
         (`Assoc [
-          "prover", `String prv ;
-          "size", `Int size ;
-          "time", `Float time ;
-        ]) :: js
+            "prover", `String prv ;
+            "size", `Int size ;
+            "time", `Float time ;
+          ]) :: js
     ) p [])
 
 (* -------------------------------------------------------------------------- *)
@@ -296,11 +298,14 @@ let gauge env profile prv : gauge Fibers.t =
         end
     in Hashtbl.replace profile p gv ; gv
 
+let profile env profile prv =
+  let+ { size ; time } = gauge env profile prv in (size,time)
+
 let alpha env prv ~size ~time : float Fibers.t =
   let timeout = 5.0 *. (max 1.0 time) in
   let+ result = Runner.prove env
       ~name:(Runner.name prv)
-      (generate size) prv timeout in
+      prv (generate size) timeout in
   match result with
   | Valid t -> t /. time
   | _ ->
@@ -308,13 +313,16 @@ let alpha env prv ~size ~time : float Fibers.t =
       Runner.pp_prover prv size Runner.pp_result result ;
     exit 2
 
+let local = ref false
+
 let velocity env profile prv : float Fibers.t =
-  let*g = gauge env profile prv in
-  match g.alpha with
-  | Some a -> Fibers.get a
-  | None ->
-    let ga = Fibers.result @@ alpha env prv ~size:g.size ~time:g.time in
-    g.alpha <- Some ga ; Fibers.get ga
+  if !local then Fibers.return 1.0 else
+    let* g = gauge env profile prv in
+    match g.alpha with
+    | Some a -> Fibers.get a
+    | None ->
+      let ga = Fibers.result @@ alpha env prv ~size:g.size ~time:g.time in
+      g.alpha <- Some ga ; Fibers.get ga
 
 let observed profile prv =
   try
@@ -322,6 +330,26 @@ let observed profile prv =
     | { alpha = Some ga } -> Fibers.find ga
     | _ -> 1.0
   with Not_found -> 1.0
+
+let mem = Hashtbl.mem
+
+let set (profile: profile) prv size time =
+  let init = { size ; time ; alpha = None } in
+  try
+    Fibers.set (Hashtbl.find profile prv) init
+  with Not_found ->
+    Hashtbl.add profile prv @@ Fibers.var ~init ()
+
+let get (profile: profile) prv =
+  try
+    let { size ; time } = Fibers.find @@ Hashtbl.find profile prv
+    in Some(size,time)
+  with Not_found -> None
+
+let lock (profile: profile) prv =
+  if not @@ Hashtbl.mem profile prv then
+    ( Hashtbl.add profile prv @@ Fibers.var () ; true )
+  else false
 
 let iter f profile =
   List.iter (fun (p,n,t) -> f p n t) @@
@@ -337,11 +365,12 @@ let iter f profile =
 (* -------------------------------------------------------------------------- *)
 
 let default () =
-  try Wenv.get "profile" ~of_json:(of_json ?default:None)
-  with Not_found -> empty ()
+  if !local then create () else
+    try Wenv.get "profile" ~of_json:(of_json ?default:None)
+    with Not_found -> create ()
 
 let calibrate_provers ~saved env provers =
-  Fibers.run @@
+  Fibers.await @@
   begin
     let q = qenv env !reftime in
     let* results =
@@ -351,7 +380,7 @@ let calibrate_provers ~saved env provers =
         ) provers
     in
     Utils.flush () ;
-    let profile = empty () in
+    let profile = create () in
     List.iter
       (fun (prv,res) ->
          match res with
@@ -368,7 +397,7 @@ let calibrate_provers ~saved env provers =
   end
 
 let velocity_provers env provers =
-  Fibers.run @@
+  Fibers.await @@
   begin
     let profile = default () in
     let* results =
@@ -404,6 +433,7 @@ let velocity_provers env provers =
 (* -------------------------------------------------------------------------- *)
 
 let options = [
+  "--local", Arg.Set local, "no calibration (use local times)";
   "--reftime", Arg.Set_float reftime, "TIME set calibration time (default 0.5s)" ;
   "--sequential", Arg.Set sequential, "use sequential calibration algorithm" ;
 ]

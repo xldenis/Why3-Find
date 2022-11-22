@@ -1,5 +1,12 @@
 build:
   script:
+    - git archive
+        --format tgz
+        --prefix why3/
+        --output /tmp/why3find.why3.tgz
+        --remote git@git.frama-c.com:lcorrenson/why3tmp
+        why3find-1.5.1
     - nix-build nix/pkgs.nix -A why3find
+    - rm -f /tmp/why3find.why3.tgz
   tags:
     - nix-v2

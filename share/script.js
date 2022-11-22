@@ -45,7 +45,6 @@ function escape(evt) {
   nodes = document.getElementsByClassName("section-toggle");
   for (i = 0; i < nodes.length; i++) {
     nodes[i].addEventListener("click", function() {
-      window.location = "#";
       toggle(this);
     });
   }

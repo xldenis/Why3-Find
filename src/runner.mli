@@ -24,7 +24,6 @@
 (* -------------------------------------------------------------------------- *)
 
 open Wenv
-open Why3.Task
 
 type prover = {
   config : Why3.Whyconf.config_prover ;
@@ -40,9 +39,15 @@ val title : ?strict:bool -> prover -> string
 val relax : string -> string
 val relaxed : string -> bool
 
+val all : env -> prover list
 val default : env -> prover list
+val find : env -> string -> prover
 val prover : env -> string -> prover
 val select : env -> string list -> prover list
+val map : (float -> float) -> result -> result
+val crop : timeout:float -> result -> result option
+val definitive : timeout:float -> result -> bool
+val merge : result -> result -> result
 
 val pp_prover : Format.formatter -> prover -> unit
 val pp_result : Format.formatter -> result -> unit
@@ -60,7 +65,28 @@ val prove : env ->
   ?name:string ->
   ?cancel:unit Fibers.signal ->
   ?callback:callback ->
-  task -> prover -> float -> result Fibers.t
+  prover -> Why3.Task.task -> float -> result Fibers.t
+
+type prooftask
+
+val digest : prooftask -> string
+val data : prover -> prooftask -> string
+
+val prove_cached : prover -> Why3.Task.task -> float ->
+  [ `Cached of result | `Prepared of prooftask ]
+
+val prove_prepared : env ->
+  ?name:string ->
+  ?cancel:unit Fibers.signal ->
+  ?callback:callback ->
+  prover -> prooftask -> float -> result Fibers.t
+
+val prove_buffer : env ->
+  ?cancel:unit Fibers.signal ->
+  prover -> Buffer.t -> float -> result Fibers.t
+
+val notify : env -> prover -> result -> callback -> unit
+val update : prover -> prooftask -> result -> unit
 
 val options : (string * Arg.spec * string) list
 val pending : unit -> int

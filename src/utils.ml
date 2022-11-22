@@ -41,6 +41,10 @@ let progress msg =
 
 let flush () = if tty then Format.printf "\r\027[K"
 
+let log msg =
+  flush () ;
+  Format.printf msg
+
 open Format
 
 let nop _ = ()
@@ -144,6 +148,22 @@ let absolute file =
   then Filename.concat (Sys.getcwd ()) file
   else file
 
+let load ~file buffer =
+  let inc = open_in file in
+  try
+    while true do
+      Buffer.add_channel buffer inc 2048
+    done
+  with End_of_file -> close_in inc
+
+let writefile ~file data =
+  let out = open_out file in
+  output_string out data ; close_out out
+
+let readfile ~file =
+  let buffer = Buffer.create 2048 in
+  load ~file buffer ; Buffer.contents buffer
+
 (* -------------------------------------------------------------------------- *)
 (* --- Time Printing                                                      --- *)
 (* -------------------------------------------------------------------------- *)
@@ -160,6 +180,18 @@ let pp_time fmt t =
   if t < 1.0 then Format.fprintf fmt "%dms" (int_of_float @@ t *. 1e3) else
   if t < 20.0 then Format.fprintf fmt "%.1fs" t else
     Format.fprintf fmt "%ds" (int_of_float t)
+
+let pp_hex fmt hs =
+  String.iter (fun c -> Format.fprintf fmt "%02x" @@ Char.code c) hs
+
+let pp_arg fmt arg =
+  let arg = String.escaped arg in
+  if String.length arg <= 8 then
+    Format.fprintf fmt " %-8s |" arg
+  else
+    Format.fprintf fmt " %s… |" (String.sub arg 0 7)
+
+let pp_args fmt args = List.iter (pp_arg fmt) args
 
 let pp_ok fmt = Format.fprintf fmt "@{<green>\u{2714}@}"
 let pp_ko fmt = Format.fprintf fmt "@{<red>\u{2718}@}"

@@ -1,8 +1,7 @@
 { callPackage
-, fetchurl
-, fetchpatch
 , lib
 , stdenv
+, fetchurl
 , ocaml
 , findlib
 , ocamlgraph
@@ -27,9 +26,10 @@
 
 stdenv.mkDerivation rec {
   pname = "why3";
-  version = src.version;
+  version = "1.5.1+dev";
 
-  src = (import ./sources.nix {}).why3;
+  src = "/tmp/why3find.why3.tgz" ;
+  sourceRoot = "why3" ;
   nativeBuildInputs = [
     autoreconfHook
   ];

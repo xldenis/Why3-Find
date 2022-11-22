@@ -46,17 +46,19 @@ let title ?(strict=false) p = if strict then id p else name p
 
 let pp_prover fmt prv = Format.pp_print_string fmt @@ id prv
 
+let load (env : Wenv.env) (config : Whyconf.config_prover) =
+  try Whyconf.load_driver (Whyconf.get_main env.wconfig) env.wenv config
+  with _ ->
+    Format.eprintf "Failed to load driver for %s@."
+      (Whyconf.prover_parseable_format config.prover) ;
+    exit 2
+
 let find_exact (env : Wenv.env) s =
   try
     let filter = Whyconf.parse_filter_prover s in
     let config = Whyconf.filter_one_prover env.wconfig filter in
-    let driver =
-      try Whyconf.load_driver (Whyconf.get_main env.wconfig) env.wenv config
-      with _ ->
-        Format.eprintf "Failed to load driver for %s@."
-          (Whyconf.prover_parseable_format config.prover) ;
-        exit 2
-    in Some { config ; driver }
+    let driver = load env config in
+    Some { config ; driver }
   with _ -> None
 
 let find_default env name =
@@ -72,28 +74,41 @@ let relax name =
 
 let relaxed p = (String.lowercase_ascii p = p)
 
-let prover env name =
-  try
-    match find_exact env name with
+let find env name =
+  match find_exact env name with
+  | Some prv -> prv
+  | None ->
+    match find_exact env (String.lowercase_ascii name) with
     | Some prv -> prv
     | None ->
-      match find_exact env (String.lowercase_ascii name) with
-      | Some prv -> prv
-      | None ->
-        match String.split_on_char ',' name with
-        | shortname :: _ :: _ ->
-          begin
-            match find_exact env (String.lowercase_ascii shortname) with
-            | Some prv ->
-              Format.eprintf "Warning: prover %S not found, fallback to %a.@."
-                name pp_prover prv ;
-              prv
-            | None -> raise Not_found
-          end
-        | _ -> raise Not_found
+      match String.split_on_char ',' name with
+      | shortname :: _ :: _ ->
+        begin
+          match find_exact env (String.lowercase_ascii shortname) with
+          | Some prv ->
+            Format.eprintf "Warning: prover %S not found, fallback to %a.@."
+              name pp_prover prv ;
+            prv
+          | None -> raise Not_found
+        end
+      | _ -> raise Not_found
+
+let prover env name =
+  try find env name
   with Not_found ->
     Format.eprintf "Error: prover %S not found." name ;
     exit 2
+
+let all env =
+  let byid p q = String.compare (id p) (id q) in
+  List.sort byid @@
+  Whyconf.Mprover.fold
+    (fun _id config prvs ->
+       if config.Whyconf.prover.prover_altern = "" then
+         let driver = load env config in
+         { config ; driver } :: prvs
+       else prvs
+    ) (Whyconf.get_provers env.Wenv.wconfig) []
 
 let default env =
   find_default env "alt-ergo" @
@@ -111,6 +126,25 @@ let select env provers =
 
 type result =
   | NoResult | Failed | Unknown of float | Timeout of float | Valid of float
+
+let merge a b =
+  match a,b with
+  | NoResult,c | c,NoResult -> c
+  | Failed,c | c,Failed -> c
+  | Valid ta , Valid tb -> Valid (min ta tb)
+  | Valid _ , (Unknown _ | Timeout _) -> a
+  | (Unknown _ | Timeout _) , Valid _ -> b
+  | Unknown ta , Unknown tb -> Unknown (min ta tb)
+  | Unknown _ , Timeout _ -> a
+  | Timeout _ , Unknown _ -> b
+  | Timeout ta , Timeout tb -> Timeout (max ta tb)
+
+let map f = function
+  | NoResult -> NoResult
+  | Failed -> Failed
+  | Valid t -> Valid (f t)
+  | Unknown t -> Unknown (f t)
+  | Timeout t -> Timeout (f t)
 
 let pp_result fmt = function
   | NoResult -> Format.pp_print_string fmt "No Result"
@@ -150,10 +184,7 @@ let version = ".why3find/v1"
 let destroycache () =
   begin
     if Utils.tty then
-      begin
-        Utils.flush () ;
-        Format.printf "Upgrading cache (%s)@." (Filename.basename version) ;
-      end ;
+      Utils.log "Upgrading cache (%s)@." (Filename.basename version) ;
     Utils.rmpath cachedir ;
   end
 
@@ -183,9 +214,18 @@ module Cache = Hashtbl.Make
       let equal (t1,p1) (t2,p2) = (p1 == p2) && (Task.task_equal t1 t2)
     end)
 
+let digest task = Why3.Termcode.(task_checksum task |> string_of_checksum)
+
+let data prv task =
+  let buffer = Buffer.create 2048 in
+  let fmt = Format.formatter_of_buffer buffer in
+  ignore @@ Driver.print_task_prepared prv.driver fmt task ;
+  Format.pp_print_flush fmt () ;
+  Buffer.contents buffer
+
 let file (t,p) =
   Lazy.force checkcache ;
-  let hash = Why3.Termcode.(task_checksum t |> string_of_checksum) in
+  let hash = digest t in
   let h2 = String.sub hash 0 2 in
   Printf.sprintf ".why3find/%s/%s/%s.json" (id p) h2 hash
 
@@ -208,11 +248,16 @@ let get e =
     let r = if !cache then read e else NoResult in
     Cache.add hash e r ; r
 
-let set e r =
-  match r with
-  | NoResult -> ()
-  | Failed -> Cache.replace hash e r
-  | Valid _ | Unknown _ | Timeout _ -> Cache.replace hash e r ; write e r
+let set e r1 =
+  let r0 = try Cache.find hash e with Not_found -> NoResult in
+  let r = merge r0 r1 in
+  if r <> r0 then
+    match r with
+    | NoResult -> ()
+    | Failed ->
+      Cache.replace hash e Failed
+    | Valid _ | Unknown _ | Timeout _ ->
+      Cache.replace hash e r ; write e r
 
 (* -------------------------------------------------------------------------- *)
 (* --- Running Prover                                                     --- *)
@@ -299,30 +344,59 @@ let limit env t =
     limit_steps = (-1) ;
   }
 
-let notify callback prv limit pr =
-  Option.iter (fun f -> f prv.config.prover limit pr) callback
+let notify env prover result cb =
+  let fire cb p l r = cb p.config.prover l r in
+  let pr ~s ?(t = 0.0) ans =
+    Why3.Call_provers.{
+      pr_answer = ans ;
+      pr_status = Unix.WEXITED s ;
+      pr_time = t ;
+      pr_steps = 0 ;
+      pr_output = "Cached" ;
+      pr_models = [] ;
+    }
+  in
+  match result with
+  | NoResult -> ()
+  | Valid t -> fire cb prover (limit env t) (pr ~s:0 ~t Valid)
+  | Timeout t -> fire cb prover (limit env t) (pr ~s:1 ~t Timeout)
+  | Unknown t -> fire cb prover (limit env t) (pr ~s:1 ~t (Unknown "why3find"))
+  | Failed -> fire cb prover (limit env 1.0) (pr ~s:2 (Failure "why3find"))
+
+let notify_pr prv limit pr cb =
+  cb prv.config.prover limit pr
+
+type prepared_task = Prepared of Task.task | Buffered of Buffer.t
 
 let call_prover (env : Wenv.env)
     ?(name : string option)
     ?(cancel : unit Fibers.signal option)
     ?(callback : callback option)
-    ~(prepared : Task.task)
+    ~(prepared : prepared_task)
     ~(prover : prover)
-    ~(time : float) () =
+    ~(timeout : float) () =
   let main = Whyconf.get_main env.wconfig in
-  let limit = limit env time in
-  let timeout = ref 0.0 in
+  let limit = limit env timeout in
+  let clockwall = ref 0.0 in
   let started = ref false in
   let killed = ref false in
   let canceled = ref false in
+  let timedout = ref false in
   update_client env ;
   schedule () ;
-  let cancel = match cancel with None -> Fibers.signal () | Some s -> s in
   let libdir = Whyconf.libdir main in
   let datadir = Whyconf.datadir main in
-  let call = Driver.prove_task_prepared
-      ~command:(Whyconf.get_complete_command prover.config ~with_steps:false)
-      ~libdir ~datadir ~limit prover.driver prepared in
+  let call =
+    match prepared with
+    | Prepared task ->
+      Driver.prove_task_prepared
+        ~command:(Whyconf.get_complete_command prover.config ~with_steps:false)
+        ~libdir ~datadir ~limit prover.driver task
+    | Buffered buffer ->
+      Driver.prove_buffer_prepared
+        ~command:(Whyconf.get_complete_command prover.config ~with_steps:false)
+        ~libdir ~datadir ~limit prover.driver buffer
+  in
   let kill () =
     if not !killed then
       begin
@@ -336,45 +410,60 @@ let call_prover (env : Wenv.env)
       canceled := true ;
       if !started then kill () ;
     end in
-  Fibers.hook cancel interrupt Fibers.async
-    begin fun () ->
-      let t0 = Unix.gettimeofday () in
-      if !started && (!canceled || !timeout < t0) then kill () ;
-      let query =
-        try Call_provers.query_call call with e -> InternalFailure e in
-      match query with
-      | NoUpdates
-      | ProverInterrupted ->
-        None
-      | ProverStarted ->
-        if not !started then
-          begin
-            start ?name () ;
-            timeout := Unix.gettimeofday () +. time ;
-            started := true ;
-          end ;
-        None
-      | InternalFailure _ ->
+  Fibers.monitor ?signal:cancel ~handler:interrupt @@
+  Fibers.async @@
+  begin fun () ->
+    let t0 = Unix.gettimeofday () in
+    if !started then
+      begin
+        if !canceled then kill ()
+        else if not !timedout && !clockwall < t0 then
+          (timedout := true ; kill ()) ;
+      end ;
+    let query =
+      try Call_provers.query_call call with e -> InternalFailure e in
+    match query with
+    | NoUpdates
+    | ProverInterrupted ->
+      None
+    | ProverStarted ->
+      if not !started then
         begin
-          if !started then stop ?name () ;
-          Some Failed
-        end
-      | ProverFinished pr ->
-        let result =
-          match pr.pr_answer with
-          | Valid -> Valid pr.pr_time
-          | Timeout -> Timeout pr.pr_time
-          | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
-            Unknown pr.pr_time
-          | Failure _ ->
-            if !killed then NoResult else Failed
-          | HighFailure ->
-            if !killed then Timeout pr.pr_time else Failed
-        in
-        if !started then stop ?name () else unschedule () ;
-        notify callback prover limit pr ;
-        Some result
-    end
+          start ?name () ;
+          clockwall := Unix.gettimeofday () +. timeout *. 1.5 ;
+          started := true ;
+        end ;
+      None
+    | InternalFailure _ ->
+      begin
+        if !started then stop ?name () ;
+        Some Failed
+      end
+    | ProverFinished pr ->
+      let result, precise =
+        match pr.pr_answer with
+        | Valid ->
+          Valid pr.pr_time, true
+        | Timeout ->
+          Timeout timeout, false
+        | Invalid | Unknown _ | OutOfMemory | StepLimitExceeded ->
+          Unknown pr.pr_time, true
+        | Failure _ | HighFailure ->
+          (if !canceled then NoResult else
+           if !timedout then Timeout timeout else
+             Failed), false
+      in
+      if !started then stop ?name () else unschedule () ;
+      begin match callback with
+        | Some cb ->
+            if precise then
+              notify_pr prover limit pr cb
+            else
+              notify env prover result cb
+        | None -> ()
+      end ;
+      Some result
+  end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Running Prover with Cache                                          --- *)
@@ -383,48 +472,58 @@ let call_prover (env : Wenv.env)
 let hits = ref 0
 let miss = ref 0
 
-let pr ~s ?(t = 0.0) ans =
-  Why3.Call_provers.{
-    pr_answer = ans ;
-    pr_status = Unix.WEXITED s ;
-    pr_time = t ;
-    pr_steps = 0 ;
-    pr_output = "Cached" ;
-    pr_models = [] ;
-  }
+let crop ~timeout result =
+  match result with
+  | NoResult -> None
+  | Failed | Unknown _ -> Some result
+  | Timeout t -> if timeout <= t then Some result else None
+  | Valid t ->
+    if t <= timeout *. 1.25 then Some result else Some (Timeout timeout)
 
-let notify_cached env prover (callback : callback option) cached =
-  match callback with
-  | None -> ()
-  | Some f ->
-    let fire f p l r = f p.config.prover l r in
-    match cached with
-    | NoResult -> ()
-    | Valid t -> fire f prover (limit env t) (pr ~s:0  ~t Valid)
-    | Timeout t -> fire f prover (limit env t) (pr ~s:1  ~t Timeout)
-    | Unknown t -> fire f prover (limit env t) (pr ~s:1  ~t (Unknown "cached"))
-    | Failed -> fire f prover (limit env 1.0) (pr ~s:2 (Failure "cached"))
+let definitive ~timeout result =
+  match result with
+  | NoResult -> false
+  | Timeout t -> timeout <= t
+  | Failed | Unknown _ | Valid _ -> true
 
-let prove env ?name ?cancel ?callback task prover time =
-  let prepared = Driver.prepare_task prover.driver task in
-  let entry = prepared,prover in
+let prove env ?name ?cancel ?callback prover task timeout =
+  let task = Driver.prepare_task prover.driver task in
+  let entry = task,prover in
   let cached = get entry in
-  let promote = match cached with
-    | NoResult -> false
-    | Failed -> true
-    | Unknown _ -> true
-    | Valid t -> t <= time
-    | Timeout t -> time <= t
-  in
-  if promote then
-    (incr hits ;
-     notify_cached env prover callback cached ;
-     Fibers.return cached)
-  else
-    (incr miss ;
-     Fibers.map
-       (fun result -> set entry result ; result)
-       (call_prover env ?name ?cancel ?callback ~prepared ~prover ~time ()))
+  match crop ~timeout cached with
+  | Some cached ->
+    incr hits ;
+    Option.iter (notify env prover cached) callback ;
+    Fibers.return cached
+  | None ->
+    incr miss ;
+    Fibers.map
+      (fun result -> set entry result ; result)
+      (call_prover env ?name ?cancel ?callback
+         ~prepared:(Prepared task) ~prover ~timeout ())
+
+type prooftask = Why3.Task.task
+
+let update prover task result =
+  set (task,prover) result
+
+let prove_cached prover task timeout =
+  let task = Driver.prepare_task prover.driver task in
+  let cached = get (task,prover) in
+  match crop ~timeout cached with
+  | Some cached ->
+    incr hits ;
+    `Cached cached
+  | None ->
+    incr miss ;
+    `Prepared task
+
+let prove_prepared env ?name ?cancel ?callback prover task timeout =
+  call_prover env ?name ?cancel ?callback
+    ~prepared:(Prepared task) ~prover ~timeout ()
+
+let prove_buffer env ?cancel prover buffer timeout =
+  call_prover env ?cancel ~prepared:(Buffered buffer) ~prover ~timeout ()
 
 (* -------------------------------------------------------------------------- *)
 (* --- Options                                                            --- *)

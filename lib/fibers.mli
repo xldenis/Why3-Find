@@ -30,10 +30,7 @@
 (** The time of computations that produces an ['a]. *)
 type 'a t
 
-(** Binds the continuation to the result of the computation. *)
-val await : 'a t -> ('a -> unit) -> unit
-
-(** [return v] bounds value [v] to its awaiting continuations. *)
+(** [return v] computation that immediately returns [v]. *)
 val return : 'a -> 'a t
 
 (** Monadic [bind a f] operator binds result [v] of [a]
@@ -99,10 +96,12 @@ module Queue :
 sig
   type 'a t
   val create : unit -> 'a t
-  val size : 'a t -> int
+  val length : 'a t -> int
+  val pop : 'a t -> 'a
   val push : 'a t -> 'a -> unit
   val iter : 'a t -> ('a -> unit) -> unit
   val filter : 'a t -> ('a -> bool) -> unit
+  val clear : 'a t -> unit
 end
 
 (** {1 List Combinators} *)
@@ -116,6 +115,10 @@ val seq : 'a t list -> 'a list t
 (** [all ks] waits all continuations in {i parallel} and returns their result one
     they _all_ have terminated. *)
 val all : 'a t list -> 'a list t
+
+(** [find f ks] runs all continuations in {i parallel} and returns
+    the _first_ result that satisfies the filter [f], if any. *)
+val first : ('a -> 'b option) -> 'a t list -> 'b option t
 
 (** {1 Signals} *)
 
@@ -131,10 +134,14 @@ val on : 'a signal -> ('a -> unit) -> unit
 (** Un-register a hook on the signal. *)
 val off : 'a signal -> ('a -> unit) -> unit
 
-(** [hook s h f x] registers the hook [h] on signal [s]
-    during the computation [f x] and unregister [h] from [s] when the
-    computation terminates. *)
-val hook : 'a signal -> ('a -> unit) -> ('b -> 'c t) -> 'b -> 'c t
+(** Register a hook that automatically disconnect itself on first emit. *)
+val once : 'a signal -> ('a -> unit) -> unit
+
+(** At most one hook is connected to the signal. *)
+val connected : 'a signal -> bool
+
+(** Remove all hooks on the signal. *)
+val disconnect : 'a signal -> unit
 
 (** Remove all registered hooks. *)
 val clear : 'a signal -> unit
@@ -168,8 +175,8 @@ val peek : 'a var -> 'a option
     @raise Not_found *)
 val find : 'a var -> 'a
 
-(** [result f] returns a variable that captures the result of fiber [f]. *)
-val result : 'a t -> 'a var
+(** [defined x] returns [true] is the variable [x] has been assigned. *)
+val defined : 'a var -> bool
 
 (** {1 Mutual Exclusion} *)
 
@@ -209,8 +216,36 @@ val flush : ?polling:int -> unit -> unit
 (** [sleep ms] asynchronously waits for (at least) [ms] milliseconds. *)
 val sleep : int -> unit t
 
-(** {1 Main Loop} *)
+(** {1 Computation Results} *)
 
-val run : ?polling:int -> ?callback:('a -> unit) -> 'a t -> unit
+(** [result f] starts computation [f] and immediately returns a variable
+    that will eventually capture the result of [f]. *)
+val result : 'a t -> 'a var
+
+(** [finally ~callback f] starts computation [f], eventually passing
+    its result to [callback], while immediately returning [f] for chaining.
+
+    Default [~callback] is [ignore]. *)
+val finally : ?callback:('a -> unit) -> 'a t -> 'a t
+
+(** [background f k] starts computation [f] and immediately returns.
+    Result of computation will be eventually passed to continuation [k].
+
+    Default [~callback] is [ignore].
+    This is the same as [ignore @@ finally ?callback f].
+*)
+val background : ?callback:('a -> unit) -> 'a t -> unit
+
+(** [monitor ~signal ~handler f] starts computation [f] and returns [f]
+    immediately for chaining,
+    while connecting [handler] to [signal] until termination when specified.
+*)
+val monitor : ?signal:'a signal -> ?handler:('a -> unit) -> 'b t -> 'b t
+
+(** [await f] waits until the end of computation [f],
+    yielding periodically until termination.
+
+    Default [~polling] interval is [10] milliseconds. *)
+val await : ?polling:int -> 'a t -> 'a
 
 (**************************************************************************)

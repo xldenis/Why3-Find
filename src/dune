@@ -3,7 +3,7 @@
   (package why3find)
   (public_name why3find)
   (flags (:standard "-w" "-9" "-open" "Why3utils"))
-  (libraries why3find.lib str unix why3))
+  (libraries why3find.lib why3 str zmq))
 
 (rule
   (target config.ml)
