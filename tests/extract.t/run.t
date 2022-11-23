@@ -10,6 +10,7 @@
   (library
     (name jazz)
     (public_name jazz)
+    (wrapped false)
     (libraries zarith))
   $ cat lib/jazz__foo__Bar.ml
   type t =

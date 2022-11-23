@@ -51,29 +51,23 @@ let mk_constr ~lident ~loc ~lid prm =
 let mk_pattern ~lident ~loc ~lid prm =
   Ast_builder.Default.ppat_construct ~loc { loc = lid ; txt = lident } prm
 
-let lookup ~pkg jfile =
-  if Sys.file_exists jfile then Some jfile else
-    List.find_map
-      (fun d ->
-         let jfile = Filename.concat d @@ Filename.concat pkg @@ jfile in
-         if Sys.file_exists jfile then Some jfile else None)
-    @@ Global.Sites.packages
+let lookup jfile =
+  List.find_map
+    (fun d ->
+       let jfile = Filename.concat d @@ jfile in
+       if Sys.file_exists jfile then Some jfile else None)
+    Global.Sites.packages
 
 let load_module ~qid ?name () =
   let path = String.split_on_char '.' qid in
   let basename = String.concat "__" path in
-  let pkg = List.hd path in
-  let jfile = Filename.concat "lib" basename ^ ".json" in
-  Format.printf "CWD %s@." @@ Sys.getcwd () ;
-  Format.printf "LOOKUP %s / %s / %b@." pkg jfile (Sys.file_exists jfile) ;
   let js = Json.of_file @@
-    match lookup ~pkg jfile with
+    match lookup (basename ^ ".json") with
     | None -> raise Not_found
     | Some f -> f in
   let omodule = String.capitalize_ascii basename in
   let emodule = match name with Some e -> e | None ->
     String.capitalize_ascii @@ List.hd @@ List.rev path in
-  Format.printf "JLIST@." ;
   List.iter
     (fun js ->
        try
@@ -190,19 +184,19 @@ let use_rule_sig =
 let use_rule_struct =
   Extension.V3.declare "why3use"
     Extension.Context.structure_item
-    Ast_pattern.(single_expr_payload (estring __))
+    Ast_pattern.(single_expr_payload (estring __'))
     begin fun ~ctxt import ->
       let loc = Expansion_context.Extension.extension_point_loc ctxt in
       try
-        use import ;
+        use import.txt ;
         Ast_builder.Default.pstr_attribute ~loc {
           attr_loc = loc ;
           attr_name = { loc ; txt = "ignore" } ;
           attr_payload = PStr [] ;
         }
-      with _exn ->
+      with exn ->
         Ast_builder.Default.pstr_extension ~loc
-          (error_extensionf ~loc "Invalid Why-3 use %S" import) []
+          (error_exn ~loc:import.loc ~kind:"use" ~text:import.txt exn) []
     end
 
 (* -------------------------------------------------------------------------- *)
