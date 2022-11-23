@@ -27,16 +27,17 @@ let tty = Unix.isatty Unix.stdout
 
 let progress msg =
   let buffer = Buffer.create 78 in
+  let width = Option.value (Terminal_size.get_columns ()) ~default:80 in
   Format.kfprintf
     (fun fmt ->
        Format.pp_print_flush fmt () ;
        if tty then
          let msg = Buffer.contents buffer in
          let len = String.length msg in
-         if len <= 80 then
+         if 2 + len <= width then
            Format.printf "> %s\027[K\r@?" msg
          else
-           Format.printf "> %s…\027[K\r@?" (String.sub msg 0 80)
+           Format.printf "> %s…\027[K\r@?" (String.sub msg 0 (width - 4))
     ) (Format.formatter_of_buffer buffer) msg
 
 let flush () = if tty then Format.printf "\r\027[K"
