@@ -160,6 +160,7 @@
     --driver DRV add extraction driver
     -p  same as --package
     -D  same as --driver
+    --lib Generate PKG.lib library instead of PKG
     -l PKG Additional OCaml library dependency
     -o destination directory (default "lib")
     -s generate symbol maps for ppx_why3find
