@@ -212,12 +212,17 @@ of the root package directory:
 
     $ why3find doc PATH...
 
-Generated documentation is structured as follows:
+Each `PATH` can be either a single Why3 `*.mlw` file, a single markdown `*.md`
+file or a directory to be recursively processed. Markdown files are treated
+just like a plain `(**…*)` comment inside Why3 source files.
+
+Generated documentation output is a flat directory organized as follows:
 
     html/fonts                   # Icon fonts
     html/style.css               # CSS resources
     html/script.js               # JavaScript resources
-    html/pkg.file.index.html     # Documentation for source file
+    html/page.html               # Documentation for markdown file
+    html/pkg.file.index.html     # Documentation for Why3 source file
     html/pkg.file.proof.html     # Proof documentation for source file
     html/pkg.file.Module.html    # Documentation of module or theory
 
@@ -231,17 +236,17 @@ into separated files. The documentation bloc immediately before the module or
 theory declaration (without empty line between) is put as an introduction in the
 module or theory documentation file. For instance:
 
-    (** This goes to the main documentation *)
+    (** This goes into the index page *)
 
-    (** This goes to module M documentation *)
+    (** This is the header of module M's page *)
     module M
       …
     end
 
-    (** This also goes to main documentation *)
+    (** This goes back to the index page *)
 
-*Basic Markdown Format* can be used to style documentation. The following
-documentation snippets show examples:
+*Basic Markdown Format* can be used in plain markdown page and to why3
+documentation comments. The following documentation snippets show examples:
 
     # Header (level 1)
     ## Header (level 2, etc.)
@@ -255,11 +260,11 @@ documentation snippets show examples:
       - item B
 
     References:
-      - {qid} unambiguous reference
-      - {t:qid} type symbol
-      - {l:qid} logic symbol (function or predicate)
-      - {p:qid} property symbol (lemma or axiom)
-      - {v:qid} value symbol
+      - {qid} unambiguous reference (including modules)
+      - {t:qid} types
+      - {l:qid} functions and predicates
+      - {p:qid} properties (lemmas or axiom)
+      - {v:qid} program values
 
 Notice tha why-3 references works across packages, assuming documentation of
 external packages have been properly installed.
@@ -279,10 +284,10 @@ Section delimiters can have various format:
     (*/[End]*)            # close the section with « End » closing title
 
 Actually, `(*proof*)…(*qed*)` is a shortcut for `(*[Proof]-*)…(*/[Qed]*)`.
-Nested sections are allowed. Notice also that sections might not respect normal
-code parenthesing, although it is not recommended to do so for readability
-reason. For instance `(*proof*) begin (*qed*) end` is valid, but makes the code
-difficult to be read.
+Nested sections are allowed. Notice also that sections are authorized to overlap
+code's nested parentheses, although it is not recommended to do so for readability
+reason. For instance `(*proof*) begin (*qed*) end` is valid,
+but makes the generated documentation difficult to read.
 
 *Cloned Modules and Theories* sections are automatically inserted for clones, with
 a copy of the cloned symbols signature, and links to their original definitions.
