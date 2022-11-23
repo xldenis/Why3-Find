@@ -330,8 +330,8 @@ In OCaml client code, just add `ppx_why3find` to the list of PPX rewriters to
 the `dune` configuration of client code:
 
     (libray MyClientCode
-        (preprocess (pps ppx_why3find ...))
-        ...)
+       (preprocess (pps why3find.ppx …))
+        …)
 
 Inside the client OCaml code, you can use the following extension points:
 
@@ -342,7 +342,7 @@ Inside the client OCaml code, you can use the following extension points:
     [%why3? <why3-constructor>(pat,...) ]  (** constructor pattern *)
     [%why3  <why3-constructor>(exp,...) ]  (** construtor expression *)
     [%why3  exp.<why3-field> ]             (** field access *)
-    [%why3  <why3-value> ]                 (** extracted function *)
+    [%why3  <why3-value> ]                 (** extracted symbol *)
 
 Scope rules follows the Why-3 usage. Notice that full why3 module names must be
 written between quotes since they are _not_ part of the OCaml syntax. In other
