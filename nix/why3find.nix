@@ -7,7 +7,8 @@
   zmq,
   zeromq,
   yojson,
-  ppxlib }:
+  ppxlib,
+  terminal_size }:
 
 buildDunePackage {
   pname = "why3find";
@@ -24,5 +25,5 @@ buildDunePackage {
 
   doCheck = true;
 
-  buildInputs = [ dune_3 dune-site alt-ergo why3 zeromq zmq yojson ppxlib ];
+  buildInputs = [ dune_3 dune-site alt-ergo why3 zeromq zmq yojson ppxlib terminal_size ];
 }
