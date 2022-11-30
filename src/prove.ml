@@ -97,11 +97,12 @@ let prove_theory mode profile strategy theory =
          let+ crc =
            match mode with
            | `Force ->
-             Hammer.schedule profile task Stuck
+             Hammer.schedule profile ~replay:false ~depth:0 task Stuck
            | `Replay ->
-             Hammer.schedule profile task hint
+             Hammer.schedule profile ~replay:true ~depth:0 task hint
            | `Update | `Minimize ->
-             Crc.merge hint @+ Hammer.schedule profile task hint
+             Crc.merge hint @+
+             Hammer.schedule ~replay:false ~depth:0 profile task hint
          in
          if Utils.tty then Crc.stats hint crc ;
          if not (Crc.complete crc) then

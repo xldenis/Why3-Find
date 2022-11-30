@@ -52,7 +52,7 @@ type node = {
 let q1 : node Queue.t = Queue.create ()
 let q2 : node Queue.t = Queue.create ()
 
-let schedule profile ?(replay=false) ?(depth=0) goal hint =
+let schedule profile ~replay ~depth goal hint =
   let result = Fibers.var () in
   Queue.push
     { profile ; goal ; hint ; replay ; depth ; result }
@@ -203,7 +203,7 @@ let process h : strategy = fun n ->
     | Stuck -> if n.replay then stuck else hammer h n
     | Prover(p,t) ->
       if n.replay then
-      replay h p t n
+        replay h p t n
       else
         update h p t n
     | Transf { id ; children } ->
