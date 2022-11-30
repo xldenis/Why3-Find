@@ -152,7 +152,7 @@ let add_config = add cfgs
 let add_driver = add drvs
 
 let time () = getv "time" ~of_json:Json.jfloat ~default:1.0 time
-let depth () = getv "depth" ~of_json:Json.jint ~default:10 depth
+let depth () = getv "depth" ~of_json:Json.jint ~default:6 depth
 let configs () = gets "configs" cfgs
 let packages () = gets "packages" pkgs
 let provers () = gets "provers" ~prefix:true prvs

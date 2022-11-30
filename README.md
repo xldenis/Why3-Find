@@ -159,7 +159,7 @@ configured using `why3find config -t TIME -s`. The median time is specified in
 (fraction of) seconds relatively to the *master* machine, Cf. prover calibration
 below.
 
-Transformation search is pruned after a maximal depth of 10 levels, which can
+Transformation search is pruned after a maximal depth of 6 levels, which can
 be modified with `-d DEPTH` or configured using `why3find config -d DEPTH -s`.
 
 *Prover Cache* is stored in hidden file `.why3find` at the root of the package
