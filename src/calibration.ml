@@ -236,8 +236,7 @@ let calibrate ?(progress=false) env prv : (int * float) option Fibers.t =
     let p = Fibers.var () in
     let q = qenv env !reftime in
     Fibers.background ~callback:(Fibers.set p) (lookup ~progress q prv) ;
-    let getp = Fibers.get p in
-    Hashtbl.add qhash (id prv) getp ; getp
+    Hashtbl.add qhash (id prv) p ; p
 
 (* -------------------------------------------------------------------------- *)
 (* --- Profile                                                            --- *)
@@ -246,10 +245,10 @@ let calibrate ?(progress=false) env prv : (int * float) option Fibers.t =
 type gauge = {
   size : int ;
   time : float ;
-  mutable alpha : float Fibers.var option ;
+  mutable alpha : float Fibers.t option ;
 }
 
-type profile = (string,gauge Fibers.var) Hashtbl.t
+type profile = (string,gauge Fibers.t) Hashtbl.t
 
 let create () = Hashtbl.create 0
 
@@ -268,7 +267,7 @@ let of_json ?default (js : Json.t) : profile =
 
 let to_json (p : profile) : Json.t =
   `List (Hashtbl.fold (fun prv gv js ->
-      match Fibers.peek gv with
+      match Fibers.get gv with
       | None -> js
       | Some { size ; time } ->
         (`Assoc [
@@ -284,18 +283,15 @@ let to_json (p : profile) : Json.t =
 
 let gauge env profile prv : gauge Fibers.t =
   let p = id prv in
-  Fibers.get @@
   try Hashtbl.find profile p
   with Not_found ->
-    let gv = Fibers.result
-        begin
-          let+ r = calibrate env prv in
-          match r with
-          | Some (size,time) -> { time ; size ; alpha = None }
-          | None ->
-            Format.eprintf "[Error] can not calibrate prover %s@." p ;
-            exit 2
-        end
+    let gv =
+      let+ r = calibrate env prv in
+      match r with
+      | Some (size,time) -> { time ; size ; alpha = None }
+      | None ->
+        Format.eprintf "[Error] can not calibrate prover %s@." p ;
+        exit 2
     in Hashtbl.replace profile p gv ; gv
 
 let profile env profile prv =
@@ -319,10 +315,10 @@ let velocity env profile prv : float Fibers.t =
   if !local then Fibers.return 1.0 else
     let* g = gauge env profile prv in
     match g.alpha with
-    | Some a -> Fibers.get a
+    | Some a -> a
     | None ->
-      let ga = Fibers.result @@ alpha env prv ~size:g.size ~time:g.time in
-      g.alpha <- Some ga ; Fibers.get ga
+      let ga = alpha env prv ~size:g.size ~time:g.time in
+      g.alpha <- Some ga ; ga
 
 let observed profile prv =
   try
@@ -355,7 +351,7 @@ let iter f profile =
   List.iter (fun (p,n,t) -> f p n t) @@
   List.sort (fun (p,_,_) (q,_,_) -> String.compare p q) @@
   Hashtbl.fold (fun p g w ->
-      match Fibers.peek g with
+      match Fibers.get g with
       | None -> w
       | Some g -> (p,g.size,g.time)::w
     ) profile []

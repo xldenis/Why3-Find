@@ -23,23 +23,46 @@
 (* --- Fibers                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-type 'a t = ('a -> unit) -> unit
+type 'a t = 'a state ref
+and 'a state = Done of 'a | Wait of ('a -> unit) list
 
-let return v k = k v
-let bind ta fb k = ta (fun x -> fb x k)
-let apply ta f k = ta (fun x -> k (f x))
-let map f ta k = ta (fun x -> k (f x))
-let par a b k =
+let var ?init () = ref @@ match init with None -> Wait [] | Some v -> Done v
+let defined th = match !th with Done _ -> true | Wait _ -> false
+let get th = match !th with Done v -> Some v | Wait _ -> None
+let find th = match !th with Done v -> v | Wait _ -> raise Not_found
+let return v = ref (Done v)
+let forward th f = match !th with Done v -> f v | Wait qs -> th := Wait (f::qs)
+
+let rec notify v = function [] -> () | f::fs -> f v ; notify v fs
+
+let set th v = match !th with Done _ -> () | Wait qs ->
+  th := Done v ; notify v (List.rev qs)
+
+let bind ta fb = match !ta with Done v -> fb v | Wait qs ->
+    let r = var () in
+    let fa v = forward (fb v) (set r) in
+    ta := Wait (fa :: qs) ; r
+
+let map f ta = match !ta with Done v -> return (f v) | Wait qs ->
+  let r = var () in
+  let fa v = set r (f v) in
+  ta := Wait (fa :: qs) ; r
+
+let apply f th = map th f
+
+let par a b =
+  let joined = var () in
   let x = ref None in
   let y = ref None in
   let join () =
     match !x,!y with
-    | Some u,Some v -> k(u,v)
+    | Some u,Some v -> set joined (u,v)
     | _ -> ()
   in
   begin
-    a (fun u -> x := Some u ; join ()) ;
-    b (fun v -> y := Some v ; join ()) ;
+    forward a (fun u -> x := Some u ; join ()) ;
+    forward b (fun v -> y := Some v ; join ()) ;
+    joined
   end
 
 module Monad =
@@ -137,30 +160,12 @@ let connected s = Queue.length s > 0
 let disconnect = Queue.clear
 
 (* -------------------------------------------------------------------------- *)
-(* --- Variables                                                          --- *)
-(* -------------------------------------------------------------------------- *)
-
-type 'a var = 'a state ref
-and 'a state = Done of 'a | Wait of 'a signal
-
-let var ?init () =
-  match init with
-  | None -> ref @@ Wait (Queue.create ())
-  | Some v -> ref (Done v)
-let get v k = match !v with Done r -> k r | Wait q -> Queue.push q k
-let set v r = match !v with Done _ -> () | Wait q -> v := Done r ; emit q r
-let peek v = match !v with Done r -> Some r | Wait _ -> None
-let defined v = match !v with Done _ -> true | Wait _ -> false
-let find v = match !v with Done r -> r | Wait _ -> raise Not_found
-
-(* -------------------------------------------------------------------------- *)
 (* --- List Combinators                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
 let any ts =
-  let x = var () in
-  List.iter (fun t -> t (set x)) ts ;
-  get x
+  let r = var () in
+  List.iter (fun th -> forward th @@ set r) ts ; r
 
 let all = function
   | [] -> return []
@@ -173,12 +178,12 @@ let all = function
       decr n ;
       if !n <= 0 then
         let ys = List.sort (fun (i,_) (j,_) -> Stdlib.compare i j) !xs in
-        set rs (List.map snd ys)
+        set rs @@ List.map snd ys
     in
     let rec schedule i = function
       | [] -> ()
-      | t::ts -> t (recv i) ; schedule (succ i) ts
-    in schedule 0 ts ; get rs
+      | t::ts -> forward t @@ recv i ; schedule (succ i) ts
+    in schedule 0 ts ; rs
 
 let rec seq ts =
   match ts with
@@ -201,9 +206,8 @@ let first f ts =
     List.iter
       (fun t ->
          incr count ;
-         t update
-      ) ts ;
-    get r
+         forward t update
+      ) ts ; r
 
 (* -------------------------------------------------------------------------- *)
 (* --- Asynchronous Tasks                                                 --- *)
@@ -214,16 +218,16 @@ let queue : (unit -> bool) Queue.t = Queue.create ()
 let pending () = Queue.length queue
 
 let async f =
-  let x = var () in
+  let r = var () in
   let yd () =
     try
       match f () with
       | None -> true
-      | Some v -> set x v ; false
+      | Some v -> set r v ; false
     with exn ->
       Format.eprintf "[Fibers] yield error (%s)" @@ Printexc.to_string exn ;
       false
-  in Queue.push queue yd ; get x
+  in Queue.push queue yd ; r
 
 let yield =
   let lock = ref false in
@@ -277,22 +281,18 @@ let sleep n =
 (* --- Results & Monitoring                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
-let result f = let x = var () in f (set x) ; x
-
 let flush ?(polling=10) () =
   let interval = float polling *. 1e-3 in
   while pending () > 0 do yield () ; Unix.sleepf interval done
 
-let finally ?(callback=ignore) f = f callback ; f
-
-let background ?(callback=ignore) f = f callback
+let background ?callback f = Option.iter (forward f) callback
+let finally ?callback f = background ?callback f ; f
 
 let monitor ?signal ?handler fn =
   match signal, handler with
-  | Some s, Some h -> on s h ; fn (fun _ -> off s h) ; fn
+  | Some s, Some h -> on s h ; forward fn (fun _ -> off s h) ; fn
   | _ -> fn
 
-let await ?polling f =
-  let r = result f in flush ?polling () ; find r
+let await ?polling th = flush ?polling () ; find th
 
 (* -------------------------------------------------------------------------- *)
