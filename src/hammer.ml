@@ -42,7 +42,7 @@ type node = {
   goal : Session.goal ;
   hint : crc ;
   replay : bool ;
-  result : crc Fibers.var ;
+  result : crc Fibers.t ;
 }
 
 (* -------------------------------------------------------------------------- *)
@@ -52,12 +52,12 @@ type node = {
 let q1 : node Queue.t = Queue.create ()
 let q2 : node Queue.t = Queue.create ()
 
-let schedule profile ?(replay=false) ?(depth=0) goal hint =
+let schedule profile ~replay ~depth goal hint =
   let result = Fibers.var () in
   Queue.push
     { profile ; goal ; hint ; replay ; depth ; result }
     (if complete hint then q2 else q1) ;
-  Fibers.get result
+  result
 
 let pop () =
   try Some (Queue.pop q1) with Queue.Empty ->
@@ -108,12 +108,11 @@ let prove env ?client ?cancel prover timeout : strategy = fun n ->
       in match client with
       | None -> runner
       | Some cl ->
-        let result = Fibers.result runner in
         let signal = Client.request cl n.profile prover task timeout in
         let handler r =
           match Runner.crop ~timeout r with
           | Some r ->
-            Fibers.set result r ;
+            Fibers.set runner r ;
             Fibers.emit kill ()
           | None -> ()
         in Fibers.monitor ~signal ~handler runner
@@ -204,7 +203,7 @@ let process h : strategy = fun n ->
     | Stuck -> if n.replay then stuck else hammer h n
     | Prover(p,t) ->
       if n.replay then
-      replay h p t n
+        replay h p t n
       else
         update h p t n
     | Transf { id ; children } ->

@@ -79,7 +79,7 @@ let pp_result fmt ~stuck:s ~proved:p =
     else Format.fprintf fmt "%t (-)" Utils.pp_ok
   else
   if p = 0 then Utils.pp_ko fmt
-  else Format.fprintf fmt "%t (%d/%d)" Utils.pp_weak p (s+p)
+  else Format.fprintf fmt "%t (%d/%d)" Utils.pp_ko p (s+p)
 
 let pretty fmt crc =
   let s = stuck crc in
@@ -224,7 +224,7 @@ let shortname p =
     Hashtbl.add pname p s ; s
 
 let rec dump fmt = function
-  | Stuck -> Format.fprintf fmt "@{<orange>Unknown@}"
+  | Stuck -> Format.fprintf fmt "@{<red>Unknown@}"
   | Prover(p,t) -> Format.fprintf fmt "%s (%a)" (shortname p) Utils.pp_time t
   | Transf { id ; children } ->
     Format.fprintf fmt "@[<hv 2>%s" id ;

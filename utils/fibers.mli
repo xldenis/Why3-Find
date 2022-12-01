@@ -149,34 +149,28 @@ val clear : 'a signal -> unit
 (** Broadcast a value on all registered hooks. *)
 val emit : 'a signal -> 'a -> unit
 
-(** {1 Variables} *)
+(** {1 Variables} 
 
-(** Condition variables to synchronize tasks. *)
-type 'a var
+    Variables are simply fibers to be assigned later on. *)
 
-(** Creates a variable. *)
-val var : ?init:'a -> unit -> 'a var
+(** Creates a delated fiber. *)
+val var : ?init:'a -> unit -> 'a t
 
-(** [get x] waits on the variable [x] until it is set.
-    If the variable [x] is already initialized, its value is immediately
-    returned. *)
-val get : 'a var -> 'a t
+(** [peek x] returns the value assigned to variable [x], if any. *)
+val get : 'a t -> 'a option
 
-(** [set x v] stores value [v] into variable [x] and signals all computations
+(** [set x v] stores value [v] into fiber [x] and signals all computations
     that are waiting on [x].
 
     Successive calls to [set x _] will be ignored. *)
-val set : 'a var -> 'a -> unit
-
-(** [peek x] returns the value assigned to variable [x], if any. *)
-val peek : 'a var -> 'a option
+val set : 'a t -> 'a -> unit
 
 (** [find x] returns the value assigned to variable [x] or raise [Not_found].
     @raise Not_found *)
-val find : 'a var -> 'a
+val find : 'a t -> 'a
 
 (** [defined x] returns [true] is the variable [x] has been assigned. *)
-val defined : 'a var -> bool
+val defined : 'a t -> bool
 
 (** {1 Mutual Exclusion} *)
 
@@ -217,10 +211,6 @@ val flush : ?polling:int -> unit -> unit
 val sleep : int -> unit t
 
 (** {1 Computation Results} *)
-
-(** [result f] starts computation [f] and immediately returns a variable
-    that will eventually capture the result of [f]. *)
-val result : 'a t -> 'a var
 
 (** [finally ~callback f] starts computation [f], eventually passing
     its result to [callback], while immediately returning [f] for chaining.
