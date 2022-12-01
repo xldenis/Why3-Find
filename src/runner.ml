@@ -456,10 +456,10 @@ let call_prover (env : Wenv.env)
       if !started then stop ?name () else unschedule () ;
       begin match callback with
         | Some cb ->
-            if precise then
-              notify_pr prover limit pr cb
-            else
-              notify env prover result cb
+          if precise then
+            notify_pr prover limit pr cb
+          else
+            notify env prover result cb
         | None -> ()
       end ;
       Some result

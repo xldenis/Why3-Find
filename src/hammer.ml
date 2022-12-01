@@ -204,7 +204,7 @@ let process h : strategy = fun n ->
     | Stuck -> if n.replay then stuck else hammer h n
     | Prover(p,t) ->
       if n.replay then
-      replay h p t n
+        replay h p t n
       else
         update h p t n
     | Transf { id ; children } ->
