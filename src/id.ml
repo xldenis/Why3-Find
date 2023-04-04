@@ -69,6 +69,8 @@ type id = {
   id_qid : string list ;
 }
 
+let lemma id = String.ends_with ~suffix:"'lemma" id.I.id_string
+
 let resolve ~lib id =
   let lp,id_mod,id_qid = path id in
   if lp = [] then

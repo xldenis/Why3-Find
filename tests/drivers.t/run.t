@@ -15,7 +15,7 @@
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
     <span class="keyword">val</span> <span class="keyword">function</span> <a id="add">add</a><span title="Value Parameter" class="icon warning icofont-question-circle"></span> <a title="drivers.A.t" href="#t">t</a> <a title="drivers.A.t" href="#t">t</a> : <a title="drivers.A.t" href="#t">t</a>
     <span class="keyword">predicate</span> <a id="leq">leq</a><span title="Parameter" class="icon remark icofont-question-circle"></span> <a title="drivers.A.t" href="#t">t</a> <a title="drivers.A.t" href="#t">t</a>
-    <span class="keyword">axiom</span> <a id="increasing%27lemma">increasing</a>: <span class="keyword">forall</span> x,y. <a title="drivers.A.leq" href="#leq">leq</a> x (<a title="drivers.A.add" href="#add">add</a> x y)
+    <span class="keyword">axiom</span> <a id="increasing">increasing</a><span title="Hypothesis" class="icon warning icofont-question-circle"></span>: <span class="keyword">forall</span> x,y. <a title="drivers.A.leq" href="#leq">leq</a> x (<a title="drivers.A.add" href="#add">add</a> x y)
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>

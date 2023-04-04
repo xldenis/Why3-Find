@@ -16,8 +16,8 @@
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
     <span class="keyword">constant</span> <a id="e">e</a><span title="Parameter" class="icon remark icofont-question-circle"></span> : <a title="clones.A.t" href="#t">t</a>
     <span class="keyword">function</span> <a id="op">op</a><span title="Parameter" class="icon remark icofont-question-circle"></span> <a title="clones.A.t" href="#t">t</a> <a title="clones.A.t" href="#t">t</a> : <a title="clones.A.t" href="#t">t</a>
-    <span class="keyword">axiom</span> <a id="neutral%27lemma">neutral</a>: <span class="keyword">forall</span> x. <a title="clones.A.op" href="#op">op</a> x <a title="clones.A.e" href="#e">e</a> = x
-    <span class="keyword">axiom</span> <a id="commutative%27lemma">commutative</a>: <span class="keyword">forall</span> x y. <a title="clones.A.op" href="#op">op</a> x y = <a title="clones.A.op" href="#op">op</a> y x
+    <span class="keyword">axiom</span> <a id="neutral">neutral</a><span title="Hypothesis" class="icon warning icofont-question-circle"></span>: <span class="keyword">forall</span> x. <a title="clones.A.op" href="#op">op</a> x <a title="clones.A.e" href="#e">e</a> = x
+    <span class="keyword">axiom</span> <a id="commutative">commutative</a><span title="Hypothesis" class="icon warning icofont-question-circle"></span>: <span class="keyword">forall</span> x y. <a title="clones.A.op" href="#op">op</a> x y = <a title="clones.A.op" href="#op">op</a> y x
     <span class="keyword">lemma</span> <a id="neutral_com%27lemma">neutral_com</a>: <span class="keyword">forall</span> x. <a title="clones.A.op" href="#op">op</a> <a title="clones.A.e" href="#e">e</a> x = x
   
   <span class="keyword">end</span>
