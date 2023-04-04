@@ -155,13 +155,15 @@ let theory_signature henv (thy : Theory.theory) =
 (* --- Module Declarations                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
+let is_lemma id = String.ends_with ~suffix:"'lemma" id.Ident.id_string
+
 let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
   let its = it.itd_its in
   if nodef its.its_def then add henv hs (Type its.its_ts) else hs
 
 let add_rsymbol henv hs (rs : Expr.rsymbol) (cexp : Expr.cexp) =
   match cexp.c_node with
-  | Cany -> add henv hs (Value rs)
+  | Cany when not @@ is_lemma rs.rs_name -> add henv hs (Value rs)
   | _ -> hs
 
 let add_letrec henv (hs : signature) (def : Expr.rec_defn) : signature =
@@ -176,7 +178,7 @@ let add_pdecl henv (hs : signature) (d : Pdecl.pdecl) : signature =
   | PDexn _ -> hs
   | PDpure -> List.fold_left (add_decl henv) hs d.pd_pure
 
-let rec  add_munit henv (hs : signature) (m : Pmodule.mod_unit) : signature =
+let rec add_munit henv (hs : signature) (m : Pmodule.mod_unit) : signature =
   match m with
   | Udecl pd -> add_pdecl henv hs pd
   | Uuse pm -> add_used hs pm.mod_theory
