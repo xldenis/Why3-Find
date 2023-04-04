@@ -39,7 +39,8 @@ type henv = {
 
 let ocaml64 =
   Filename.concat Config.datadir @@
-  Filename.concat "drivers" "ocaml64.drv"
+  Filename.concat "extraction_drivers" @@
+  "ocaml64.drv"
 
 let drivers (pkg : Meta.pkg) =
   List.map (Filename.concat pkg.path) pkg.drivers
@@ -58,7 +59,8 @@ let init (wenv : Wenv.env) =
   let provers = Runner.select wenv @@ Wenv.provers () in
   let builtins = List.fold_left add_builtins Mid.empty provers in
   let drivers = List.concat_map drivers wenv.pkgs @ Wenv.drivers () in
-  let pdriver = Pdriver.load_driver wenv.wenv ocaml64 drivers in
+  let main = Whyconf.get_main wenv.wconfig in
+  let pdriver = Pdriver.load_driver main wenv.wenv ocaml64 drivers in
   let externals = Mid.map fst pdriver.drv_syntax in
   { builtins ; externals }
 

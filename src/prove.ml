@@ -111,12 +111,10 @@ let prove_theory mode profile strategy theory =
              begin
                match Session.goal_loc task with
                | Some loc ->
-                 Format.printf "%a: proof failed@."
-                   Why3.Loc.gen_report_position loc
+                 Format.printf "%a: proof failed@." Why3.Loc.pp_position loc
                | None -> ()
              end ;
-             Format.printf "Goal @{<red>%s@}: %a@."
-               goal Crc.pretty crc
+             Format.printf "Goal @{<red>%s@}: %a@." goal Crc.pretty crc
            end ;
          goal, crc
       ) tasks

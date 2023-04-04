@@ -75,8 +75,8 @@ type source = {
 let extract ~infix position =
   let loc = Why3.Loc.extract position in
   if infix then
-    let (f,l,s,e) = Why3.Loc.get loc in
-    Why3.Loc.user_position f l (succ s) (pred e)
+    let (f,p,s,q,e) = Why3.Loc.get loc in
+    Why3.Loc.user_position f p (succ s) q (pred e)
   else loc
 
 type href =

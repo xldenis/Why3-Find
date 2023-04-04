@@ -40,10 +40,10 @@ let loc (id : t) =
   | Some loc -> loc
 
 let line id =
-  let _,line,_,_ = Why3.Loc.get (loc id) in line
+  let _,line,_,_,_ = Why3.Loc.get (loc id) in line
 
 let file id =
-  let file,_,_,_ = Why3.Loc.get (loc id) in file
+  let file,_,_,_,_ = Why3.Loc.get (loc id) in file
 
 let path ?lib id =
   let path =

@@ -47,7 +47,9 @@ let title ?(strict=false) p = if strict then id p else name p
 let pp_prover fmt prv = Format.pp_print_string fmt @@ id prv
 
 let load (env : Wenv.env) (config : Whyconf.config_prover) =
-  try Whyconf.load_driver (Whyconf.get_main env.wconfig) env.wenv config
+  try
+    let main = Whyconf.get_main env.wconfig in
+    Driver.load_driver_for_prover main env.wenv config
   with _ ->
     Format.eprintf "Failed to load driver for %s@."
       (Whyconf.prover_parseable_format config.prover) ;
@@ -339,7 +341,7 @@ let update_client env =
 
 let limit env t =
   Call_provers.{
-    limit_time = int_of_float (t +. 0.5) ;
+    limit_time = t +. 0.5 ;
     limit_mem = Whyconf.memlimit (Whyconf.get_main env.Wenv.wconfig) ;
     limit_steps = (-1) ;
   }
@@ -375,33 +377,31 @@ let call_prover (env : Wenv.env)
     ~(prepared : prepared_task)
     ~(prover : prover)
     ~(timeout : float) () =
-  let main = Whyconf.get_main env.wconfig in
   let limit = limit env timeout in
   let clockwall = ref 0.0 in
   let started = ref false in
   let killed = ref false in
   let canceled = ref false in
   let timedout = ref false in
+  let config = Whyconf.get_main env.wconfig in
   update_client env ;
   schedule () ;
-  let libdir = Whyconf.libdir main in
-  let datadir = Whyconf.datadir main in
   let call =
     match prepared with
     | Prepared task ->
       Driver.prove_task_prepared
         ~command:(Whyconf.get_complete_command prover.config ~with_steps:false)
-        ~libdir ~datadir ~limit prover.driver task
+        ~config ~limit prover.driver task
     | Buffered buffer ->
       Driver.prove_buffer_prepared
         ~command:(Whyconf.get_complete_command prover.config ~with_steps:false)
-        ~libdir ~datadir ~limit prover.driver buffer
+        ~config ~limit prover.driver buffer
   in
   let kill () =
     if not !killed then
       begin
         try
-          Call_provers.interrupt_call ~libdir call ;
+          Call_provers.interrupt_call ~config call ;
           killed := true ;
         with _ -> ()
       end in
