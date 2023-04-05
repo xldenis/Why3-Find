@@ -39,7 +39,8 @@ type henv = {
 
 let ocaml64 =
   Filename.concat Config.datadir @@
-  Filename.concat "drivers" "ocaml64.drv"
+  Filename.concat "extraction_drivers" @@
+  "ocaml64.drv"
 
 let drivers (pkg : Meta.pkg) =
   List.map (Filename.concat pkg.path) pkg.drivers
@@ -58,7 +59,8 @@ let init (wenv : Wenv.env) =
   let provers = Runner.select wenv @@ Wenv.provers () in
   let builtins = List.fold_left add_builtins Mid.empty provers in
   let drivers = List.concat_map drivers wenv.pkgs @ Wenv.drivers () in
-  let pdriver = Pdriver.load_driver wenv.wenv ocaml64 drivers in
+  let main = Whyconf.get_main wenv.wconfig in
+  let pdriver = Pdriver.load_driver main wenv.wenv ocaml64 drivers in
   let externals = Mid.map fst pdriver.drv_syntax in
   { builtins ; externals }
 
@@ -159,7 +161,7 @@ let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
 
 let add_rsymbol henv hs (rs : Expr.rsymbol) (cexp : Expr.cexp) =
   match cexp.c_node with
-  | Cany -> add henv hs (Value rs)
+  | Cany when not @@ Id.lemma rs.rs_name -> add henv hs (Value rs)
   | _ -> hs
 
 let add_letrec henv (hs : signature) (def : Expr.rec_defn) : signature =
@@ -174,7 +176,7 @@ let add_pdecl henv (hs : signature) (d : Pdecl.pdecl) : signature =
   | PDexn _ -> hs
   | PDpure -> List.fold_left (add_decl henv) hs d.pd_pure
 
-let rec  add_munit henv (hs : signature) (m : Pmodule.mod_unit) : signature =
+let rec add_munit henv (hs : signature) (m : Pmodule.mod_unit) : signature =
   match m with
   | Udecl pd -> add_pdecl henv hs pd
   | Uuse pm -> add_used hs pm.mod_theory

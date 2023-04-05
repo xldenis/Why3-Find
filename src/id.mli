@@ -46,6 +46,7 @@ type id = {
   id_qid : string list ;
 }
 
+val lemma : t -> bool
 val resolve : lib:string list -> t -> id
 
 val of_infix : string -> string

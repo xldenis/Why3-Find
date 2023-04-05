@@ -29,17 +29,17 @@
         "homepage": "https://github.com/NixOS/nixpkgs",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "f4dfed73ee886b115a99e5b85fdfbeb683290d83",
-        "sha256": "1scpisl06f9mc31khj0m2q21yvx108bi7l9s0n9aq8f1w4fjprg6",
+        "rev": "d231d18e4aa5e1d00f86b4f484f9e4344538e3ea",
+        "sha256": "1ks9h2m6ns6b0wbw6x4cqaqwgfac1n51v3a8vygnm7ynq34ka2l1",
         "type": "tarball",
-        "url": "https://github.com/NixOS/nixpkgs/archive/f4dfed73ee886b115a99e5b85fdfbeb683290d83.tar.gz",
+        "url": "https://github.com/NixOS/nixpkgs/archive/d231d18e4aa5e1d00f86b4f484f9e4344538e3ea.tar.gz",
         "url_template": "https://github.com/<owner>/<repo>/archive/<rev>.tar.gz"
     },
     "why3": {
         "branch": "master",
         "repo": "https://gitlab.inria.fr/why3/why3.git",
-        "rev": "56dd530f4f63865dc88d8fcd35e2de6cc9a196d0",
+        "rev": "49c0c5193ef945f1a3dca30b59fa093a7b43437d",
         "type": "git",
-        "version": "1.5.1"
+        "version": "1.6.0"
     }
 }

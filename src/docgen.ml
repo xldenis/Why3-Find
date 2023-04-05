@@ -568,21 +568,22 @@ let process_clone_section env (th : Docref.theory) =
     begin
       text env ;
       let n0 = env.clone_decl in
-      let n = n0 + 2 in
+      let n2 = n0 + 2 in
+      let n4 = n2 + 2 in
       Pdoc.printf env.out
         " <span class=\"section\">\
          {<span class=\"section-toggle\">…</span>\
          <span class=\"section-text\">@\n\
          %a<span class=\"comment section-toggle\">begin</span>@\n"
-        Pdoc.pp_spaces n ;
+        Pdoc.pp_spaces n2 ;
       List.iter
         (fun (clone : Docref.clone) ->
-           declaration env (n + 2) clone.id_target th.theory clone.id_source
+           declaration env n4 clone.id_target th.theory clone.id_source
         ) cloned ;
       Pdoc.printf env.out
         "%a<span class=\"comment section-toggle\">end</span>@\n\
          %a</span>}</span>"
-        Pdoc.pp_spaces n Pdoc.pp_spaces n0 ;
+        Pdoc.pp_spaces n2 Pdoc.pp_spaces n0 ;
       process_clone_axioms env cloned ;
       process_clone_proofs env cloned ;
     end

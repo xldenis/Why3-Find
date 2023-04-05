@@ -314,7 +314,6 @@ let () = register ~name:"query" ~args:"[PKG...]"
              pp_opt "configs" p.configs ;
              pp_opt "drivers" p.drivers ;
              pp_yes "extracted" p.extracted ;
-             pp_yes "symbols" (p.extracted && p.symbols) ;
           ) pkgs
     end
 
@@ -361,7 +360,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let cfgs = Wenv.configs () in
       if !list && cfgs <> [] then
         begin
-          Format.printf "Extra Why-3 Configuration:@." ;
+          Format.printf "Extra Why3 Configuration:@." ;
           List.iter (Format.printf " - %s@.") cfgs ;
         end ;
       (* --- Packages ---- *)
@@ -548,7 +547,6 @@ let () = register ~name:"extract" ~args:"[OPTIONS] MODULE..."
       let pkg = ref "" in
       let modules = ref [] in
       let libraries = ref [] in
-      let symbols = ref false in
       let out = ref "lib" in
       Arg.parse_argv argv
         begin
@@ -559,8 +557,6 @@ let () = register ~name:"extract" ~args:"[OPTIONS] MODULE..."
             "PKG Additional OCaml library dependency";
             "-o", Arg.Set_string out,
             "destination directory (default \"lib\")" ;
-            "-s", Arg.Set symbols,
-            "generate symbol maps for ppx_why3find" ;
             "-v", Arg.Set verbose,
             "print why3 extract command" ;
           ]
@@ -606,29 +602,10 @@ let () = register ~name:"extract" ~args:"[OPTIONS] MODULE..."
           Format.fprintf fdune "@])" ;
         end ;
       Format.fprintf fdune ")@\n" ;
-      if !symbols then
-        begin
-          Format.fprintf fdune
-            "(install\
-             @\n  (package %s)\
-             @\n  (section (site (why3find packages)))\
-             @\n  (files"
-            !pkg ;
-          List.iter
-            (fun lib ->
-               let path = String.split_on_char '.' lib in
-               let file = String.concat "__" path in
-               Format.fprintf fdune "@\n    %s.json" file
-            ) !modules ;
-          Format.fprintf fdune "))@\n" ;
-        end ;
       Format.pp_print_flush fdune () ;
       close_out cdune ;
       Format.printf "Generated %s@." (Utils.absolute dune) ;
-      let prefix =
-        List.append
-          ["extract";"-D";"ocaml64";"-o";!out;"--modular"]
-          (if !symbols then ["--symbols"] else []) in
+      let prefix = ["extract";"-D";"ocaml64";"-o";!out;"--modular"] in
       let argv = Array.of_list @@ List.rev !modules in
       exec ~prefix ~pkgs ~configs ~drivers argv
     end
@@ -817,29 +794,18 @@ let () = register ~name:"install" ~args:"PKG PATH..."
         end ;
       let lib = !lib in
       let haslib = ref false in
-      let hasppx = ref false in
       if Sys.file_exists lib && Sys.is_directory lib then
         begin
           Utils.readdir (fun d ->
               let src = Filename.concat lib d in
-              if Filename.check_suffix src ".json" then
-                begin
-                  let tgt = Filename.concat "lib" d in
-                  install ~kind:"(ppx)" ~tgt src ;
-                  hasppx := true ;
-                  haslib := true ;
-                end
-              else if Filename.check_suffix src ".ml" then
-                haslib := true ;
+              if Filename.check_suffix src ".ml" then haslib := true ;
             ) lib
         end ;
       let extracted = !haslib in
-      let symbols = !hasppx in
-      if dune && extracted then
-        log ~kind:"(dune)" "extracted code" ;
+      if dune && extracted then log ~kind:"(dune)" "extracted code" ;
       log ~kind:"(meta)" "META.json" ;
       Meta.install {
-        name = pkg ; path ; depends ; drivers ; configs ; extracted ; symbols ;
+        name = pkg ; path ; depends ; drivers ; configs ; extracted ;
       } ;
       if dune then
         begin

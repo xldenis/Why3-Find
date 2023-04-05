@@ -182,7 +182,7 @@ let allfiles ~exts f path =
   if not (Sys.file_exists path) then
     Utils.failwith "Unknown file or directory %S" path ;
   if not (filter ~exts path || Sys.is_directory path) then
-    Utils.failwith "File %S is not a Why-3 source neither a directory" path ;
+    Utils.failwith "File %S is neither a Why3 file nor a directory" path ;
   Utils.iterpath
     ~file:(fun p -> if filter ~exts p then f p)
     path

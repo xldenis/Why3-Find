@@ -40,10 +40,10 @@ let loc (id : t) =
   | Some loc -> loc
 
 let line id =
-  let _,line,_,_ = Why3.Loc.get (loc id) in line
+  let _,line,_,_,_ = Why3.Loc.get (loc id) in line
 
 let file id =
-  let file,_,_,_ = Why3.Loc.get (loc id) in file
+  let file,_,_,_,_ = Why3.Loc.get (loc id) in file
 
 let path ?lib id =
   let path =
@@ -68,6 +68,8 @@ type id = {
   id_mod : string ;
   id_qid : string list ;
 }
+
+let lemma id = String.ends_with ~suffix:"'lemma" id.I.id_string
 
 let resolve ~lib id =
   let lp,id_mod,id_qid = path id in
@@ -200,9 +202,8 @@ let pp_proof_aname fmt r =
   pp_anchor fmt (r.id_mod :: r.id_qid)
 
 let pp_proof_ahref fmt r =
-  Format.pp_print_char fmt '_' ;
   List.iter (pp_prefix fmt) r.id_lib ;
-  Format.pp_print_string fmt "html#" ;
+  Format.pp_print_string fmt "proof.html#" ;
   pp_proof_aname fmt r
 
 (* -------------------------------------------------------------------------- *)

@@ -75,8 +75,8 @@ type source = {
 let extract ~infix position =
   let loc = Why3.Loc.extract position in
   if infix then
-    let (f,l,s,e) = Why3.Loc.get loc in
-    Why3.Loc.user_position f l (succ s) (pred e)
+    let (f,p,s,q,e) = Why3.Loc.get loc in
+    Why3.Loc.user_position f p (succ s) q (pred e)
   else loc
 
 type href =
@@ -88,15 +88,37 @@ let find_proof (id : ident) = function
   | None -> None
   | Some { proofs } -> Mstr.find_opt (Session.proof_name id) proofs
 
+let strip_lemma (id : ident) = function
+  | None -> id
+  | Some { theory } ->
+    if not @@ Id.lemma id then id else
+      begin
+        let exception Found of Id.t in
+        try
+          List.iter
+            (fun (td : Thy.tdecl) ->
+               match td.td_node with
+               | Use _ | Clone _ | Meta _ -> ()
+               | Decl d ->
+                 match d.d_node with
+                 | Dprop(Paxiom, { pr_name = ax },_) ->
+                   if ax.id_string ^ "'lemma" = id.id_string then
+                     raise (Found ax)
+                 | _ -> ()
+            ) theory.th_decls ;
+          id
+        with Found id -> id
+      end
+
 let resolve ~src ~theory ~infix pos =
   try
     let loc = extract ~infix pos in
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, _) ->
       let proof = find_proof id theory in
-      Def (Id.resolve ~lib:src.lib id, proof)
+      Def (Id.resolve ~lib:src.lib @@ strip_lemma id theory, proof)
     | (id, Why3.Glob.Use, _) ->
-      Ref (Id.resolve ~lib:src.lib id)
+      Ref (Id.resolve ~lib:src.lib @@ strip_lemma id theory)
   with Not_found -> NoRef
 
 (* -------------------------------------------------------------------------- *)
@@ -159,7 +181,9 @@ let iter_cloned_module ~order ~path f (m : Why3.Pmodule.pmodule) =
     | Uscope(_,mus) -> List.iter walk mus
     | Uclone mi ->
       let s = section ~order ~path mi.mi_mod.mod_theory in
-      iter_mi (fun a b -> if Sid.mem b m.mod_local then f s a b) mi
+      iter_mi (fun a b ->
+          if Sid.mem b m.mod_local && not @@ Id.lemma b then f s a b
+        ) mi
     | _ -> ()
   in List.iter walk m.mod_units
 

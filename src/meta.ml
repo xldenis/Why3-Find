@@ -30,7 +30,6 @@ type pkg = {
   configs: string list ;
   drivers: string list ;
   extracted: bool ;
-  symbols: bool ;
 }
 
 (* -------------------------------------------------------------------------- *)
@@ -56,12 +55,10 @@ let find pkg =
           let configs = jfield "configs" js |> jstringlist in
           let drivers = jfield "drivers" js |> jstringlist in
           let extracted = jfield "extracted" js |> jbool in
-          let symbols = jfield "symbols" js |> jbool in
-          { name = pkg ; path ; depends ; configs ; drivers ;
-            extracted ; symbols }
+          { name = pkg ; path ; depends ; configs ; drivers ; extracted }
         else
           { name = pkg ; path ; depends = [] ; configs = [] ; drivers = [] ;
-            extracted = false ; symbols = false }
+            extracted = false }
   in lookup pkg Global.Sites.packages
 
 let find_all pkgs =
@@ -93,7 +90,6 @@ let install pkg =
       "configs", list pkg.configs ;
       "drivers", list pkg.drivers ;
       "extracted", `Bool pkg.extracted ;
-      "symbols", `Bool pkg.symbols ;
     ])
 
 (* -------------------------------------------------------------------------- *)

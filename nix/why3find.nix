@@ -3,11 +3,13 @@
   dune_3,
   dune-site,
   alt-ergo,
+  menhir,
+  menhirLib,
+  mlmpfr,
   why3,
   zmq,
   zeromq,
   yojson,
-  ppxlib,
   terminal_size }:
 
 buildDunePackage {
@@ -25,5 +27,17 @@ buildDunePackage {
 
   doCheck = true;
 
-  buildInputs = [ dune_3 dune-site alt-ergo why3 zeromq zmq yojson ppxlib terminal_size ];
+  buildInputs = [
+    dune_3
+    dune-site
+    alt-ergo
+    mlmpfr
+    menhir
+    menhirLib
+    why3
+    zeromq
+    zmq
+    yojson
+    terminal_size
+  ];
 }

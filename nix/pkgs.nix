@@ -2,6 +2,8 @@ let
   sources = import ./sources.nix {};
   ocamlOverlay = oself: osuper: {
     camlzip = oself.callPackage ./camlzip.nix {};
+    menhirLib = oself.callPackage ./menhirLib.nix {};
+    mlmpfr = oself.callPackage ./mlmpfr.nix {};
     psmt2-frontend = oself.callPackage ./psmt2-frontend.nix {};
     alt-ergo = oself.callPackage ./alt-ergo.nix {};
     why3 = oself.callPackage ./why3.nix {};
