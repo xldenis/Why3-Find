@@ -325,31 +325,7 @@ All modules shall belong to the same package. Options can be passed to
 
     why3find extract -d PKG   # additional OCaml package dependency
     why3find extract -o DIR   # extraction output directory (default is "lib")
-    why3find extract -s       # generate symbols for ppx_why3find
 
-Symbol extraction can be generated to be used with `ppx_why3find` OCaml package.
-From an external OCaml client code, you can easily invoke the generated types and
-values from your Why-3 package using the `ppx_why3find` module.
-
-In OCaml client code, just add `ppx_why3find` to the list of PPX rewriters to
-the `dune` configuration of client code:
-
-    (libray MyClientCode
-       (preprocess (pps why3find.ppx …))
-        …)
-
-Inside the client OCaml code, you can use the following extension points:
-
-    [%%why3use "<why3-module>" ]               (** open scope *)
-    [%%why3use "<why3-module> as <uident>" ]   (** open scope *)
-
-    [%why3! (typ,...) <why3-type> ]        (** type identifier *)
-    [%why3? <why3-constructor>(pat,...) ]  (** constructor pattern *)
-    [%why3  <why3-constructor>(exp,...) ]  (** construtor expression *)
-    [%why3  exp.<why3-field> ]             (** field access *)
-    [%why3  <why3-value> ]                 (** extracted symbol *)
-
-Scope rules follows the Why-3 usage. Notice that full why3 module names must be
-written between quotes since they are _not_ part of the OCaml syntax. In other
-extension points, Why-3 (qualified) identifiers follows the OCaml syntax and
-don't need quotes.
+The extracted modules are not intended to be directly used from OCaml client
+code.  As a rule of thumb you shall write some safe OCaml layer uppon the
+extracted one, as a separated `dune` library.
