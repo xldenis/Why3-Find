@@ -360,7 +360,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let cfgs = Wenv.configs () in
       if !list && cfgs <> [] then
         begin
-          Format.printf "Extra Why-3 Configuration:@." ;
+          Format.printf "Extra Why3 Configuration:@." ;
           List.iter (Format.printf " - %s@.") cfgs ;
         end ;
       (* --- Packages ---- *)
