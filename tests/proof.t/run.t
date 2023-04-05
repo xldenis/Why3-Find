@@ -41,11 +41,8 @@
     <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">function</span> <a id="A.e">A.e</a><span title="Parameter" class="icon remark icofont-question-circle"></span> : int {<a class="attribute" title="clones.A.e" href="clones.A.html#e">def.</a>}
-        <span class="keyword">val</span> <span class="attribute">ghost</span> <a id="A.neutral%27lemma">A.neutral'lemma</a> int : tuple0 {<a class="attribute" title="clones.A.neutral'lemma" href="clones.A.html#neutral%27lemma">def.</a>}
         <span class="keyword">axiom</span> <a id="A.neutral">A.neutral</a><span title="Hypothesis" class="icon warning icofont-question-circle"></span> {<a class="attribute" title="clones.A.neutral" href="clones.A.html#neutral">def.</a>}
-        <span class="keyword">val</span> <span class="attribute">ghost</span> <a id="A.commutative%27lemma">A.commutative'lemma</a> int int : tuple0 {<a class="attribute" title="clones.A.commutative'lemma" href="clones.A.html#commutative%27lemma">def.</a>}
-        <span class="keyword">lemma</span> <a id="A.commutative">A.commutative</a><a href="_clones.html#B.A.commutative" title="Valid (one goal)" class="icon valid icofont-check"></a> {<a class="attribute" title="clones.A.commutative" href="clones.A.html#commutative">def.</a>}
-        <span class="keyword">val</span> <span class="attribute">ghost</span> <a id="A.neutral_com%27lemma">A.neutral_com'lemma</a> int : tuple0 {<a class="attribute" title="clones.A.neutral_com'lemma" href="clones.A.html#neutral_com%27lemma">def.</a>}
+        <span class="keyword">lemma</span> <a id="A.commutative">A.commutative</a><a href="clones.proof.html#B.A.commutative" title="Valid (one goal)" class="icon valid icofont-check"></a> {<a class="attribute" title="clones.A.commutative" href="clones.A.html#commutative">def.</a>}
         <span class="keyword">lemma</span> <a id="A.neutral_com">A.neutral_com</a> {<a class="attribute" title="clones.A.neutral_com" href="clones.A.html#neutral_com">def.</a>}
       <span class="comment section-toggle">end</span>
     </span>}</span><span title="1 parameter, 1 hypothesis" class="icon warning icofont-question-circle"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.A.t" href="clones.A.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.A.op" href="clones.A.html#op">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20+_19">+</a>), <span class="keyword">axiom</span> <a title="clones.A.neutral" href="clones.A.html#neutral">neutral</a>
@@ -74,7 +71,7 @@
   
     <span class="keyword">type</span> <a id="seq">seq</a> &#39;a = L.<a title="list.List.list" href="https://why3.lri.fr/stdlib/list.List.html#list_8">list</a> &#39;a
   
-    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">function</span> (<a id="mixfix%20%5B%5D">[]</a><a href="_certif.html#S.mixfix%20%5B%5D" title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></a>) (u : <a title="certif.S.seq" href="#seq">seq</a> &#39;a) (k : int) : &#39;a
+    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">function</span> (<a id="mixfix%20%5B%5D">[]</a><a href="certif.proof.html#S.mixfix%20%5B%5D" title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></a>) (u : <a title="certif.S.seq" href="#seq">seq</a> &#39;a) (k : int) : &#39;a
       <span class="keyword">requires</span> { 0 <a title="int.Int.(<=)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20%3C=_25">&lt;=</a> k <a title="int.Int.(<)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20%3C_21">&lt;</a> L.<a title="list.Length.length" href="https://why3.lri.fr/stdlib/list.Length.html#length_24">length</a> u }
       <span class="keyword">ensures</span> { L.<a title="list.Nth.nth" href="https://why3.lri.fr/stdlib/list.Nth.html#nth_104">nth</a> k u = <a title="option.Option.Some" href="https://why3.lri.fr/stdlib/option.Option.html#Some_5">Some</a> result }
       <span class="keyword">variant</span> { u }
@@ -87,7 +84,7 @@
   
     <span class="keyword">lemma</span> <a id="reflexivity%27lemma">reflexivity</a> : <span class="keyword">forall</span> u : <a title="certif.S.seq" href="#seq">seq</a> &#39;a. u <a title="certif.S.(==)" href="#infix%20%3D%3D">==</a> u
   
-    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">lemma</span> <a id="extensivity">extensivity</a><a href="_certif.html#S.extensivity" title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></a> (a b : <a title="certif.S.seq" href="#seq">seq</a> &#39;a)
+    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">lemma</span> <a id="extensivity">extensivity</a><a href="certif.proof.html#S.extensivity" title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></a> (a b : <a title="certif.S.seq" href="#seq">seq</a> &#39;a)
       <span class="keyword">requires</span> { a <a title="certif.S.(==)" href="#infix%20%3D%3D">==</a> b }
       <span class="keyword">ensures</span> { a = b }
       <span class="section level1"><span class="comment">{</span><span class="attribute section-toggle">proof</span><span class="comment section-text active">…</span><span class="comment">}</span><span class="section-text">
@@ -98,7 +95,7 @@
         <span class="keyword">end</span>
       <span class="comment">{</span><span class="attribute section-toggle">qed</span><span class="comment">}</span></span></span>
   
-    <span class="keyword">goal</span> <a id="wrong">wrong</a><a href="_certif.html#S.wrong" title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></a>: 1 = 0
+    <span class="keyword">goal</span> <a id="wrong">wrong</a><a href="certif.proof.html#S.wrong" title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></a>: 1 = 0
   
   <span class="keyword">end</span>
   </pre>

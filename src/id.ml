@@ -202,9 +202,8 @@ let pp_proof_aname fmt r =
   pp_anchor fmt (r.id_mod :: r.id_qid)
 
 let pp_proof_ahref fmt r =
-  Format.pp_print_char fmt '_' ;
   List.iter (pp_prefix fmt) r.id_lib ;
-  Format.pp_print_string fmt "html#" ;
+  Format.pp_print_string fmt "proof.html#" ;
   pp_proof_aname fmt r
 
 (* -------------------------------------------------------------------------- *)

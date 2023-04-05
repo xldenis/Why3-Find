@@ -181,7 +181,9 @@ let iter_cloned_module ~order ~path f (m : Why3.Pmodule.pmodule) =
     | Uscope(_,mus) -> List.iter walk mus
     | Uclone mi ->
       let s = section ~order ~path mi.mi_mod.mod_theory in
-      iter_mi (fun a b -> if Sid.mem b m.mod_local then f s a b) mi
+      iter_mi (fun a b ->
+          if Sid.mem b m.mod_local && not @@ Id.lemma b then f s a b
+        ) mi
     | _ -> ()
   in List.iter walk m.mod_units
 
