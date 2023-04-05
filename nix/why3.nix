@@ -1,13 +1,15 @@
 { callPackage
+, fetchurl
+, fetchpatch
 , lib
 , stdenv
-, fetchurl
 , ocaml
 , findlib
 , ocamlgraph
 , zarith
 , menhir
 , menhirLib
+, mlmpfr
 , js_of_ocaml
 , js_of_ocaml-ppx
 , ppx_deriving
@@ -26,10 +28,9 @@
 
 stdenv.mkDerivation rec {
   pname = "why3";
-  version = "1.5.1+dev";
+  version = src.version;
 
-  src = "/tmp/why3find.why3.tgz" ;
-  sourceRoot = "why3" ;
+  src = (import ./sources.nix {}).why3;
   nativeBuildInputs = [
     autoreconfHook
   ];
@@ -39,6 +40,8 @@ stdenv.mkDerivation rec {
     ocamlgraph
     zarith
     menhir
+    menhirLib
+    mlmpfr
     # Emacs compilation of why3.el
     emacs
     # Documentation
@@ -57,7 +60,7 @@ stdenv.mkDerivation rec {
     coqPackages.flocq
   ];
 
-  propagatedBuildInputs = [ menhirLib camlzip num re sexplib ];
+  propagatedBuildInputs = [ camlzip num re sexplib ];
 
   enableParallelBuilding = true;
 
