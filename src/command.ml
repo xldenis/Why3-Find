@@ -613,7 +613,7 @@ let () = register ~name:"extract" ~args:"[OPTIONS] MODULE..."
              @\n  (package %s)\
              @\n  (section (site (why3find packages)))\
              @\n  (files"
-          !pkg ;
+            !pkg ;
           List.iter
             (fun lib ->
                let path = String.split_on_char '.' lib in

@@ -146,7 +146,7 @@ let request client profile prover task timeout =
           (* vp = tp / tr ; vs = tr / ts *)
           let+ vp = Calibration.velocity env profile prover
           and* vs = Calibration.velocity env client.profile prover
-      in vs /. vp in
+          in vs /. vp in
       (* server timeout *)
       let time = timeout /. gamma in
       if task.timeout < time then
