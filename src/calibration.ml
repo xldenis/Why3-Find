@@ -80,7 +80,7 @@ open Runner
 open Fibers.Monad
 
 type range = Guess of int * int | Range of int * int
-let guesses = [ "alt-ergo", 16 ; "z3", 32 ; "cvc4", 40 ]
+let guesses = [ "alt-ergo", 16 ; "z3", 32 ; "cvc4", 40 ; "cvc5", 40 ]
 let guess prv = Guess (1,try List.assoc (name prv) guesses with Not_found -> 20)
 let singleton = function Guess _ -> false | Range(p,q) -> q <= p+1
 let select = function Guess(_,n) -> n | Range(p,q) -> (p+q)/2

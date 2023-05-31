@@ -115,7 +115,8 @@ let all env =
 let default env =
   find_default env "alt-ergo" @
   find_default env "z3" @
-  find_default env "cvc4"
+  find_default env "cvc4" @
+  find_default env "cvc5"
 
 let select env provers =
   if provers = []
