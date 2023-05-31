@@ -2,7 +2,7 @@
 # ---  Why3 Package Manager
 # --------------------------------------------------------------------------
 
-.PHONY: all build clean
+.PHONY: all build clean test lint headers install
 
 all: build
 
@@ -16,10 +16,10 @@ test:
 	dune test
 
 lint:
-	ocp-indent -i src/*.ml src/*.mli utils/*.ml utils/*.mli ppx/*.ml ppx/*.mli
+	ocp-indent -i src/*.ml src/*.mli utils/*.ml utils/*.mli
 
 headers:
-	headache -h HEADER src/*.ml src/*.mli src/*.mll utils/*.ml utils/*.mli ppx/*.ml ppx/*.mli
+	headache -h HEADER src/*.ml src/*.mli src/*.mll utils/*.ml utils/*.mli
 
 install:
 	dune install 2> /dev/null

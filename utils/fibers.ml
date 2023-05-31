@@ -39,9 +39,9 @@ let set th v = match !th with Done _ -> () | Wait qs ->
   th := Done v ; notify v (List.rev qs)
 
 let bind ta fb = match !ta with Done v -> fb v | Wait qs ->
-    let r = var () in
-    let fa v = forward (fb v) (set r) in
-    ta := Wait (fa :: qs) ; r
+  let r = var () in
+  let fa v = forward (fb v) (set r) in
+  ta := Wait (fa :: qs) ; r
 
 let map f ta = match !ta with Done v -> return (f v) | Wait qs ->
   let r = var () in
