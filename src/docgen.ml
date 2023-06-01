@@ -137,12 +137,20 @@ let text env =
   | Pre -> ()
   | Par | Item _ | Head _ | Emph | Bold -> space env
 
+let head env buffer level =
+  begin
+    let title = Pdoc.buffered env.out in
+    Pdoc.pop env.out buffer ;
+    Pdoc.header env.out ~level ~title () ;
+  end
+
 let rec close env =
   match env.mode with
   | Body -> ()
   | Emph -> Token.error env.input "unclosed emphasis style"
   | Bold -> Token.error env.input "unclosed bold style"
-  | Div | Par | List _ | Item _ | Pre | Head _ -> pop env ; close env
+  | Head(buffer,level) -> head env buffer level ; pop env ; close env
+  | Div | Par | List _ | Item _ | Pre -> pop env ; close env
 
 (* -------------------------------------------------------------------------- *)
 (* --- Icons                                                              --- *)
@@ -778,9 +786,7 @@ let process_newline env =
       env.space <- true
   | Emph | Bold -> env.space <- true
   | Head(buffer,level) ->
-    let title = Pdoc.buffered env.out in
-    Pdoc.pop env.out buffer ;
-    Pdoc.header env.out ~level ~title () ;
+    head env buffer level ;
     pop env
   | Pre ->
     Pdoc.pp_print_char env.out '\n' ;
