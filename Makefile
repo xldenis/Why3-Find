@@ -2,7 +2,7 @@
 # ---  Why3 Package Manager
 # --------------------------------------------------------------------------
 
-.PHONY: all build clean test lint headers install
+.PHONY: all build clean test lint headers install uninstall
 
 all: build
 
@@ -23,6 +23,8 @@ headers:
 
 install:
 	dune install 2> /dev/null
-	codesign -s - `which why3find`
+
+uninstall:
+	dune uninstall 2> /dev/null
 
 # --------------------------------------------------------------------------
