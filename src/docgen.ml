@@ -67,6 +67,8 @@ let is_closing = function
 (* --- Environment                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
+type block = Raw | Doc | Src
+
 type env = {
   dir : string ; (* destination directory *)
   src : Docref.source ; (* source file infos *)
@@ -83,12 +85,38 @@ type env = {
   mutable scope : string option ; (* current module name *)
   mutable theory : Docref.theory option ; (* current module theory *)
   mutable space : bool ; (* leading space in Par mode *)
+  mutable block: block ; (* required block for text *)
   mutable mode : mode ; (* current output mode *)
   mutable file : mode ; (* global file output mode *)
   mutable stack : mode list ; (* currently opened modes *)
   mutable opened : int ; (* number of pending 'end' *)
   mutable section : int ; (* code foldable section depth *)
 }
+
+let bsync ?wanted env =
+  let wanted =
+    match wanted with Some b -> b | None ->
+    match env.mode with
+    | Body -> Raw
+    | Pre -> Src
+    | Head _ | Div | Par | Emph | Bold | List _ | Item _ -> Doc
+  in
+  if env.block <> wanted then
+    begin
+      (* Need for closing *)
+      begin match env.block with
+        | Raw -> ()
+        | Doc -> Pdoc.pp_print_string env.out "</div>\n"
+        | Src -> Pdoc.pp_print_string env.out "</pre>\n"
+      end ;
+      (* Need for opening *)
+      begin match wanted with
+        | Raw -> ()
+        | Doc -> Pdoc.pp_print_string env.out "<div class=\"doc\">\n"
+        | Src -> Pdoc.pp_print_string env.out "<pre class=\"src\">\n"
+      end ;
+      env.block <- wanted
+    end
 
 let clear env =
   env.space <- false
@@ -104,14 +132,12 @@ let push env m =
   env.stack <- env.mode :: env.stack ;
   env.mode <- m ;
   match m with
-  | Body | Head _ -> ()
-  | Div -> Pdoc.pp_print_string env.out "<div class=\"doc\">\n"
-  | Pre -> Pdoc.pp_print_string env.out "<pre class=\"src\">\n"
-  | Par -> Pdoc.pp_print_string env.out "<p>"
-  | List _ -> Pdoc.pp_print_string env.out "<ul>\n"
-  | Item _ -> Pdoc.pp_print_string env.out "<li>"
-  | Emph -> space env ; Pdoc.pp_print_string env.out "<em>"
-  | Bold -> space env ; Pdoc.pp_print_string env.out "<strong>"
+  | Body | Head _ | Div | Pre -> ()
+  | Par -> bsync env ; Pdoc.pp_print_string env.out "<p>"
+  | List _ -> bsync env ; Pdoc.pp_print_string env.out "<ul>\n"
+  | Item _ -> bsync env ; Pdoc.pp_print_string env.out "<li>"
+  | Emph -> bsync env ; space env ; Pdoc.pp_print_string env.out "<em>"
+  | Bold -> bsync env ; space env ; Pdoc.pp_print_string env.out "<strong>"
 
 let pop env =
   let m = env.mode in
@@ -121,8 +147,8 @@ let pop env =
   end ;
   match m with
   | Body | Head _ -> ()
-  | Pre -> Pdoc.pp_print_string env.out "</pre>\n" ; clear env
-  | Div -> Pdoc.pp_print_string env.out "</div>\n" ; clear env
+  | Pre -> clear env
+  | Div -> clear env
   | Par -> Pdoc.pp_print_string env.out "</p>\n" ; clear env
   | List _ -> Pdoc.pp_print_string env.out "</ul>\n" ; clear env
   | Item _ -> Pdoc.pp_print_string env.out "</li>\n" ; clear env
@@ -130,12 +156,15 @@ let pop env =
   | Bold -> Pdoc.pp_print_string env.out "</strong>" (* keep space *)
 
 let text env =
-  match env.mode with
-  | Body -> push env env.file
-  | Div -> push env Par
-  | List n -> push env (Item n)
-  | Pre -> ()
-  | Par | Item _ | Head _ | Emph | Bold -> space env
+  begin
+    match env.mode with
+    | Body -> push env env.file
+    | Div -> push env Par
+    | List n -> push env (Item n)
+    | Pre -> ()
+    | Par | Item _ | Head _ | Emph | Bold -> space env
+  end ;
+  bsync env
 
 let head env buffer level =
   begin
@@ -146,7 +175,7 @@ let head env buffer level =
 
 let rec close env =
   match env.mode with
-  | Body -> ()
+  | Body -> bsync env
   | Emph -> Token.error env.input "unclosed emphasis style"
   | Bold -> Token.error env.input "unclosed bold style"
   | Head(buffer,level) -> head env buffer level ; pop env ; close env
@@ -321,13 +350,13 @@ let pp_axioms fmt { ext ; prm ; hyp ; pvs } =
       if prm > 0 then icon_parameters else
         icon_externals in
     let title =
-      let text k single msg =
+      let plural k single msg =
         if k = 0 then [] else if k = 1 then [single] else [msg k] in
       String.concat ", " @@ List.concat [
-        text pvs "1 value" @@ Printf.sprintf "%d values" ;
-        text prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
-        text hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
-        text ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
+        plural pvs "1 value" @@ Printf.sprintf "%d values" ;
+        plural prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
+        plural hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
+        plural ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
       ] in
     pp_mark ~cla ~title fmt
 
@@ -615,6 +644,7 @@ let pp_active fmt b =
   if b then Format.fprintf fmt " active"
 
 let process_open_section env ~active title =
+  bsync env ;
   env.section <- succ env.section ;
   Pdoc.printf env.out
     "<span class=\"section level%d\">\
@@ -655,8 +685,8 @@ let process_open_module env key =
     Pdoc.printf env.crc
       "<pre class=\"src\">%a <a href=\"%s\">%s.%s</a>"
       Pdoc.pp_keyword key url path id ;
-    process_axioms_summary env theory ;
-    process_proofs_summary env ~path theory ;
+    process_axioms_summary env theory ; (* out *)
+    process_proofs_summary env ~path theory ; (* out & crc *)
     Pdoc.printf env.out "</pre>@." ;
     Pdoc.printf env.crc "</pre>@." ;
     let file = Filename.concat env.dir url in
@@ -669,7 +699,9 @@ let process_open_module env key =
       kind env.src.urlbase path id ;
     Pdoc.pp env.out Format.pp_print_string prelude ;
     push env Pre ;
+    env.block <- Raw ;
     env.file <- Pre ;
+    bsync env ;
     env.scope <- Some id ;
     env.theory <- theory ;
     env.declared <- Sid.empty ;
@@ -684,11 +716,12 @@ let process_close_module env key =
   begin
     Pdoc.printf env.out "%a@\n</pre>@\n" Pdoc.pp_keyword key ;
     process_module_axioms env ;
+    Pdoc.close env.out ;
     env.mode <- Body ;
+    env.block <- Raw ;
     env.file <- Body ;
     env.scope <- None ;
     env.theory <- None ;
-    Pdoc.close env.out ;
   end
 
 (* -------------------------------------------------------------------------- *)
@@ -703,13 +736,16 @@ let process_ident env s =
       | _ ->
         if is_opening s then env.opened <- succ env.opened ;
         if is_closing s then env.opened <- pred env.opened ;
-        if s = "clone" then
-          env.clone_decl <- Token.indent env.input ;
+        if s = "clone" then env.clone_decl <- Token.indent env.input ;
+        text env ;
         Pdoc.pp env.out Pdoc.pp_keyword s
     end
   else
-    let href = resolve env () in
-    process_href env href s
+    begin
+      text env ;
+      let href = resolve env () in
+      process_href env href s
+    end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Style Processing                                                   --- *)
@@ -737,14 +773,14 @@ let rec list env n =
     if n > m then
       push env (List n)
 
-let rec closeblock env =
+let rec close_parblock env =
   match env.mode with
   | Body | Head _ | Pre -> ()
   | Emph -> Token.error env.input "unclosed bold style"
   | Bold -> Token.error env.input "unclosed emphasis style"
   | Par -> pop env
-  | Item _ -> pop env ; closeblock env
-  | List _ -> pop env ; closeblock env
+  | Item _ -> pop env ; close_parblock env
+  | List _ -> pop env ; close_parblock env
   | Div -> ()
 
 let process_dash env s =
@@ -759,6 +795,7 @@ let process_dash env s =
 
 let process_header env h =
   begin
+    bsync ~wanted:Doc env ;
     let level = String.length h in
     let buffer = Pdoc.push env.out in
     push env (Head(buffer,level))
@@ -772,8 +809,7 @@ let process_space env =
   match env.mode with
   | Body | Div | List _ -> ()
   | Par | Item _ | Head _ | Emph | Bold -> env.space <- true
-  | Pre ->
-    Pdoc.pp_print_char env.out ' '
+  | Pre -> bsync env ; Pdoc.pp_print_char env.out ' '
 
 let process_newline env =
   match env.mode with
@@ -781,7 +817,7 @@ let process_newline env =
   | Div -> ()
   | Par | List _ | Item _ ->
     if Token.emptyline env.input then
-      closeblock env
+      close_parblock env
     else
       env.space <- true
   | Emph | Bold -> env.space <- true
@@ -789,6 +825,7 @@ let process_newline env =
     head env buffer level ;
     pop env
   | Pre ->
+    bsync env ;
     Pdoc.pp_print_char env.out '\n' ;
     Pdoc.flush env.out
 
@@ -822,11 +859,8 @@ let parse env =
     | Eof -> close env
     | Char c -> text env ; Pdoc.pp_html_c out c
     | Text s -> text env ; Pdoc.pp_html_s out s
-    | Comment s ->
-      text env ;
-      Pdoc.pp_html_s out ~className:"comment" s
-    | Verb s ->
-      text env ;
+    | Comment s -> text env ; Pdoc.pp_html_s out ~className:"comment" s
+    | Verb s -> text env ;
       Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
     | Ref s -> process_reference ~wenv ~env s
     | Style(Emph,_) -> process_style env Emph
@@ -850,7 +884,6 @@ let parse env =
     | Space -> process_space env
     | Newline -> process_newline env
     | Ident s ->
-      text env ;
       process_ident env s ;
       process_clones env
     | Infix s ->
@@ -881,9 +914,9 @@ let process_markdown ~wenv ~henv ~out:dir ~title file =
     let out = Pdoc.output ~file:ofile ~title in
     let crc = Pdoc.null () in
     let env = {
-      dir ; src ; input ; out ; crc ; space = false ; wenv ; henv ;
+      dir ; src ; input ; out ; crc ; wenv ; henv ;
+      space = false ; block = Raw; mode = Body ; file = Body ; stack = [] ;
       scope = None ; theory = None ;
-      mode = Body ; file = Body ; stack = [] ;
       clone_decl = 0 ;
       clone_path = "" ;
       clone_order = 0 ;
@@ -915,9 +948,9 @@ let process_source ~wenv ~henv ~out:dir ~title file =
       ~title:(Printf.sprintf "Proofs %s" path) in
   let input = Token.input file in
   let env = {
-    dir ; src ; input ; out ; crc ; space = false ; wenv ; henv ;
+    dir ; src ; input ; out ; crc ; wenv ; henv ;
+    space = false ; block = Raw ; mode = Body ; file = Body ; stack = [] ;
     scope = None ; theory = None ;
-    mode = Body ; file = Body ; stack = [] ;
     clone_decl = 0 ;
     clone_path = "" ;
     clone_order = 0 ;
