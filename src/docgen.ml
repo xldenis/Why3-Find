@@ -44,12 +44,12 @@ type mode =
   | Item of int (* indent *)
 
 let pp_mode fmt = function
-  | Body -> Format.fprintf fmt "BODY"
-  | Pre -> Format.fprintf fmt "PRE"
-  | Div -> Format.fprintf fmt "DIV"
-  | Par -> Format.fprintf fmt "PAR"
-  | Emph -> Format.fprintf fmt "EMPH"
-  | Bold -> Format.fprintf fmt "BOLD"
+  | Body -> Format.pp_print_string fmt "BODY"
+  | Pre -> Format.pp_print_string fmt "PRE"
+  | Div -> Format.pp_print_string fmt "DIV"
+  | Par -> Format.pp_print_string fmt "PAR"
+  | Emph -> Format.pp_print_string fmt "EMPH"
+  | Bold -> Format.pp_print_string fmt "BOLD"
   | Head(_,n) -> Format.fprintf fmt "HEAD%d" n
   | List n -> Format.fprintf fmt "LIST%d" n
   | Item n -> Format.fprintf fmt "ITEM%d" n
@@ -68,6 +68,12 @@ let is_closing = function
 (* -------------------------------------------------------------------------- *)
 
 type block = Raw | Doc | Src
+
+let pp_block fmt = function
+  | Raw -> Format.pp_print_string fmt "RAW"
+  | Doc -> Format.pp_print_string fmt "DOC"
+  | Src -> Format.pp_print_string fmt "SRC"
+[@@ warning "-32"]
 
 type env = {
   dir : string ; (* destination directory *)
@@ -173,13 +179,29 @@ let head env buffer level =
     Pdoc.header env.out ~level ~title () ;
   end
 
-let rec close env =
+let rec close_file env =
   match env.mode with
   | Body -> bsync env
   | Emph -> Token.error env.input "unclosed emphasis style"
   | Bold -> Token.error env.input "unclosed bold style"
-  | Head(buffer,level) -> head env buffer level ; pop env ; close env
-  | Div | Par | List _ | Item _ | Pre -> pop env ; close env
+  | Head(buffer,level) -> head env buffer level ; pop env ; close_file env
+  | Div | Par | List _ | Item _ | Pre -> pop env ; close_file env
+
+let rec close_doc env =
+  match env.mode with
+  | Body -> bsync env
+  | Emph -> Token.error env.input "unclosed emphasis style"
+  | Bold -> Token.error env.input "unclosed bold style"
+  | Head(buffer,level) -> head env buffer level ; pop env ; close_doc env
+  | Div | Par | List _ | Item _ | Pre -> pop env ; close_doc env
+
+let rec close_parblock env =
+  match env.mode with
+  | Body | Pre | Div -> ()
+  | Emph -> Token.error env.input "unclosed emphasis style"
+  | Bold -> Token.error env.input "unclosed bold style"
+  | Head(buffer,level) -> head env buffer level ; pop env ; close_parblock env
+  | Par | Item _ | List _ -> pop env ; close_parblock env
 
 (* -------------------------------------------------------------------------- *)
 (* --- Icons                                                              --- *)
@@ -773,16 +795,6 @@ let rec list env n =
     if n > m then
       push env (List n)
 
-let rec close_parblock env =
-  match env.mode with
-  | Body | Head _ | Pre -> ()
-  | Emph -> Token.error env.input "unclosed bold style"
-  | Bold -> Token.error env.input "unclosed emphasis style"
-  | Par -> pop env
-  | Item _ -> pop env ; close_parblock env
-  | List _ -> pop env ; close_parblock env
-  | Div -> ()
-
 let process_dash env s =
   let s = String.length s in
   if s = 1 && Token.startline env.input then
@@ -856,7 +868,7 @@ let parse env =
   let out = env.out in
   while not (Token.eof env.input) do
     match Token.token env.input with
-    | Eof -> close env
+    | Eof -> close_file env
     | Char c -> text env ; Pdoc.pp_html_c out c
     | Text s -> text env ; Pdoc.pp_html_s out s
     | Comment s -> text env ; Pdoc.pp_html_s out ~className:"comment" s
@@ -871,12 +883,12 @@ let parse env =
     | OpenDoc ->
       begin
         Pdoc.flush ~onlyspace:false out ;
-        close env ;
+        close_doc env ;
         push env Div ;
       end
     | CloseDoc ->
       begin
-        close env ;
+        close_doc env ;
         push env env.file ;
       end
     | OpenSection(active,title) -> process_open_section env ~active title
@@ -928,7 +940,7 @@ let process_markdown ~wenv ~henv ~out:dir ~title file =
     Pdoc.flush out ;
     push env Div ;
     parse env ;
-    close env ;
+    close_file env ;
     Pdoc.close_all out ;
   end
 
