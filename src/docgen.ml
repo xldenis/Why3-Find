@@ -179,29 +179,14 @@ let head env buffer level =
     Pdoc.header env.out ~level ~title () ;
   end
 
-let rec close_file env =
-  match env.mode with
-  | Body -> bsync env
-  | Emph -> Token.error env.input "unclosed emphasis style"
-  | Bold -> Token.error env.input "unclosed bold style"
-  | Head(buffer,level) -> head env buffer level ; pop env ; close_file env
-  | Div | Par | List _ | Item _ | Pre -> pop env ; close_file env
-
-let rec close_doc env =
+let rec close ?(parblock=false) env =
   match env.mode with
   | Body -> ()
+  | Div | Pre when parblock -> ()
+  | Div | Pre | Par | List _ | Item _ -> pop env ; close ~parblock env
   | Emph -> Token.error env.input "unclosed emphasis style"
   | Bold -> Token.error env.input "unclosed bold style"
-  | Head(buffer,level) -> head env buffer level ; pop env ; close_doc env
-  | Div | Par | List _ | Item _ | Pre -> pop env ; close_doc env
-
-let rec close_parblock env =
-  match env.mode with
-  | Body | Pre | Div -> ()
-  | Emph -> Token.error env.input "unclosed emphasis style"
-  | Bold -> Token.error env.input "unclosed bold style"
-  | Head(buffer,level) -> head env buffer level ; pop env ; close_parblock env
-  | Par | Item _ | List _ -> pop env ; close_parblock env
+  | Head(buffer,level) -> head env buffer level ; pop env ; close ~parblock env
 
 (* -------------------------------------------------------------------------- *)
 (* --- Icons                                                              --- *)
@@ -838,7 +823,7 @@ let process_newline env =
   | Div -> ()
   | Par | List _ | Item _ ->
     if Token.emptyline env.input then
-      close_parblock env
+      close ~parblock:true env
     else
       env.space <- true
   | Emph | Bold -> env.space <- true
@@ -877,7 +862,7 @@ let parse env =
   let out = env.out in
   while not (Token.eof env.input) do
     match Token.token env.input with
-    | Eof -> close_file env
+    | Eof -> close env ; bsync env
     | Char c -> text env ; Pdoc.pp_html_c out c
     | Text s -> text env ; Pdoc.pp_html_s out s
     | Comment s -> text env ; Pdoc.pp_html_s out ~className:"comment" s
@@ -892,12 +877,12 @@ let parse env =
     | OpenDoc ->
       begin
         Pdoc.flush ~onlyspace:false out ;
-        close_doc env ;
+        close env ;
         push env Div ;
       end
     | CloseDoc ->
       begin
-        close_doc env ;
+        close env ;
         push env env.file ;
       end
     | OpenSection(active,title) -> process_open_section env ~active title
@@ -949,7 +934,6 @@ let process_markdown ~wenv ~henv ~out:dir ~title file =
     Pdoc.flush out ;
     push env Div ;
     parse env ;
-    close_file env ;
     Pdoc.close_all out ;
   end
 
