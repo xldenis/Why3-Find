@@ -189,7 +189,7 @@ let rec close_file env =
 
 let rec close_doc env =
   match env.mode with
-  | Body -> bsync env
+  | Body -> ()
   | Emph -> Token.error env.input "unclosed emphasis style"
   | Bold -> Token.error env.input "unclosed bold style"
   | Head(buffer,level) -> head env buffer level ; pop env ; close_doc env
@@ -694,6 +694,7 @@ let process_open_module env key =
   begin
     if not (env.mode = Body && env.opened = 0) then
       Token.error env.input "unexpected module or theory" ;
+    let forking = env.block in
     let prelude = Pdoc.buffered env.out in
     let id = fetch_id env.input in
     let href = resolve env () in
@@ -701,6 +702,7 @@ let process_open_module env key =
     let url = Docref.derived env.src id in
     let path = String.concat "." env.src.lib in
     let theory = Docref.Mstr.find_opt id env.src.theories in
+    bsync ~wanted:Raw env ;
     Pdoc.printf env.out
       "<pre class=\"src\">%a <a title=\"%s.%s\" href=\"%s\">%s</a>"
       Pdoc.pp_keyword key path id url id ;
@@ -719,7 +721,14 @@ let process_open_module env key =
        %s <code class=\"src\"><a href=\"%s.index.html\">%s</a>.%s</code>\
        </header>@\n"
       kind env.src.urlbase path id ;
-    Pdoc.pp env.out Format.pp_print_string prelude ;
+    env.mode <- Body ;
+    env.block <- Raw ;
+    if prelude <> "" then
+      begin
+        bsync ~wanted:forking env ;
+        Pdoc.pp env.out Format.pp_print_string prelude ;
+        bsync ~wanted:Raw env ;
+      end ;
     push env Pre ;
     env.block <- Raw ;
     env.file <- Pre ;

@@ -25,11 +25,7 @@
   <p>Testing Headings.</p>
   <h1><a id="_1">Title A</a></h1>
   <p>Section 1</p>
-  </div>
-  <div class="doc">
   <h2><a id="_2">Title B</a></h2>
-  </div>
-  <div class="doc">
   <p>Section 1</p>
   <h2><a id="_3">Title C</a></h2>
   <p>Section 2</p>
