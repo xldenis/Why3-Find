@@ -35,35 +35,19 @@
   </div>
   <pre class="src">
   <span class="keyword">module</span> <a id="">A</a><span title="6 parameters" class="icon remark icofont-question-circle"></span><span title="Valid (no goals)" class="icon valid icofont-check"></span>
-  
   </pre>
   <div class="doc">
   <p>Some doc</p>
-  </div>
-  <pre class="src">
-  
-  
-  </pre>
-  <div class="doc">
   <p>More doc</p>
   </div>
   <pre class="src">
-  
-  
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
-  
   </pre>
   <div class="doc">
   <p>Some doc</p>
-  </div>
-  <pre class="src">
-  
-  </pre>
-  <div class="doc">
   <p>More doc</p>
   </div>
   <pre class="src">
-  
     <span class="keyword">type</span> <a id="u">u</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
   
     <span class="keyword">type</span> <a id="w">w</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
@@ -75,16 +59,12 @@
   <p>Doc between</p>
   </div>
   <pre class="src">
-  
     <span class="keyword">type</span> <a id="s">s</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
-  
   </pre>
   <div class="doc">
   <p>End doc</p>
   </div>
   <pre class="src">
-  
-  
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>

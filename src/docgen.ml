@@ -68,6 +68,7 @@ let is_closing = function
 (* -------------------------------------------------------------------------- *)
 
 type block = Raw | Doc | Src
+type indent = Code | Head of int | Lines of int * int
 
 let pp_block fmt = function
   | Raw -> Format.pp_print_string fmt "RAW"
@@ -91,9 +92,10 @@ type env = {
   mutable scope : string option ; (* current module name *)
   mutable theory : Docref.theory option ; (* current module theory *)
   mutable space : bool ; (* leading space in Par mode *)
+  mutable indent : indent ; (* leading space in Pre mode *)
   mutable block: block ; (* required block for text *)
   mutable mode : mode ; (* current output mode *)
-  mutable file : mode ; (* global file output mode *)
+  mutable file : mode ; (* current file mode *)
   mutable stack : mode list ; (* currently opened modes *)
   mutable opened : int ; (* number of pending 'end' *)
   mutable section : int ; (* code foldable section depth *)
@@ -113,15 +115,21 @@ let bsync ?wanted env =
       begin match env.block with
         | Raw -> ()
         | Doc -> Pdoc.pp_print_string env.out "</div>\n"
-        | Src -> Pdoc.pp_print_string env.out "</pre>\n"
+        | Src ->
+          match env.indent with
+          | Code -> Pdoc.pp_print_string env.out "\n</pre>\n"
+          | Lines _ -> Pdoc.pp_print_string env.out "</pre>\n"
+          | Head _ -> ()
       end ;
+      Pdoc.flush env.out ;
+      env.indent <- Code ;
+      env.block <- wanted ;
       (* Need for opening *)
       begin match wanted with
         | Raw -> ()
         | Doc -> Pdoc.pp_print_string env.out "<div class=\"doc\">\n"
-        | Src -> Pdoc.pp_print_string env.out "<pre class=\"src\">\n"
+        | Src -> env.indent <- Head 0
       end ;
-      env.block <- wanted
     end
 
 let clear env =
@@ -138,7 +146,8 @@ let push env m =
   env.stack <- env.mode :: env.stack ;
   env.mode <- m ;
   match m with
-  | Body | Head _ | Div | Pre -> ()
+  | Body | Head _ | Div -> env.indent <- Code
+  | Pre -> env.indent <- Head 0
   | Par -> bsync env ; Pdoc.pp_print_string env.out "<p>"
   | List _ -> bsync env ; Pdoc.pp_print_string env.out "<ul>\n"
   | Item _ -> bsync env ; Pdoc.pp_print_string env.out "<li>"
@@ -162,15 +171,23 @@ let pop env =
   | Bold -> Pdoc.pp_print_string env.out "</strong>" (* keep space *)
 
 let text env =
-  begin
-    match env.mode with
-    | Body -> push env env.file
-    | Div -> push env Par
-    | List n -> push env (Item n)
-    | Pre -> ()
-    | Par | Item _ | Head _ | Emph | Bold -> space env
-  end ;
-  bsync env
+  match env.mode with
+  | Body -> push env env.file ; bsync env
+  | Div -> push env Par ; bsync env
+  | List n -> push env (Item n) ; bsync env
+  | Par | Item _ | Head _ | Emph | Bold -> space env ; bsync env
+  | Pre ->
+    match env.indent with
+    | Code -> ()
+    | Head n ->
+      bsync env ;
+      Pdoc.pp_print_string env.out "<pre class=\"src\">\n" ;
+      Pdoc.pp_print_string env.out (String.make n ' ') ;
+      env.indent <- Code
+    | Lines(l,n) ->
+      Pdoc.pp_print_string env.out (String.make l '\n') ;
+      Pdoc.pp_print_string env.out (String.make n ' ') ;
+      env.indent <- Code
 
 let head env buffer level =
   begin
@@ -377,9 +394,9 @@ let process_axioms_summary env = function
 (* --- References                                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-let rec fetch_id input =
+let rec fetch_module_id input =
   match Token.token input with
-  | Space | Newline -> fetch_id input
+  | Space | Newline -> fetch_module_id input
   | Ident s -> s
   | _ -> Token.error input "missing module or theory name"
 
@@ -651,7 +668,7 @@ let pp_active fmt b =
   if b then Format.fprintf fmt " active"
 
 let process_open_section env ~active title =
-  bsync env ;
+  text env ;
   env.section <- succ env.section ;
   Pdoc.printf env.out
     "<span class=\"section level%d\">\
@@ -664,6 +681,7 @@ let process_open_section env ~active title =
 
 let process_close_section env title =
   env.section <- pred env.section ;
+  text env ;
   Pdoc.printf env.out
     "<span class=\"comment\">{</span>\
      <span class=\"attribute section-toggle\">%s</span>\
@@ -681,7 +699,7 @@ let process_open_module env key =
       Token.error env.input "unexpected module or theory" ;
     let forking = env.block in
     let prelude = Pdoc.buffered env.out in
-    let id = fetch_id env.input in
+    let id = fetch_module_id env.input in
     let href = resolve env () in
     let kind = String.capitalize_ascii key in
     let url = Docref.derived env.src id in
@@ -718,6 +736,7 @@ let process_open_module env key =
     env.block <- Raw ;
     env.file <- Pre ;
     bsync env ;
+    text env ;
     env.scope <- Some id ;
     env.theory <- theory ;
     env.declared <- Sid.empty ;
@@ -730,6 +749,7 @@ let process_open_module env key =
 
 let process_close_module env key =
   begin
+    text env ;
     Pdoc.printf env.out "%a@\n</pre>@\n" Pdoc.pp_keyword key ;
     process_module_axioms env ;
     Pdoc.close env.out ;
@@ -815,7 +835,11 @@ let process_space env =
   match env.mode with
   | Body | Div | List _ -> ()
   | Par | Item _ | Head _ | Emph | Bold -> env.space <- true
-  | Pre -> bsync env ; Pdoc.pp_print_char env.out ' '
+  | Pre ->
+    match env.indent with
+    | Code -> bsync env ; Pdoc.pp_print_char env.out ' '
+    | Head n -> env.indent <- Head (succ n)
+    | Lines(l,n) -> env.indent <- Lines(l,succ n)
 
 let process_newline env =
   match env.mode with
@@ -831,9 +855,10 @@ let process_newline env =
     head env buffer level ;
     pop env
   | Pre ->
-    bsync env ;
-    Pdoc.pp_print_char env.out '\n' ;
-    Pdoc.flush env.out
+    match env.indent with
+    | Code -> env.indent <- Lines(1,0)
+    | Lines(n,_) -> env.indent <- Lines(succ n,0)
+    | Head _ -> env.indent <- Head 0
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -921,7 +946,8 @@ let process_markdown ~wenv ~henv ~out:dir ~title file =
     let crc = Pdoc.null () in
     let env = {
       dir ; src ; input ; out ; crc ; wenv ; henv ;
-      space = false ; block = Raw; mode = Body ; file = Body ; stack = [] ;
+      space = false ;  indent = Code ;
+      block = Raw; mode = Body ; file = Body ; stack = [] ;
       scope = None ; theory = None ;
       clone_decl = 0 ;
       clone_path = "" ;
@@ -954,7 +980,8 @@ let process_source ~wenv ~henv ~out:dir ~title file =
   let input = Token.input file in
   let env = {
     dir ; src ; input ; out ; crc ; wenv ; henv ;
-    space = false ; block = Raw ; mode = Body ; file = Body ; stack = [] ;
+    space = false ; indent = Code ;
+    block = Raw ; mode = Body ; file = Body ; stack = [] ;
     scope = None ; theory = None ;
     clone_decl = 0 ;
     clone_path = "" ;
