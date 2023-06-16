@@ -244,7 +244,7 @@
     -u update proofs (default)
     -r replay proofs (no update)
     -m minimize proofs (or update)
-    -i run why-3 IDE on error(s) (implies -s)
+    -i run Why3 IDE on error(s) (implies -s)
     -s save why3 session
     -h report hypotheses and axioms
     --host HOST Proof Server host (default: none)

@@ -464,7 +464,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
             "-u", Arg.Unit (set mode `Update), "update proofs (default)";
             "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
             "-m", Arg.Unit (set mode `Minimize), "minimize proofs (or update)";
-            "-i", Arg.Set ide, "run why-3 IDE on error(s) (implies -s)";
+            "-i", Arg.Set ide, "run Why3 IDE on error(s) (implies -s)";
             "-s", Arg.Set session, "save why3 session";
             "-h", Arg.Set axioms, "report hypotheses and axioms";
           ] @

@@ -5,7 +5,7 @@ short, from `why3find` point of view, a why3 package is a collection of why3
 source files and associated documentation and OCaml extracted code that are installed at
 predefined site(s). It is designed to be fully compatible with Dune and OPAM.
 
-- [Why3 Packages](#why-3-packages)
+- [Why3 Packages](#why3-packages)
 - [Package Development](#package-development)
 - [Package Configuration](#package-configuration)
 - [Package Proving](#package-proving)
@@ -266,7 +266,7 @@ documentation comments. The following documentation snippets show examples:
       - {p:qid} properties (lemmas or axiom)
       - {v:qid} program values
 
-Notice tha why-3 references works across packages, assuming documentation of
+Notice that Why3 references works across packages, assuming documentation of
 external packages have been properly installed.
 
 *Code Sections* can be delimited with fold/unfold. This is especially useful to hide
