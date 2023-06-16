@@ -108,19 +108,12 @@
   <span class="keyword">module</span> <a id="">B</a><span title="1 value, 1 parameter" class="icon warning icofont-question-circle"></span><span title="Valid (no goals)" class="icon valid icofont-check"></span>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
     <span class="keyword">val</span> <a id="binop">binop</a><span title="Value Parameter" class="icon warning icofont-question-circle"></span> <a title="a.B.t" href="#t">t</a> <a title="a.B.t" href="#t">t</a> : <a title="a.B.t" href="#t">t</a>
-  
   </pre>
   <div class="doc">
   <p>B reference <code class="src"><a title="a.B.t" href="a.B.html#t">t</a></code></p>
-  </div>
-  <pre class="src">
-  
-  </pre>
-  <div class="doc">
   <p>A reference <code class="src"><a title="a.A.op" href="a.A.html#op">A.op</a></code></p>
   </div>
   <pre class="src">
-  
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>

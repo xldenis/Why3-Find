@@ -1,0 +1,25 @@
+(** Testing Empty Lines *)
+
+(** Module A *)
+module A
+
+  (** Some doc *)
+
+  (** More doc *)
+
+  type t
+
+  (** Some doc *)
+  (** More doc *)
+  type u
+
+  type w
+  type k
+
+  type r
+  (** Doc between *)
+  type s
+
+  (** End doc *)
+
+end

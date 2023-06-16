@@ -65,13 +65,11 @@
   <span class="keyword">module</span> <a id="">A</a><span title="1 parameter" class="icon remark icofont-question-circle"></span><span title="Valid (no goals)" class="icon valid icofont-check"></span>
   
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span> = <a id="A">A</a> | <a id="B">B</a>
-  
   </pre>
   <div class="doc">
   <p>Testing match&ndash;with</p>
   </div>
   <pre class="src">
-  
     <span class="keyword">let</span> <a id="swap">swap</a> (e : <a title="p.a.A.t" href="#t">t</a>) : <a title="p.a.A.t" href="#t">t</a> =
       <span class="keyword">match</span> e <span class="keyword">with</span>
       | <a title="p.a.A.A" href="#A">A</a> -&gt; <a title="p.a.A.B" href="#B">B</a>
@@ -106,13 +104,11 @@
   
     <span class="keyword">val</span> <a id="wrong">wrong</a><span title="Value Parameter" class="icon warning icofont-question-circle"></span> () : unit
       <span class="keyword">raises</span> { <a title="p.a.B.Error" href="#Error">Error</a> }
-  
   </pre>
   <div class="doc">
   <p>Testing try&ndash;with</p>
   </div>
   <pre class="src">
-  
     <span class="keyword">let</span> <a id="test">test</a> () : unit =
       <span class="keyword">try</span> <a title="p.a.B.wrong" href="#wrong">wrong</a> () <span class="keyword">with</span> <a title="p.a.B.Error" href="#Error">Error</a> -&gt; () <span class="keyword">end</span>
   

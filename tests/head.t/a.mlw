@@ -1,19 +1,22 @@
 (**
-  Headings.
+  Testing Headings.
 
   # Title A
   Section 1
+*)
 
-  ## Title B
+(** ## Title B *)
+
+(**
   Section 1.1
 
-  ## Title E
+  ## Title C
   Section 1.2
 
-  ### Title C
+  ### Title D
   Section 1.2.1
 
-  ### Title D
+  ### Title E
   Section 1.2.2
 
   ## Title F
