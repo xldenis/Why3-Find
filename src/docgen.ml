@@ -246,20 +246,17 @@ let pp_vlink ?href fmt r =
 
 let pp_verdict = pp_vlink ?href:None
 
-let href_proofs env path fmt =
-  Format.fprintf fmt "%s.proof.html#%s" env.src.urlbase path
-
-let process_proofs_summary env ?(crc=true) ?path = function
+let process_proofs_summary env ?(crc=true) id = function
   | None -> ()
   | Some Docref.{ proofs } ->
     let stuck,proved =
       Docref.Mstr.fold
         (fun _g c (s,p) -> s + Crc.stuck c , p + Crc.proved c)
         proofs (0,0) in
-    let href = Option.map (href_proofs env) path in
+    let href fmt = Format.fprintf fmt "%s.proof.html#%s" env.src.urlbase id in
     let r = Crc.nverdict ~stuck ~proved in
-    Pdoc.pp env.out (pp_vlink ?href) r ;
-    if crc && path <> None then Pdoc.pp env.crc pp_verdict r
+    Pdoc.pp env.out (pp_vlink ~href) r ;
+    if crc then Pdoc.pp env.crc pp_verdict r
 
 let rec child n fmt crc =
   Format.fprintf fmt "@\n%a" Pdoc.pp_spaces n ;
@@ -410,7 +407,10 @@ let process_href env (href : Docref.href) s =
 
   | Docref.Def(id,proof) ->
     env.declared <- Sid.add id.self env.declared ;
-    Pdoc.printf env.out "<a id=\"%a\">%a</a>" Id.pp_aname id Pdoc.pp_html s ;
+    if id.id_qid = [] then
+      Pdoc.pp env.out Pdoc.pp_html s
+    else
+      Pdoc.printf env.out "<a id=\"%a\">%a</a>" Id.pp_aname id Pdoc.pp_html s ;
     process_axioms env id ;
     process_proof env id proof
 
@@ -710,10 +710,10 @@ let process_open_module env key =
       "<pre class=\"src\">%a <a title=\"%s.%s\" href=\"%s\">%s</a>"
       Pdoc.pp_keyword key path id url id ;
     Pdoc.printf env.crc
-      "<pre class=\"src\">%a <a href=\"%s\">%s.%s</a>"
-      Pdoc.pp_keyword key url path id ;
+      "<pre class=\"src\">%a <a id=\"%s\" href=\"%s\">%s.%s</a>"
+      Pdoc.pp_keyword key id url path id ;
     process_axioms_summary env theory ; (* out *)
-    process_proofs_summary env ~path theory ; (* out & crc *)
+    process_proofs_summary env id theory ; (* out & crc *)
     Pdoc.printf env.out "</pre>@." ;
     Pdoc.printf env.crc "</pre>@." ;
     let file = Filename.concat env.dir url in
@@ -744,7 +744,7 @@ let process_open_module env key =
     Pdoc.pp_print_char env.out ' ' ;
     process_href env href id ;
     process_axioms_summary env theory ;
-    process_proofs_summary env ~crc:false ~path theory ;
+    process_proofs_summary env ~crc:false id theory ;
   end
 
 let process_close_module env key =

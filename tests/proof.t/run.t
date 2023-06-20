@@ -11,7 +11,7 @@
   <body>
   <header>Module <code class="src"><a href="clones.index.html">clones</a>.A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="">A</a><span title="3 parameters, 2 hypotheses" class="icon warning icofont-question-circle"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+  <span class="keyword">module</span> A<span title="3 parameters, 2 hypotheses" class="icon warning icofont-question-circle"></span><a href="clones.proof.html#A" title="Valid (one goal)" class="icon valid icofont-check"></a>
   
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
     <span class="keyword">constant</span> <a id="e">e</a><span title="Parameter" class="icon remark icofont-question-circle"></span> : <a title="clones.A.t" href="#t">t</a>
@@ -36,7 +36,7 @@
   <body>
   <header>Module <code class="src"><a href="clones.index.html">clones</a>.B</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="">B</a><span title="1 parameter, 1 hypothesis" class="icon warning icofont-question-circle"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+  <span class="keyword">module</span> B<span title="1 parameter, 1 hypothesis" class="icon warning icofont-question-circle"></span><a href="clones.proof.html#B" title="Valid (one goal)" class="icon valid icofont-check"></a>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
     <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
@@ -62,7 +62,7 @@
   <body>
   <header>Module <code class="src"><a href="certif.index.html">certif</a>.S</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="">S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span>
+  <span class="keyword">module</span> S<a href="certif.proof.html#S" title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></a>
   
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.Int.html#Int_">Int</a>
     <span class="keyword">use</span> int.<a title="int.MinMax" href="https://why3.lri.fr/stdlib/int.MinMax.html#MinMax_">MinMax</a>
@@ -117,8 +117,8 @@
     alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)
   </pre>
   <h1>Proof Certificates</h1>
-  <pre class="src"><span class="keyword">module</span> <a href="clones.A.html">clones.A</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
-  <pre class="src"><span class="keyword">module</span> <a href="clones.B.html">clones.B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="A" href="clones.A.html">clones.A</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="B" href="clones.B.html">clones.B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
   <pre class="src"> <span class="keyword">goal</span> <a id="B.A.commutative" href="clones.B.html#A.commutative">A.commutative</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
       alt-ergo 400ns</pre><script type="text/javascript" src="script.js"></script>
   </body>
@@ -140,7 +140,7 @@
     z3         n=33 570ms (Z3,4.8.6)
   </pre>
   <h1>Proof Certificates</h1>
-  <pre class="src"><span class="keyword">module</span> <a href="certif.S.html">certif.S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="S" href="certif.S.html">certif.S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span></pre>
   <pre class="src"> <span class="keyword">goal</span> <a id="S.mixfix%20%5B%5D" href="certif.S.html#mixfix%20%5B%5D">([])</a><span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
       split_vc<span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
         alt-ergo 4ms
