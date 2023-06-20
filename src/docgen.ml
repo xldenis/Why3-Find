@@ -249,7 +249,7 @@ let pp_verdict = pp_vlink ?href:None
 let href_proofs env path fmt =
   Format.fprintf fmt "%s.proof.html#%s" env.src.urlbase path
 
-let process_proofs_summary env ?path = function
+let process_proofs_summary env ?(crc=true) ?path = function
   | None -> ()
   | Some Docref.{ proofs } ->
     let stuck,proved =
@@ -259,7 +259,7 @@ let process_proofs_summary env ?path = function
     let href = Option.map (href_proofs env) path in
     let r = Crc.nverdict ~stuck ~proved in
     Pdoc.pp env.out (pp_vlink ?href) r ;
-    if path <> None then Pdoc.pp env.crc pp_verdict r
+    if crc && path <> None then Pdoc.pp env.crc pp_verdict r
 
 let rec child n fmt crc =
   Format.fprintf fmt "@\n%a" Pdoc.pp_spaces n ;
@@ -744,7 +744,7 @@ let process_open_module env key =
     Pdoc.pp_print_char env.out ' ' ;
     process_href env href id ;
     process_axioms_summary env theory ;
-    process_proofs_summary env theory ;
+    process_proofs_summary env ~crc:false ~path theory ;
   end
 
 let process_close_module env key =
