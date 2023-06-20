@@ -49,7 +49,7 @@ let op_char = [
 ]
 
 let ident = ['A'-'Z' 'a'-'z' '_'] ['A'-'Z' 'a'-'z' '0'-'9' '_' '\'']*
-let operator = op_char+ | "[]" | "[<-]" | "[]<-"
+let operator = op_char+ | "[]" | "[<-]" | "[]<-" | "[..]" | "[_..]" | "[.._]"
 
 let space = [' ' '\t']
 let title = ['A' - 'Z' 'a'-'z' '0'-'9' '-' ' ']+

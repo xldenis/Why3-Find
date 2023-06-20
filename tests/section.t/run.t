@@ -11,7 +11,7 @@
   <body>
   <header>Module <code class="src"><a href="a.index.html">a</a>.A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> <a id="">A</a><span title="1 value, 1 parameter" class="icon warning icofont-question-circle"></span><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span>
+  <span class="keyword">module</span> A<span title="1 value, 1 parameter" class="icon warning icofont-question-circle"></span><a href="a.proof.html#A" title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.List.html#List_">List</a>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
     <span class="keyword">val</span> <span class="keyword">constant</span> <a id="neutral">neutral</a> : <a title="a.A.t" href="#t">t</a>

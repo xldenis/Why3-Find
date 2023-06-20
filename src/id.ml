@@ -116,7 +116,8 @@ let rec unwrap_any s = function
       unwrap ~prefix s
     else unwrap_any s others
 
-let of_infix s = unwrap_any s ["prefix ";"infix ";"mixfix "]
+let of_infix s =
+  unwrap_any s ["prefix ";"infix ";"mixfix "]
 
 let pp_infix fmt a = Format.pp_print_string fmt (of_infix a)
 
