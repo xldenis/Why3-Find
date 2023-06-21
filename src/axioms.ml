@@ -68,20 +68,22 @@ let init (wenv : Wenv.env) =
 (* --- Theory & Module Assumed Symbols                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-type kind =
+type param =
   | Type of Ty.tysymbol
   | Logic of Term.lsymbol
+  | Param of Expr.rsymbol
   | Value of Expr.rsymbol
   | Axiom of Decl.prsymbol
 
 let ident = function
   | Type ty -> ty.ts_name
   | Logic ls -> ls.ls_name
+  | Param rs -> rs.rs_name
   | Value rs -> rs.rs_name
   | Axiom pr -> pr.pr_name
 
 type parameter = {
-  kind : kind ;
+  param : param ;
   builtin : (Runner.prover * string) list ;
   extern : string option ;
 }
@@ -103,11 +105,11 @@ let empty = {
   cloned_theories = [] ;
 }
 
-let add henv hs kind =
-  let id = ident kind in
+let add henv hs param =
+  let id = ident param in
   let builtin = Mid.find_def [] id henv.builtins in
   let extern = Mid.find_opt id henv.externals in
-  let prm = { kind ; builtin ; extern } in
+  let prm = { param ; builtin ; extern } in
   let assumed = if is_assumed prm then succ hs.assumed else hs.assumed in
   { hs with assumed ; locals = Mid.add id prm hs.locals }
 
@@ -128,18 +130,13 @@ let nodef (td : _ Ty.type_def) = match td with
 let add_type henv hs (ty : Ty.tysymbol) =
   if nodef ty.ts_def then add henv hs (Type ty) else hs
 
-let add_prop henv hs (pk : Decl.prop_kind) (pr : Decl.prsymbol) =
-  match pk with
-  | Plemma | Pgoal -> hs
-  | Paxiom -> add henv hs (Axiom pr)
-
 let add_decl henv (hs : signature) (d : Decl.decl) : signature =
   match d.d_node with
+  | Dlogic _ | Dind _ | Ddata _ -> hs
   | Dtype ty -> add_type henv hs ty
-  | Ddata _ -> hs
   | Dparam ls -> add henv hs (Logic ls)
-  | Dlogic _ | Dind _ -> hs
-  | Dprop(pk,pr,_) -> add_prop henv hs pk pr
+  | Dprop(Paxiom,pr,_) -> add henv hs (Axiom pr)
+  | Dprop((Plemma|Pgoal),_,_) -> hs
 
 let add_tdecl henv (hs : signature) (d : Theory.tdecl) : signature =
   match d.td_node with
@@ -156,24 +153,75 @@ let theory_signature henv (thy : Theory.theory) =
 (* -------------------------------------------------------------------------- *)
 
 let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
-  let its = it.itd_its in
-  if nodef its.its_def then add henv hs (Type its.its_ts) else hs
+  if it.itd_fields = [] && it.itd_constructors = [] then
+    let its = it.itd_its in
+    if nodef its.its_def then add henv hs (Type its.its_ts) else hs
+  else hs
+
+let rec cany (ce : Expr.cexp) =
+  match ce.c_node with
+  | Cany -> true
+  | Cfun { e_node = Eexec(ce,_) } -> cany ce
+  | _ -> false
+
+let is_var x (a : Term.term) =
+  match a.t_node with
+  | Tvar y -> Term.vs_equal x y
+  | _ -> false
+
+(* Detect (fun result -> result = a) s.t. check a *)
+let constrained_post check (p : Ity.post) =
+  match p.t_node with
+  | Teps rp ->
+    let r,post = Term.t_open_bound rp in
+    begin
+      match post.t_node with
+      | Ttrue -> false
+      | Tapp(f,[a;b]) ->
+        not Term.(ls_equal f ps_equ) ||
+        not @@ is_var r a ||
+        not @@ check b
+      | _ -> true
+    end
+  | _ -> true
+
+let constrained (rs : Expr.rsymbol) =
+  rs.rs_cty.cty_pre <> [] ||
+  not @@ Ity.Mxs.is_empty rs.rs_cty.cty_xpost ||
+  match rs.rs_logic with
+  | RLlemma -> true
+  | RLnone -> rs.rs_cty.cty_post <> []
+  | RLpv pv ->
+    let check = is_var pv.pv_vs in
+    List.exists (constrained_post check) rs.rs_cty.cty_post
+  | RLls ls ->
+    rs.rs_cty.cty_post <> [] &&
+    let xs = List.map (fun pv -> pv.Ity.pv_vs) rs.rs_cty.cty_args in
+    let check (a : Term.term) =
+      match a.t_node with
+      | Tapp(f,es) ->
+        (try Term.ls_equal f ls && List.for_all2 is_var xs es
+         with Invalid_argument _ -> false)
+      | _ -> false
+    in List.exists (constrained_post check) rs.rs_cty.cty_post
 
 let add_rsymbol henv hs (rs : Expr.rsymbol) (cexp : Expr.cexp) =
-  match cexp.c_node with
-  | Cany when not @@ Id.lemma rs.rs_name -> add henv hs (Value rs)
-  | _ -> hs
-
-let add_letrec henv (hs : signature) (def : Expr.rec_defn) : signature =
-  add_rsymbol henv hs def.rec_sym def.rec_fun
+  if Id.lemma rs.rs_name then hs else
+    match rs.rs_logic with
+    | RLlemma -> hs
+    | RLnone | RLpv _ | RLls _ ->
+      if cany cexp then
+        if constrained rs then
+          add henv hs (Value rs)
+        else
+          add henv hs (Param rs)
+      else hs
 
 let add_pdecl henv (hs : signature) (d : Pdecl.pdecl) : signature =
   match d.pd_node with
   | PDtype tys -> List.fold_left (add_mtype henv) hs tys
-  | PDlet (LDvar _) -> hs
   | PDlet (LDsym(r,c)) -> add_rsymbol henv hs r c
-  | PDlet (LDrec defs) -> List.fold_left (add_letrec henv) hs defs
-  | PDexn _ -> hs
+  | PDlet (LDvar _ | LDrec _) | PDexn _ -> hs
   | PDpure -> List.fold_left (add_decl henv) hs d.pd_pure
 
 let rec add_munit henv (hs : signature) (m : Pmodule.mod_unit) : signature =
@@ -206,7 +254,7 @@ let parameter s id = Mid.find_opt id s.locals
 let parameters s = Mid.values s.locals
 let assumed s =
   List.filter_map
-    (fun p -> if is_assumed p then Some p.kind else None)
+    (fun p -> if is_assumed p then Some p.param else None)
     (Mid.values s.locals)
 
 (* -------------------------------------------------------------------------- *)

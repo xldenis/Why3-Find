@@ -165,7 +165,7 @@ let print_axioms_stats () =
 
 let report_parameter ~lib ~signature (prm : Axioms.parameter) =
   try
-    let id = Axioms.ident prm.kind in
+    let id = Axioms.ident prm.param in
     let ident = Id.resolve ~lib id in
     let std = ident.id_pkg = `Stdlib in
     let builtin = prm.builtin <> [] in
@@ -175,9 +175,10 @@ let report_parameter ~lib ~signature (prm : Axioms.parameter) =
     then
       begin
         let kind, param =
-          match prm.kind with
+          match prm.param with
           | Type _ -> "type ", parameters
           | Logic _ -> "logic", parameters
+          | Param _ -> "param", parameters
           | Value _ -> "value", procedures
           | Axiom _ -> "axiom", hypotheses
         in

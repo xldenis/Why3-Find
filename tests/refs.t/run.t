@@ -65,7 +65,7 @@
   <p>Local references <code class="src"><a title="a.A.t" href="a.A.html#t">A.t</a></code>, <code class="src"><a title="a.B.binop" href="a.B.html#binop">binop</a></code></p>
   </div>
   <pre class="src"><span class="keyword">theory</span> <a title="a.A" href="a.A.html">A</a><span title="2 parameters" class="icon remark icofont-question-circle"></span><a href="a.proof.html#A" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
-  <pre class="src"><span class="keyword">module</span> <a title="a.B" href="a.B.html">B</a><span title="1 value, 1 parameter" class="icon warning icofont-question-circle"></span><a href="a.proof.html#B" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="a.B" href="a.B.html">B</a><span title="2 parameters" class="icon remark icofont-question-circle"></span><a href="a.proof.html#B" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
   <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
@@ -105,9 +105,9 @@
   <body>
   <header>Module <code class="src"><a href="a.index.html">a</a>.B</code></header>
   <pre class="src">
-  <span class="keyword">module</span> B<span title="1 value, 1 parameter" class="icon warning icofont-question-circle"></span><a href="a.proof.html#B" title="Valid (no goals)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> B<span title="2 parameters" class="icon remark icofont-question-circle"></span><a href="a.proof.html#B" title="Valid (no goals)" class="icon valid icofont-check"></a>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
-    <span class="keyword">val</span> <a id="binop">binop</a><span title="Value Parameter" class="icon warning icofont-question-circle"></span> <a title="a.B.t" href="#t">t</a> <a title="a.B.t" href="#t">t</a> : <a title="a.B.t" href="#t">t</a>
+    <span class="keyword">val</span> <a id="binop">binop</a><span title="Parameter" class="icon remark icofont-question-circle"></span> <a title="a.B.t" href="#t">t</a> <a title="a.B.t" href="#t">t</a> : <a title="a.B.t" href="#t">t</a>
   </pre>
   <div class="doc">
   <p>B reference <code class="src"><a title="a.B.t" href="a.B.html#t">t</a></code></p>

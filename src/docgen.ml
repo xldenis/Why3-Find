@@ -302,12 +302,12 @@ let process_axioms env (id : Id.id) =
   | Some { signature } ->
     match Axioms.parameter signature id.self with
     | None -> ()
-    | Some { kind ; builtin ; extern } ->
+    | Some { param ; builtin ; extern } ->
       match builtin, extern with
       | [],None ->
         let cla,title =
-          match kind with
-          | Type _ | Logic _ -> icon_parameters, "Parameter"
+          match param with
+          | Type _ | Logic _ | Param _ -> icon_parameters, "Parameter"
           | Value _ -> icon_assumed, "Value Parameter"
           | Axiom _ -> icon_assumed, "Hypothesis"
         in
@@ -324,12 +324,13 @@ let process_axioms env (id : Id.id) =
         in
         Pdoc.ppt env.out (pp_mark ~cla:icon_externals ~title)
 
-let process_assumed env Axioms.{ kind } =
+let process_assumed env Axioms.{ param } =
   try
-    let id = Id.resolve ~lib:env.src.lib @@ Axioms.ident kind in
-    let key = match kind with
+    let id = Id.resolve ~lib:env.src.lib @@ Axioms.ident param in
+    let key = match param with
       | Type _ -> "type"
       | Logic _ -> "logic"
+      | Param _ -> "param"
       | Value _ -> "value"
       | Axiom _ -> "axiom"
     in
@@ -359,10 +360,10 @@ let add_axiom hs (p : Axioms.parameter) =
   if not @@ Axioms.is_assumed p then
     { hs with ext = succ hs.ext }
   else
-    match p.kind with
+    match p.param with
     | Axiom _ -> { hs with hyp = succ hs.hyp }
     | Value _ -> { hs with pvs = succ hs.pvs }
-    | Type _ | Logic _ -> { hs with prm = succ hs.prm }
+    | Type _ | Logic _ | Param _ -> { hs with prm = succ hs.prm }
 
 let pp_axioms fmt { ext ; prm ; hyp ; pvs } =
   if ext+prm+hyp+pvs > 0 then
