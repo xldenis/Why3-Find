@@ -34,6 +34,7 @@ val signature : henv -> Theory.theory -> signature
 type param =
   | Type of Ty.tysymbol
   | Logic of Term.lsymbol
+  | Param of Expr.rsymbol
   | Value of Expr.rsymbol
   | Axiom of Decl.prsymbol
 

@@ -5,9 +5,9 @@
   Theory foo.T: ✔ (2)
   Dependencies:
     External   value int.Int.(=) (stdlib, extern)
-    External   value int.Int.(-) (stdlib, builtin, extern)
-    External   value int.Int.(+) (stdlib, builtin, extern)
-    External   value int.Int.(*) (stdlib, builtin, extern)
+    External   param int.Int.(-) (stdlib, builtin, extern)
+    External   param int.Int.(+) (stdlib, builtin, extern)
+    External   param int.Int.(*) (stdlib, builtin, extern)
     External   value int.Int.(<) (stdlib, builtin, extern)
   $ cat foo/proof.json
   {

@@ -307,7 +307,7 @@ let process_axioms env (id : Id.id) =
       | [],None ->
         let cla,title =
           match param with
-          | Type _ | Logic _ -> icon_parameters, "Parameter"
+          | Type _ | Logic _ | Param _ -> icon_parameters, "Parameter"
           | Value _ -> icon_assumed, "Value Parameter"
           | Axiom _ -> icon_assumed, "Hypothesis"
         in
@@ -330,6 +330,7 @@ let process_assumed env Axioms.{ param } =
     let key = match param with
       | Type _ -> "type"
       | Logic _ -> "logic"
+      | Param _ -> "param"
       | Value _ -> "value"
       | Axiom _ -> "axiom"
     in
@@ -362,7 +363,7 @@ let add_axiom hs (p : Axioms.parameter) =
     match p.param with
     | Axiom _ -> { hs with hyp = succ hs.hyp }
     | Value _ -> { hs with pvs = succ hs.pvs }
-    | Type _ | Logic _ -> { hs with prm = succ hs.prm }
+    | Type _ | Logic _ | Param _ -> { hs with prm = succ hs.prm }
 
 let pp_axioms fmt { ext ; prm ; hyp ; pvs } =
   if ext+prm+hyp+pvs > 0 then

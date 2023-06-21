@@ -178,6 +178,7 @@ let report_parameter ~lib ~signature (prm : Axioms.parameter) =
           match prm.param with
           | Type _ -> "type ", parameters
           | Logic _ -> "logic", parameters
+          | Param _ -> "param", parameters
           | Value _ -> "value", procedures
           | Axiom _ -> "axiom", hypotheses
         in

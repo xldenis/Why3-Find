@@ -71,12 +71,14 @@ let init (wenv : Wenv.env) =
 type param =
   | Type of Ty.tysymbol
   | Logic of Term.lsymbol
+  | Param of Expr.rsymbol
   | Value of Expr.rsymbol
   | Axiom of Decl.prsymbol
 
 let ident = function
   | Type ty -> ty.ts_name
   | Logic ls -> ls.ls_name
+  | Param rs -> rs.rs_name
   | Value rs -> rs.rs_name
   | Axiom pr -> pr.pr_name
 
@@ -156,21 +158,70 @@ let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
     if nodef its.its_def then add henv hs (Type its.its_ts) else hs
   else hs
 
-let add_rsymbol henv hs (rs : Expr.rsymbol) (cexp : Expr.cexp) =
-  match cexp.c_node with
-  | Cany when not @@ Id.lemma rs.rs_name -> add henv hs (Value rs)
-  | _ -> hs
+let rec cany (ce : Expr.cexp) =
+  match ce.c_node with
+  | Cany -> true
+  | Cfun { e_node = Eexec(ce,_) } -> cany ce
+  | _ -> false
 
-let add_letrec henv (hs : signature) (def : Expr.rec_defn) : signature =
-  add_rsymbol henv hs def.rec_sym def.rec_fun
+let is_var x (a : Term.term) =
+  match a.t_node with
+  | Tvar y -> Term.vs_equal x y
+  | _ -> false
+
+(* Detect (fun result -> result = a) s.t. check a *)
+let constrained_post check (p : Ity.post) =
+  match p.t_node with
+  | Teps rp ->
+    let r,post = Term.t_open_bound rp in
+    begin
+      match post.t_node with
+      | Ttrue -> false
+      | Tapp(f,[a;b]) ->
+        not Term.(ls_equal f ps_equ) ||
+        not @@ is_var r a ||
+        not @@ check b
+      | _ -> true
+    end
+  | _ -> true
+
+let constrained (rs : Expr.rsymbol) =
+  rs.rs_cty.cty_pre <> [] ||
+  not @@ Ity.Mxs.is_empty rs.rs_cty.cty_xpost ||
+  match rs.rs_logic with
+  | RLlemma -> true
+  | RLnone -> rs.rs_cty.cty_post <> []
+  | RLpv pv ->
+    let check = is_var pv.pv_vs in
+    List.exists (constrained_post check) rs.rs_cty.cty_post
+  | RLls ls ->
+    rs.rs_cty.cty_post <> [] &&
+    let xs = List.map (fun pv -> pv.Ity.pv_vs) rs.rs_cty.cty_args in
+    let check (a : Term.term) =
+      match a.t_node with
+      | Tapp(f,es) ->
+        (try Term.ls_equal f ls && List.for_all2 is_var xs es
+         with Invalid_argument _ -> false)
+      | _ -> false
+    in List.exists (constrained_post check) rs.rs_cty.cty_post
+
+let add_rsymbol henv hs (rs : Expr.rsymbol) (cexp : Expr.cexp) =
+  if Id.lemma rs.rs_name then hs else
+    match rs.rs_logic with
+    | RLlemma -> hs
+    | RLnone | RLpv _ | RLls _ ->
+      if cany cexp then
+        if constrained rs then
+          add henv hs (Value rs)
+        else
+          add henv hs (Param rs)
+      else hs
 
 let add_pdecl henv (hs : signature) (d : Pdecl.pdecl) : signature =
   match d.pd_node with
   | PDtype tys -> List.fold_left (add_mtype henv) hs tys
-  | PDlet (LDvar _) -> hs
   | PDlet (LDsym(r,c)) -> add_rsymbol henv hs r c
-  | PDlet (LDrec defs) -> List.fold_left (add_letrec henv) hs defs
-  | PDexn _ -> hs
+  | PDlet (LDvar _ | LDrec _) | PDexn _ -> hs
   | PDpure -> List.fold_left (add_decl henv) hs d.pd_pure
 
 let rec add_munit henv (hs : signature) (m : Pmodule.mod_unit) : signature =
