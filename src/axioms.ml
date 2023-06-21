@@ -68,7 +68,7 @@ let init (wenv : Wenv.env) =
 (* --- Theory & Module Assumed Symbols                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-type kind =
+type param =
   | Type of Ty.tysymbol
   | Logic of Term.lsymbol
   | Value of Expr.rsymbol
@@ -81,7 +81,7 @@ let ident = function
   | Axiom pr -> pr.pr_name
 
 type parameter = {
-  kind : kind ;
+  param : param ;
   builtin : (Runner.prover * string) list ;
   extern : string option ;
 }
@@ -103,11 +103,11 @@ let empty = {
   cloned_theories = [] ;
 }
 
-let add henv hs kind =
-  let id = ident kind in
+let add henv hs param =
+  let id = ident param in
   let builtin = Mid.find_def [] id henv.builtins in
   let extern = Mid.find_opt id henv.externals in
-  let prm = { kind ; builtin ; extern } in
+  let prm = { param ; builtin ; extern } in
   let assumed = if is_assumed prm then succ hs.assumed else hs.assumed in
   { hs with assumed ; locals = Mid.add id prm hs.locals }
 
@@ -128,18 +128,13 @@ let nodef (td : _ Ty.type_def) = match td with
 let add_type henv hs (ty : Ty.tysymbol) =
   if nodef ty.ts_def then add henv hs (Type ty) else hs
 
-let add_prop henv hs (pk : Decl.prop_kind) (pr : Decl.prsymbol) =
-  match pk with
-  | Plemma | Pgoal -> hs
-  | Paxiom -> add henv hs (Axiom pr)
-
 let add_decl henv (hs : signature) (d : Decl.decl) : signature =
   match d.d_node with
+  | Dlogic _ | Dind _ | Ddata _ -> hs
   | Dtype ty -> add_type henv hs ty
-  | Ddata _ -> hs
   | Dparam ls -> add henv hs (Logic ls)
-  | Dlogic _ | Dind _ -> hs
-  | Dprop(pk,pr,_) -> add_prop henv hs pk pr
+  | Dprop(Paxiom,pr,_) -> add henv hs (Axiom pr)
+  | Dprop((Plemma|Pgoal),_,_) -> hs
 
 let add_tdecl henv (hs : signature) (d : Theory.tdecl) : signature =
   match d.td_node with
@@ -156,8 +151,10 @@ let theory_signature henv (thy : Theory.theory) =
 (* -------------------------------------------------------------------------- *)
 
 let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
-  let its = it.itd_its in
-  if nodef its.its_def then add henv hs (Type its.its_ts) else hs
+  if it.itd_fields = [] && it.itd_constructors = [] then
+    let its = it.itd_its in
+    if nodef its.its_def then add henv hs (Type its.its_ts) else hs
+  else hs
 
 let add_rsymbol henv hs (rs : Expr.rsymbol) (cexp : Expr.cexp) =
   match cexp.c_node with
@@ -206,7 +203,7 @@ let parameter s id = Mid.find_opt id s.locals
 let parameters s = Mid.values s.locals
 let assumed s =
   List.filter_map
-    (fun p -> if is_assumed p then Some p.kind else None)
+    (fun p -> if is_assumed p then Some p.param else None)
     (Mid.values s.locals)
 
 (* -------------------------------------------------------------------------- *)

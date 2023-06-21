@@ -34,7 +34,7 @@
   <div class="doc">
   <p>Before A</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a><span title="1 parameter" class="icon remark icofont-question-circle"></span><a href="p.a.proof.html#A" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a><a href="p.a.proof.html#A" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
   <div class="doc">
   <p>Before B</p>
   </div>
@@ -62,9 +62,9 @@
   <p>Introducing A</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> A<span title="1 parameter" class="icon remark icofont-question-circle"></span><a href="p.a.proof.html#A" title="Valid (no goals)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> A<a href="p.a.proof.html#A" title="Valid (no goals)" class="icon valid icofont-check"></a>
   
-    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span> = <a id="A">A</a> | <a id="B">B</a>
+    <span class="keyword">type</span> <a id="t">t</a> = <a id="A">A</a> | <a id="B">B</a>
   </pre>
   <div class="doc">
   <p>Testing match&ndash;with</p>

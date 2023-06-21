@@ -31,21 +31,21 @@ open Why3
 type signature
 val signature : henv -> Theory.theory -> signature
 
-type kind =
+type param =
   | Type of Ty.tysymbol
   | Logic of Term.lsymbol
   | Value of Expr.rsymbol
   | Axiom of Decl.prsymbol
 
 type parameter = {
-  kind : kind ;
+  param : param ;
   builtin : (Runner.prover * string) list ;
   extern : string option ;
 }
 
-val ident : kind -> Ident.ident
+val ident : param -> Ident.ident
 val is_assumed : parameter -> bool
-val assumed : signature -> kind list
+val assumed : signature -> param list
 val parameter : signature -> Ident.ident -> parameter option
 val parameters : signature -> parameter list
 val dependencies : henv -> ?self:bool -> Theory.theory list -> Theory.theory list
