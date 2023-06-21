@@ -58,10 +58,10 @@
   <body>
   <header>Library <code>a</code></header>
   <div class="doc">
-  <p>Infix reference: <code class="src"><a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.Int.html#infix%20+_19">int.Int.(+)</a></code></p>
-  <p>Prefix reference: <code class="src"><a title="int.Int.(-)" href="https://why3.lri.fr/stdlib/int.Int.html#prefix%20-_18">int.Int.(-_)</a></code></p>
-  <p>Value reference: <code class="src"><a title="int.MinMax.max" href="https://why3.lri.fr/stdlib/int.MinMax.html#max_67">int.MinMax.max</a></code></p>
-  <p>Logic reference: <code class="src"><a title="int.MinMax.max" href="https://why3.lri.fr/stdlib/int.MinMax.html#max_148">int.MinMax.max</a></code></p>
+  <p>Infix reference: <code class="src"><a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">int.Int.(+)</a></code></p>
+  <p>Prefix reference: <code class="src"><a title="int.Int.(-)" href="https://why3.lri.fr/stdlib/int.html#prefix%20-_18">int.Int.(-_)</a></code></p>
+  <p>Value reference: <code class="src"><a title="int.MinMax.max" href="https://why3.lri.fr/stdlib/int.html#max_67">int.MinMax.max</a></code></p>
+  <p>Logic reference: <code class="src"><a title="int.MinMax.max" href="https://why3.lri.fr/stdlib/int.html#max_148">int.MinMax.max</a></code></p>
   <p>Local references <code class="src"><a title="a.A.t" href="a.A.html#t">A.t</a></code>, <code class="src"><a title="a.B.binop" href="a.B.html#binop">binop</a></code></p>
   </div>
   <pre class="src"><span class="keyword">theory</span> <a title="a.A" href="a.A.html">A</a><span title="2 parameters" class="icon remark icofont-question-circle"></span><a href="a.proof.html#A" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
