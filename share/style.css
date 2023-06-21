@@ -60,12 +60,12 @@ pre.src {
     color: teal;
 }
 
-.src a:hover {
-    background: lightgreen;
+.src a:target {
+    background: lightblue;
 }
 
-.src a:target {
-    background: orange;
+.src a:hover {
+    background: lightgreen;
 }
 
 /* -------------------------------------------------------------------------- */
