@@ -191,13 +191,13 @@ let pp_ahref ~scope fmt r =
     pp_selector fmt r.id_qid
   | `Stdlib ->
     Format.pp_print_string fmt "https://why3.lri.fr/stdlib/" ;
-    pp_htmlfile fmt r ;
     let id = r.self in
     let name = id.id_string in
+    List.iter (pp_prefix fmt) r.id_lib ;
     if r.id_qid = [] then
-      Format.fprintf fmt "#%a_" encode_why3 name
+      Format.fprintf fmt "html#%a_" encode_why3 name
     else
-      Format.fprintf fmt "#%a_%d" encode_why3 name (line id)
+      Format.fprintf fmt "html#%a_%d" encode_why3 name (line id)
 
 let pp_proof_aname fmt r =
   pp_anchor fmt (r.id_mod :: r.id_qid)
