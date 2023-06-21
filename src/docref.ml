@@ -101,7 +101,7 @@ let strip_lemma (id : ident) = function
                | Use _ | Clone _ | Meta _ -> ()
                | Decl d ->
                  match d.d_node with
-                 | Dprop(Paxiom, { pr_name = ax },_) ->
+                 | Dprop(_, { pr_name = ax },_) ->
                    if ax.id_string ^ "'lemma" = id.id_string then
                      raise (Found ax)
                  | _ -> ()
@@ -115,10 +115,12 @@ let resolve ~src ~theory ~infix pos =
     let loc = extract ~infix pos in
     match Why3.Glob.find loc with
     | (id, Why3.Glob.Def, _) ->
+      let id = strip_lemma id theory in
       let proof = find_proof id theory in
-      Def (Id.resolve ~lib:src.lib @@ strip_lemma id theory, proof)
+      Def (Id.resolve ~lib:src.lib id, proof)
     | (id, Why3.Glob.Use, _) ->
-      Ref (Id.resolve ~lib:src.lib @@ strip_lemma id theory)
+      let id = strip_lemma id theory in
+      Ref (Id.resolve ~lib:src.lib id)
   with Not_found -> NoRef
 
 (* -------------------------------------------------------------------------- *)
