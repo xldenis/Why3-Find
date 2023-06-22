@@ -287,6 +287,7 @@
     -p  same as --package
     -D  same as --driver
     -t document title (default none)
+    -u output generated URI
     -o destination directory (default "html")
     -help  Display this list of options
     --help  Display this list of options

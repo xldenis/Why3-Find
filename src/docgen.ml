@@ -1071,7 +1071,7 @@ let process ~wenv ~henv ~out ~title file =
   else
     Utils.failwith "Don't known what to do with %S" file
 
-let generate ~out ~title ~files =
+let generate ~out ~title ~files ~url =
   begin
     let wenv, henv = Docref.init () in
     Utils.mkdirs @@ Filename.concat out "fonts" ;
@@ -1082,7 +1082,9 @@ let generate ~out ~title ~files =
     shared ~out ~file:"fonts/icofont.woff2" ;
     List.iter (process ~wenv ~henv ~title ~out) files ;
     index ~out ~title ;
-    Utils.log "Generated file://%s/index.html@." @@ Utils.absolute out ;
+    Utils.log "Generated %s%s/index.html@."
+      (if url then "file://" else "")
+      (Utils.absolute out) ;
   end
 
 (* -------------------------------------------------------------------------- *)
