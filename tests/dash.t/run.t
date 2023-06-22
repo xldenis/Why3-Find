@@ -2,7 +2,7 @@
 --- Testing Styles
 --------------------------------------------------------------------------
   $ why3find doc a.mlw
-  Generated $TESTCASE_ROOT/html
+  Generated $TESTCASE_ROOT/html/index.html
   $ cat html/a.index.html
   <html>
   <head>
@@ -12,7 +12,7 @@
   <title>Library a</title>
   </head>
   <body>
-  <header>Library <code>a</code></header>
+  <header>Library <a href="index.html"><code>a</code></a></header>
   <div class="doc">
   <p>List &amp; Dashes</p>
   <p>Text with normal&ndash;size dash.</p>

@@ -2,7 +2,7 @@
 --- Testing References
 --------------------------------------------------------------------------
   $ why3find doc main.md a.mlw
-  Generated $TESTCASE_ROOT/html
+  Generated $TESTCASE_ROOT/html/index.html
   $ find html | sort
   html
   html/a.A.html
@@ -13,6 +13,7 @@
   html/fonts/icofont.woff
   html/fonts/icofont.woff2
   html/icofont.min.css
+  html/index.html
   html/main.html
   html/script.js
   html/style.css
@@ -56,7 +57,7 @@
   <title>Library a</title>
   </head>
   <body>
-  <header>Library <code>a</code></header>
+  <header>Library <a href="index.html"><code>a</code></a></header>
   <div class="doc">
   <p>Infix reference: <code class="src"><a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">int.Int.(+)</a></code></p>
   <p>Prefix reference: <code class="src"><a title="int.Int.(-)" href="https://why3.lri.fr/stdlib/int.html#prefix%20-_18">int.Int.(-_)</a></code></p>

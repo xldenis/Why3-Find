@@ -1,5 +1,5 @@
   $ why3find doc clones.mlw certif.mlw
-  Generated $TESTCASE_ROOT/html
+  Generated $TESTCASE_ROOT/html/index.html
   $ cat html/clones.A.html
   <html>
   <head>

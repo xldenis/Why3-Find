@@ -925,6 +925,15 @@ let parse env =
   done
 
 (* -------------------------------------------------------------------------- *)
+(* --- Chapters                                                           --- *)
+(* -------------------------------------------------------------------------- *)
+
+type chapter = { doc: bool ; hfile: string ; page: string }
+let chapters = ref []
+let chapter ~doc ~hfile ~page =
+  chapters := { doc ; hfile ; page } :: !chapters
+
+(* -------------------------------------------------------------------------- *)
 (* --- Titling Document                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -942,7 +951,8 @@ let process_markdown ~wenv ~henv ~out:dir ~title file =
     let basename = Filename.chop_extension @@ Filename.basename file in
     let page = String.capitalize_ascii basename in
     let title = document_title ~title ~page in
-    let ofile = Filename.concat dir (basename ^ ".html") in
+    let hfile = basename ^ ".html" in
+    let ofile = Filename.concat dir hfile in
     let out = Pdoc.output ~file:ofile ~title in
     let crc = Pdoc.null () in
     let env = {
@@ -957,6 +967,7 @@ let process_markdown ~wenv ~henv ~out:dir ~title file =
       declared = Sid.empty ;
       opened = 0 ; section = 0 ;
     } in
+    chapter ~doc:true ~hfile ~page ;
     Pdoc.printf out "<header>%a</header>@\n" Pdoc.pp_html title ;
     Pdoc.flush out ;
     push env Div ;
@@ -973,7 +984,8 @@ let process_source ~wenv ~henv ~out:dir ~title file =
   let path = String.concat "." src.lib in
   let page = Printf.sprintf "Library %s" path in
   let title = document_title ~title ~page in
-  let ofile = Filename.concat dir (src.urlbase ^ ".index.html") in
+  let hfile = src.urlbase ^ ".index.html"in
+  let ofile = Filename.concat dir hfile in
   let out = Pdoc.output ~file:ofile ~title in
   let crc = Pdoc.output
       ~file:(Filename.concat dir (src.urlbase ^ ".proof.html"))
@@ -992,7 +1004,10 @@ let process_source ~wenv ~henv ~out:dir ~title file =
     opened = 0 ; section = 0 ;
   } in
   begin
-    Pdoc.printf out "<header>Library <code>%s</code></header>@\n" path ;
+    chapter ~doc:false ~hfile ~page ;
+    Pdoc.printf out
+      "<header>Library \
+       <a href=\"index.html\"><code>%s</code></a></header>@\n" path ;
     Pdoc.flush out ;
     Pdoc.printf crc "<header>Proofs (<code>%s</code>)</header>@\n" path ;
     Pdoc.printf crc "<h1>Prover Calibration</h1>@\n<pre class=\"src\">@\n" ;
@@ -1007,6 +1022,36 @@ let process_source ~wenv ~henv ~out:dir ~title file =
     Pdoc.close_all out ;
     Pdoc.close_all crc ;
   end
+
+(* -------------------------------------------------------------------------- *)
+(* --- Generating Index                                                   --- *)
+(* -------------------------------------------------------------------------- *)
+
+let pp_chapters out ~title cs =
+  if cs <> [] then
+    begin
+      Pdoc.printf out "<h1>%s</h1>@\n<div class=\"doc\">@\n<ul>@\n" title ;
+      List.iter
+        (fun c ->
+           Pdoc.printf out "<li><a href=\"%s\">%s</a></li>@\n" c.hfile c.page
+        ) cs ;
+      Pdoc.printf out "</ul>@\n</div>@." ;
+    end
+
+let index ~out:dir ~title =
+  let hfile = "index.html" in
+  if List.for_all (fun c -> c.hfile <> hfile) !chapters then
+    begin
+      let title = document_title ~title ~page:"Index" in
+      let ofile = Filename.concat dir hfile in
+      let out = Pdoc.output ~file:ofile ~title in
+      Pdoc.printf out "<header>%s</header>@\n" title ;
+      let doc,package = List.partition (fun c -> c.doc) @@ List.rev !chapters in
+      pp_chapters out ~title:"Documentation" doc ;
+      pp_chapters out ~title:"Package" package ;
+      Pdoc.flush out ;
+      Pdoc.close_all out ;
+    end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Main Doc Command                                                   --- *)
@@ -1028,7 +1073,6 @@ let process ~wenv ~henv ~out ~title file =
 
 let generate ~out ~title ~files =
   begin
-    Utils.log "Generated %s@." @@ Utils.absolute out ;
     let wenv, henv = Docref.init () in
     Utils.mkdirs @@ Filename.concat out "fonts" ;
     shared ~out ~file:"style.css" ;
@@ -1036,7 +1080,9 @@ let generate ~out ~title ~files =
     shared ~out ~file:"icofont.min.css" ;
     shared ~out ~file:"fonts/icofont.woff" ;
     shared ~out ~file:"fonts/icofont.woff2" ;
-    List.iter (process ~wenv ~henv ~title ~out) files
+    List.iter (process ~wenv ~henv ~title ~out) files ;
+    index ~out ~title ;
+    Utils.log "Generated file://%s/index.html@." @@ Utils.absolute out ;
   end
 
 (* -------------------------------------------------------------------------- *)
