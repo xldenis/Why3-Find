@@ -36,14 +36,12 @@ type result =
 val id : prover -> string
 val name : prover -> string
 val title : ?strict:bool -> prover -> string
-val relax : string -> string
-val relaxed : string -> bool
 
 val all : env -> prover list
 val find : env -> pattern:string -> prover
-val select : env -> string list -> prover list
-val default : env -> prover list
 val prover : env -> id:string -> prover
+val select : env -> patterns:string list -> prover list
+val default : env -> prover list
 
 val map : (float -> float) -> result -> result
 val crop : timeout:float -> result -> result option

@@ -324,9 +324,9 @@ let prove_files ~mode ~session ~log ~axioms ~files =
     let env = Wenv.init () in
     let time = Wenv.time () in
     let maxdepth = Wenv.depth () in
-    let provers = Wenv.provers () in
+    let patterns = Wenv.provers () in
     let tactics = Wenv.tactics () in
-    let provers = Runner.select env provers in
+    let provers = Runner.select env ~patterns in
     let unsuccess = ref [] in
     let minimize = (mode = `Minimize) in
     let log : log0 = match log with

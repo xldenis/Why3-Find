@@ -92,15 +92,26 @@ The common options are given below:
     --extra-config CFG    # Extra why3 configuration file
     -p|--package PKG      # Package to depend on
     -P|--prover PRV       # Provers to be used
-    -T|--transf TAC       # Tactics to be used
+    -T|--tactic TAC       # Tactics to be used
     -D|--driver DRV       # Extraction driver to be used for OCaml
+
+Package, prover, tactic and driver options can be used for adding, removing
+or re-ordering multiple items at a time. Multiple items must be separated by
+coma (`,`) and each item can be prefixed with: `+` to add the item (default),
+`-` to remove the item or `!` to remove all existing items. Using `n:a` will
+move or insert item `a` into position `n` in the list, starting from `0`.
+If no prefix is specified, `+` is assumed (add).
+
+For instance, specifying `--prover -cvc5,+alt-ergo,2:z3` will remove `cvc5` from
+the current configuration then add `alt-ergo` and finally insert or move `z3` to
+position 2.
 
 The command `why3find config` can be used to manage the package configuration.
 Typical examples are:
 
     why3find config                  # Show current config
-    why3find config […]              # Add packages, provers, etc. (and save)
-    why3find config --remove […]     # Remove packages, provers, etc. (and save)
+    why3find config --reset          # Restore default condig (and save)
+    why3find config […]              # Manage packages, provers, etc. (and save)
 
 ## Package Proving
 

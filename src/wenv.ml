@@ -82,7 +82,7 @@ let parse_item s =
   let n = String.length s in
   if n > 1 then
     match s.[0] with
-    | '=' -> Set (String.sub s 1 (n-1))
+    | '!' -> Set (String.sub s 1 (n-1))
     | '+' -> Add (String.sub s 1 (n-1))
     | '-' -> Sub (String.sub s 1 (n-1))
     | _ ->
@@ -96,12 +96,45 @@ let parse_item s =
       let d = digits 0 in
       if d > 0 then
         let at = int_of_string (String.sub s 0 d) in
-        Insert(at,String.sub s d (n-d))
+        Insert(at,String.sub s (d+1) (n-d-1))
       else Add s
   else Add s
 
-let _parse_args s =
-  List.map parse_item @@ String.split_on_char ',' s
+let parse opt =
+  List.map parse_item @@ List.concat @@ List.map (String.split_on_char ',') opt
+
+let relax name =
+  String.lowercase_ascii @@ List.hd @@ String.split_on_char '@' name
+
+let relaxed p = (relax p = p)
+
+let prefixeq p q = relax p = relax q
+
+let mem ~prefix x cfg =
+  if prefix then
+    List.exists (fun y -> prefixeq x y) cfg
+  else
+    List.mem x cfg
+
+let test ~prefix x y =
+  if prefix then prefixeq x y else x = y
+
+let sub ~prefix x y = not @@ test ~prefix x y
+
+let rec insert ~prefix n e k = function
+  | [] -> [e]
+  | (x::rxs) as xs ->
+    if k < n then
+      let ys = insert ~prefix n e (succ k) rxs in
+      if test ~prefix e x then ys else x :: ys
+    else
+      e :: List.filter (sub ~prefix e) xs
+
+let process ~prefix cfg = function
+  | Set e -> [e]
+  | Add e -> if mem ~prefix e cfg then cfg else ( cfg @ [e] )
+  | Sub e -> List.filter (sub ~prefix e) cfg
+  | Insert(n,e) -> insert ~prefix n e 0 cfg
 
 (* -------------------------------------------------------------------------- *)
 (* --- Command Line Arguments                                             --- *)
@@ -124,19 +157,13 @@ let add r a =
   modified := true ;
   r := a :: !r
 
-let filter ~prefix a =
-  if prefix then
-    fun x -> not @@ List.exists (String.starts_with ~prefix:x) a
-  else
-    fun x -> not @@ List.mem x a
-
-let gets fd ?(prefix=false) ?(default=[]) r =
+let gets fd ?(prefix=false) ?(default=[]) ropt =
   load () ;
   let cfg =
     try get fd ~of_json:(Json.(jmap jstring))
     with Not_found -> default
   in
-  cfg @ List.filter (filter ~prefix cfg) @@ List.rev !r
+  List.fold_left (process ~prefix) cfg (parse !ropt)
 
 type opt = [
   | `All

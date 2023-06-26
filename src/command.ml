@@ -378,8 +378,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       (* --- Provers ----- *)
       let pconfig = Wenv.provers () in
       let list_provers = !list || !relax || !strict in
-      let pconfig = if !relax then List.map Runner.relax pconfig else pconfig in
-      let provers = Runner.select env @@ pconfig in
+      let patterns = if !relax then List.map Wenv.relax pconfig else pconfig in
+      let provers = Runner.select env ~patterns in
       if !calibrate then
         Calibration.calibrate_provers ~saved:!save env provers
       else
@@ -402,7 +402,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
           Format.printf " - depth: %d@." (Wenv.depth ()) ;
         end ;
       if list_provers && provers <> [] then
-        Format.printf " - @[<hov 2>provers: %a@]@." pp_list provers ;
+        Format.printf " - @[<hov 2>provers: %a%t@]@." pp_list provers
+          (fun fmt -> if patterns = [] then Format.fprintf fmt " (default)") ;
       if !list && tactics <> [] then
         Format.printf " - @[<hov 2>tactics: %a@]@." pp_list tactics ;
       if !list && drivers <> [] then
@@ -431,7 +432,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
           | true,false -> Some "project configuration"
           | false,true -> Some "local configuration"
           | true,true -> Some "project and local configurations"
-        in Option.iter (Format.printf "Use '-s' to save %s@.") target
+        in Option.iter (Format.printf "Would update %s@.") target
     end
 
 (* -------------------------------------------------------------------------- *)

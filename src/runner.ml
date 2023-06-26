@@ -145,23 +145,6 @@ let find env ~pattern =
     Format.eprintf "Invalid prover pattern '%s'@." pattern ;
     exit 2
 
-let relax name =
-  String.lowercase_ascii @@
-  match String.split_on_char ',' name with
-  | shortname :: _ :: _ -> shortname
-  | _ -> name
-
-let relaxed p = (String.lowercase_ascii p = p)
-
-let all (env : Wenv.env) =
-  List.sort compare_prover @@
-  Whyconf.Mprover.fold
-    (fun _id config prvs ->
-       if config.Whyconf.prover.prover_altern = "" then
-         (load env config) :: prvs
-       else prvs
-    ) (Whyconf.get_provers env.wconfig) []
-
 let find_default env name =
   List.map (load env) @@
   try [find_shortcut env name] with Not_found ->
@@ -173,10 +156,18 @@ let default env =
   find_default env "cvc4" @
   find_default env "cvc5"
 
-let select env provers =
-  if provers = []
-  then default env
-  else List.map (fun pattern -> find env ~pattern) provers
+let select env ~patterns =
+  if patterns = [] then default env
+  else List.map (fun pattern -> find env ~pattern) patterns
+
+let all (env : Wenv.env) =
+  List.sort compare_prover @@
+  Whyconf.Mprover.fold
+    (fun _id config prvs ->
+       if config.Whyconf.prover.prover_altern = "" then
+         (load env config) :: prvs
+       else prvs
+    ) (Whyconf.get_provers env.wconfig) []
 
 (* -------------------------------------------------------------------------- *)
 (* --- Prover Result                                                      --- *)
