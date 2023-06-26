@@ -380,7 +380,7 @@ let save_config (env : Wenv.env) =
       let mem = Whyconf.memlimit main in
       let config = Whyconf.User.set_limits ~time ~mem ~j env.wconfig in
       Whyconf.save_config config ;
-      Format.printf "Why3 config. saved to %s@." file
+      Format.printf "Why3 config saved to %s@." file
 
 let maxjobs (env : Wenv.env) =
   if !jobs > 0 then !jobs else

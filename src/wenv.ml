@@ -241,7 +241,7 @@ let save () =
           (fun fd js fds -> (fd,js) :: fds)
           sections []
       in Json.to_file config (`Assoc sections) ;
-      Format.printf "Configuration saved to %s@."
+      Format.printf "Why3find config saved to %s@."
         (Filename.concat (Sys.getcwd ()) config) ;
       loaded := false ;
     end

@@ -13,6 +13,7 @@ build:
 	dune build
 
 test:
+	@rm -f why3find.json
 	dune test
 
 lint:

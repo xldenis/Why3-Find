@@ -377,6 +377,7 @@ let calibrate_provers ~saved env provers =
     in
     Utils.flush () ;
     let profile = create () in
+    Format.printf "Calibration:@." ;
     List.iter
       (fun (prv,res) ->
          match res with
@@ -408,6 +409,7 @@ let velocity_provers env provers =
         ) provers
     in
     Utils.flush () ;
+    Format.printf "Velocity:@." ;
     List.iter
       (fun (prv,res) ->
          match res with

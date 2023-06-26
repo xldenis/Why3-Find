@@ -386,6 +386,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       if !velocity then
         Calibration.velocity_provers env provers ;
       let provers = List.map (Runner.title ~strict:!strict) provers in
+      if provers = [] then
+        Format.eprintf "Warning: no provers, use -P or why3 config detect@." ;
       (* --- Transformations ----- *)
       let tactics = Wenv.tactics () in
       (* --- Drivers ----- *)
@@ -394,23 +396,17 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       if list_provers then
         begin
           let j = Runner.maxjobs env in
-          Format.printf "Prover Configuration:@." ;
+          Format.printf "Configuration:@." ;
           Format.printf " - jobs: %d@." j ;
           Format.printf " - time: %a@." Utils.pp_time (Wenv.time ()) ;
           Format.printf " - depth: %d@." (Wenv.depth ()) ;
         end ;
-      if provers = [] then
-        Format.printf "  (no provers, use -P or why3 config detect)@."
-      else
-      if list_provers && not !velocity && not !calibrate then
+      if list_provers && provers <> [] then
         Format.printf " - @[<hov 2>provers: %a@]@." pp_list provers ;
       if !list && tactics <> [] then
         Format.printf " - @[<hov 2>tactics: %a@]@." pp_list tactics ;
       if !list && drivers <> [] then
-        begin
-          Format.printf "Extraction Drivers:@." ;
-          List.iter (Format.printf " - %s@.") drivers ;
-        end ;
+        Format.printf " - @[<hov 2>drivers: %a@]@." pp_list drivers ;
       (* --- Updating -------------- *)
       if !save then
         begin
