@@ -1,5 +1,5 @@
   $ why3find doc mypkg -o foo
-  Generated $TESTCASE_ROOT/foo
+  Generated $TESTCASE_ROOT/foo/index.html
   $ why3find install --dune --doc foo mypkg foo.cfg foo.drv
   install (source)   mypkg/foo.mlw
   install (proof)    mypkg/foo/proof.json
@@ -8,6 +8,7 @@
   install (html)     html/fonts/icofont.woff
   install (html)     html/fonts/icofont.woff2
   install (html)     html/icofont.min.css
+  install (html)     html/index.html
   install (html)     html/mypkg.foo.S.html
   install (html)     html/mypkg.foo.T.html
   install (html)     html/mypkg.foo.index.html
@@ -33,6 +34,7 @@
       (foo/fonts/icofont.woff as mypkg/html/fonts/icofont.woff)
       (foo/fonts/icofont.woff2 as mypkg/html/fonts/icofont.woff2)
       (foo/icofont.min.css as mypkg/html/icofont.min.css)
+      (foo/index.html as mypkg/html/index.html)
       (foo/mypkg.foo.S.html as mypkg/html/mypkg.foo.S.html)
       (foo/mypkg.foo.T.html as mypkg/html/mypkg.foo.T.html)
       (foo/mypkg.foo.index.html as mypkg/html/mypkg.foo.index.html)

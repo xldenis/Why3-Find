@@ -511,10 +511,12 @@ let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
       let files = ref [] in
       let title = ref "" in
       let out = ref "" in
+      let url = ref false in
       Arg.parse_argv argv
         begin
           Wenv.options ~packages:true ~drivers:true () @ [
             "-t", Arg.Set_string title, "document title (default none)" ;
+            "-u", Arg.Set url, "output generated URI" ;
             "-o", Arg.Set_string out,
             "destination directory (default \"html\")" ;
           ]
@@ -532,7 +534,7 @@ let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
       let title = !title in
       let files = Wenv.argfiles ~exts:[".md";".mlw"] @@ List.rev !files in
       let out = if !out = "" then "html" else Wenv.arg1 !out in
-      Docgen.generate ~out ~title ~files
+      Docgen.generate ~out ~title ~files ~url:!url
     end
 
 (* -------------------------------------------------------------------------- *)

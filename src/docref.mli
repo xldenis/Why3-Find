@@ -42,6 +42,7 @@ type clone = {
 
 type theory = {
   theory: Why3.Theory.theory;
+  depends: Why3.Theory.theory list;
   signature: Axioms.signature;
   clones: clone list ;
   proofs: Crc.crc Mstr.t ;

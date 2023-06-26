@@ -1,5 +1,5 @@
   $ why3find doc -D drivers.drv drivers.mlw
-  Generated $TESTCASE_ROOT/html
+  Generated $TESTCASE_ROOT/html/index.html
   $ cat html/drivers.A.html
   <html>
   <head>

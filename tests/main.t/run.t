@@ -2,7 +2,7 @@
 --- Generating Documentation
 --------------------------------------------------------------------------
   $ why3find doc p/a.mlw
-  Generated $TESTCASE_ROOT/html
+  Generated $TESTCASE_ROOT/html/index.html
 --------------------------------------------------------------------------
 --- Output Directory
 --------------------------------------------------------------------------
@@ -12,12 +12,35 @@
   html/fonts/icofont.woff
   html/fonts/icofont.woff2
   html/icofont.min.css
+  html/index.html
   html/p.a.A.html
   html/p.a.B.html
   html/p.a.index.html
   html/p.a.proof.html
   html/script.js
   html/style.css
+--------------------------------------------------------------------------
+--- Generated index
+--------------------------------------------------------------------------
+  $ cat html/index.html
+  <html>
+  <head>
+  <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <link rel="stylesheet" type="text/css" href="icofont.min.css">
+  <title>Index</title>
+  </head>
+  <body>
+  <header>Index</header>
+  <h1>Package</h1>
+  <div class="doc">
+  <ul>
+  <li><a href="p.a.index.html">Library p.a</a></li>
+  </ul>
+  </div>
+  <script type="text/javascript" src="script.js"></script>
+  </body>
+  </html>
 --------------------------------------------------------------------------
 --- Generated File p.a.html
 --------------------------------------------------------------------------
@@ -30,7 +53,7 @@
   <title>Library p.a</title>
   </head>
   <body>
-  <header>Library <code>p.a</code></header>
+  <header>Library <a href="index.html"><code>p.a</code></a></header>
   <div class="doc">
   <p>Before A</p>
   </div>

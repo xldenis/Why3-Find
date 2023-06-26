@@ -2,7 +2,7 @@
 --- Testing Headings
 --------------------------------------------------------------------------
   $ why3find doc a.mlw
-  Generated $TESTCASE_ROOT/html
+  Generated $TESTCASE_ROOT/html/index.html
   $ cat html/a.index.html
   <html>
   <head>
@@ -20,7 +20,7 @@
   <a class="toc3" href="#_5">Title E</a>
   <a class="toc2" href="#_6">Title F</a>
   </nav>
-  <header>Library <code>a</code></header>
+  <header>Library <a href="index.html"><code>a</code></a></header>
   <div class="doc">
   <p>Testing Headings.</p>
   <h1><a id="_1">Title A</a></h1>

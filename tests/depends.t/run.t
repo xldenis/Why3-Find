@@ -1,37 +1,25 @@
 --------------------------------------------------------------------------
---- Testing Styles
+--- Documentation Index
 --------------------------------------------------------------------------
-  $ why3find doc a.mlw
+  $ why3find doc b.mlw a.mlw d.mlw c.mlw
   Generated $TESTCASE_ROOT/html/index.html
-  $ cat html/a.index.html
+  $ cat html/index.html
   <html>
   <head>
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <link rel="stylesheet" type="text/css" href="style.css">
   <link rel="stylesheet" type="text/css" href="icofont.min.css">
-  <title>Library a</title>
+  <title>Index</title>
   </head>
   <body>
-  <header>Library <a href="index.html"><code>a</code></a></header>
+  <header>Index</header>
+  <h1>Package</h1>
   <div class="doc">
-  <p>List &amp; Dashes</p>
-  <p>Text with normal&ndash;size dash.</p>
-  <p>Text with long&mdash;size dash.</p>
   <ul>
-  <li>item (a)</li>
-  <ul>
-  <li>sub&ndash;item (a.1)</li>
-  <li>sub&ndash;item (a.2)</li>
-  </ul>
-  <li>item (b)</li>
-  <ul>
-  <li>sub&ndash;item (b.1)</li>
-  <li>sub&ndash;item (b.2)</li>
-  <ul>
-  <li>sub&ndash;sub&ndash;item !</li>
-  </ul>
-  </ul>
-  <li>item (c)</li>
+  <li><a href="a.index.html">Library a</a></li>
+  <li><a href="b.index.html">Library b</a></li>
+  <li><a href="c.index.html">Library c</a></li>
+  <li><a href="d.index.html">Library d</a></li>
   </ul>
   </div>
   <script type="text/javascript" src="script.js"></script>

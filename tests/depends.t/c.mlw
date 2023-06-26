@@ -1,0 +1,5 @@
+module C
+  use int.Int
+  use a.A
+  use b.B
+end

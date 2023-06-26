@@ -1,5 +1,5 @@
   $ why3find doc a.mlw
-  Generated $TESTCASE_ROOT/html
+  Generated $TESTCASE_ROOT/html/index.html
   $ cat html/a.A.html
   <html>
   <head>

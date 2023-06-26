@@ -60,6 +60,7 @@ type clone = {
 
 type theory = {
   theory: Thy.theory ;
+  depends: Thy.theory list ;
   signature : Axioms.signature ;
   clones: clone list ;
   proofs: Crc.crc Mstr.t ;
@@ -177,29 +178,32 @@ let section ~order ~path th =
       cat (ld @ md :: qd)
   in { cloned_path = p ; cloned_order = k }
 
-let iter_cloned_module ~order ~path f (m : Why3.Pmodule.pmodule) =
+let iter_module ~order ~path ~depend ~cloned (m : Why3.Pmodule.pmodule) =
   let open Why3.Pmodule in
   let rec walk = function
     | Uscope(_,mus) -> List.iter walk mus
     | Uclone mi ->
-      let s = section ~order ~path mi.mi_mod.mod_theory in
+      let thy = mi.mi_mod.mod_theory in
+      depend thy ;
+      let s = section ~order ~path thy in
       iter_mi (fun a b ->
-          if Sid.mem b m.mod_local && not @@ Id.lemma b then f s a b
+          if Sid.mem b m.mod_local && not @@ Id.lemma b then cloned s a b
         ) mi
+    | Uuse m -> depend m.mod_theory
     | _ -> ()
   in List.iter walk m.mod_units
 
-let iter_cloned_theory ~order ~path f thy =
+let iter_theory ~order ~path ~depend ~cloned thy =
   try
     let m = Why3.Pmodule.restore_module thy in
-    iter_cloned_module ~order ~path f m
+    iter_module ~order ~path ~depend ~cloned m
   with Not_found ->
     List.iter
       (fun d ->
          match d.Thy.td_node with
          | Clone(th,sm) ->
            let s = section ~order ~path th in
-           iter_sm (fun a b -> if Sid.mem b thy.th_local then f s a b) sm
+           iter_sm (fun a b -> if Sid.mem b thy.th_local then cloned s a b) sm
          | _ -> ()
       ) thy.th_decls
 
@@ -278,18 +282,21 @@ let parse ~wenv ~henv file =
   let theories =
     Mstr.map
       (fun (theory : Thy.theory) ->
+         let depends = ref [] in
+         let depend th = depends := th :: !depends in
          let clones = ref [] in
-         iter_cloned_theory ~order ~path
-           (fun s a b ->
-              clones := {
-                id_section = s ;
-                id_source = a ;
-                id_target = b ;
-              } :: !clones
-           ) theory ;
+         let cloned s a b =
+           clones := {
+             id_section = s ;
+             id_source = a ;
+             id_target = b ;
+           } :: !clones in
+         iter_theory ~order ~path ~depend ~cloned theory ;
          let proofs = zip_goals theory proofs in
          let signature = Axioms.signature henv theory in
-         { theory ; signature ; clones = !clones ; proofs }
+         {
+           theory ; depends = List.rev !depends ;
+           signature ; clones = List.rev !clones ; proofs }
       ) thys
   in
   { lib ; urlbase = path ; profile ; theories }
