@@ -26,7 +26,7 @@
 type crc =
   | Stuck
   | Prover of string * float
-  | Transf of {
+  | Tactic of {
       id : string ;
       children : crc list ;
       stuck : int ;

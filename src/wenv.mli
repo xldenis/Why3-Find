@@ -47,7 +47,7 @@ val depth : unit -> int
 val configs : unit -> string list
 val packages : unit -> string list
 val provers : unit -> string list
-val transfs : unit -> string list
+val tactics : unit -> string list
 val drivers : unit -> string list
 
 val set_time : float -> unit
@@ -55,7 +55,7 @@ val set_depth : int -> unit
 val set_configs : string list -> unit
 val set_packages : string list -> unit
 val set_provers : string list -> unit
-val set_transfs : string list -> unit
+val set_tactics : string list -> unit
 val set_drivers : string list -> unit
 
 val load : unit -> unit

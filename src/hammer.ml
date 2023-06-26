@@ -32,7 +32,7 @@ type henv = {
   client : Client.client option ;
   maxdepth : int ;
   provers : Runner.prover list ;
-  transfs : string list ;
+  tactics : string list ;
   minimize : bool ;
 }
 
@@ -162,8 +162,8 @@ let hammer2 ?excluded h : strategy =
   smap
     (fun tr -> apply h.env h.maxdepth tr [])
     (match excluded with
-     | None -> h.transfs
-     | Some id -> List.filter (fun t -> t <> id) h.transfs)
+     | None -> h.tactics
+     | Some id -> List.filter (fun t -> t <> id) h.tactics)
 
 let hammer henv =
   hammer0 henv >>>
@@ -185,7 +185,7 @@ let replay h p t =
 
 let update h p t = replay h p t >>> hammer h
 
-let transf h id cs =
+let tactic h id cs =
   apply h.env h.maxdepth id cs >>>
   hammer1 h >>>
   hammer2 ~excluded:id h >>>
@@ -206,13 +206,13 @@ let process h : strategy = fun n ->
         replay h p t n
       else
         update h p t n
-    | Transf { id ; children } ->
+    | Tactic { id ; children } ->
       if h.minimize then
         reduce h id children n
       else if n.replay then
         apply h.env h.maxdepth id children n
       else
-        transf h id children n
+        tactic h id children n
   with exn ->
     Utils.log "Process Error (%s)" @@ Printexc.to_string exn ;
     stuck

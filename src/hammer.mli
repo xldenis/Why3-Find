@@ -36,7 +36,7 @@ type henv = {
   client : Client.client option ;
   maxdepth : int ;
   provers : Runner.prover list ;
-  transfs : string list ;
+  tactics : string list ;
   minimize : bool ;
 }
 

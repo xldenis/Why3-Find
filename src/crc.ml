@@ -26,7 +26,7 @@
 type crc =
   | Stuck
   | Prover of string * float
-  | Transf of {
+  | Tactic of {
       id : string ;
       children : crc list ;
       stuck : int ;
@@ -36,32 +36,32 @@ type crc =
 let stuck = function
   | Stuck -> 1
   | Prover _ -> 0
-  | Transf { stuck } -> stuck
+  | Tactic { stuck } -> stuck
 
 let proved = function
   | Stuck -> 0
   | Prover _ -> 1
-  | Transf { proved } -> proved
+  | Tactic { proved } -> proved
 
 let size = function
   | Stuck | Prover _ -> 1
-  | Transf { stuck ; proved } -> stuck + proved
+  | Tactic { stuck ; proved } -> stuck + proved
 
 let complete = function
   | Stuck -> false
   | Prover _ -> true
-  | Transf { stuck } -> stuck = 0
+  | Tactic { stuck } -> stuck = 0
 
 let unknown = function
   | Stuck -> true
   | Prover _ -> false
-  | Transf { stuck ; proved } -> stuck > 0 && proved = 0
+  | Tactic { stuck ; proved } -> stuck > 0 && proved = 0
 
 let apply id children =
   let stuck = List.fold_left (fun n c -> n + stuck c) 0 children in
   let proved = List.fold_left (fun n c -> n + proved c) 0 children in
   if stuck > 0 && proved = 0 then Stuck else
-    Transf { id ; children ; stuck ; proved }
+    Tactic { id ; children ; stuck ; proved }
 
 type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
 
@@ -95,9 +95,9 @@ let rec to_json (a : crc) : Json.t = match a with
   | Stuck -> `Null
   | Prover(p,t) ->
     `Assoc [ "prover", `String p ; "time", `Float t]
-  | Transf { id ; children } ->
+  | Tactic { id ; children } ->
     `Assoc [
-      "transf", `String id;
+      "tactic", `String id;
       "children", `List (List.map to_json children);
     ]
 
@@ -108,7 +108,12 @@ let rec of_json (js : Json.t) : crc =
       let p = List.assoc "prover" fds |> Json.jstring in
       let t = List.assoc "time" fds |> Json.jfloat in
       Prover(p,t)
+    | `Assoc fds when List.mem_assoc "tactic" fds ->
+      let f = List.assoc "tactic" fds |> Json.jstring in
+      let xs = List.assoc "children" fds |> Json.jlist in
+      apply f (List.map of_json xs)
     | `Assoc fds when List.mem_assoc "transf" fds ->
+      (* Deprecated *)
       let f = List.assoc "transf" fds |> Json.jstring in
       let xs = List.assoc "children" fds |> Json.jlist in
       apply f (List.map of_json xs)
@@ -127,8 +132,8 @@ let window t0 t1 =
 let rec merge a b =
   match a, b with
   | Prover(p0,t0), Prover(p1,t1) when p0 = p1 && window t0 t1 -> a
-  | Transf { id = f ; children = xs } ,
-    Transf { id = g ; children = ys }
+  | Tactic { id = f ; children = xs } ,
+    Tactic { id = g ; children = ys }
     when f = g && List.length xs = List.length ys ->
     apply f (List.map2 merge xs ys)
   | _ -> b
@@ -164,12 +169,12 @@ let rec stats a b =
       incr (if a = b then unchanged else updated) ;
       incr nproved ;
 
-    | Transf _ , Prover _ ->
+    | Tactic _ , Prover _ ->
       incr (if complete a then minimized else fixed) ;
       incr nproved ;
 
-    | Transf { id = f0 ; children = cs0 } ,
-      Transf { id = f1 ; children = cs1 }
+    | Tactic { id = f0 ; children = cs0 } ,
+      Tactic { id = f1 ; children = cs1 }
       when f0 = f1 && List.length cs0 = List.length cs1 ->
       List.iter2 stats cs0 cs1
 
@@ -226,7 +231,7 @@ let shortname p =
 let rec dump fmt = function
   | Stuck -> Format.fprintf fmt "@{<red>Unknown@}"
   | Prover(p,t) -> Format.fprintf fmt "%s (%a)" (shortname p) Utils.pp_time t
-  | Transf { id ; children } ->
+  | Tactic { id ; children } ->
     Format.fprintf fmt "@[<hv 2>%s" id ;
     List.iter (dumpchild fmt) children ;
     Format.fprintf fmt "@]"

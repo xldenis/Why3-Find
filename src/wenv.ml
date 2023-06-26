@@ -65,7 +65,7 @@ let cfgs = ref []
 let drvs = ref []
 let pkgs = ref []
 let prvs = ref []
-let trfs = ref []
+let tacs = ref []
 
 (* -------------------------------------------------------------------------- *)
 (* --- Command Line Arguments                                             --- *)
@@ -122,14 +122,14 @@ let alloptions : (opt * string * Arg.spec * string) list = [
   `Prover,  "--time", Arg.Float (setv time), "TIME median proof time";
   `Prover,  "--depth", Arg.Int (setv depth), "DEPTH proof search limit";
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
-  `Prover,  "--transf", Arg.String (add trfs), "TRANS add transformation";
+  `Prover,  "--tactic", Arg.String (add tacs), "TAC add proof tactic";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
   `Config, "--remove", Arg.Set removal, "remove items from configuration";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
   `Prover,  "-t", Arg.Float (setv time), " same as --time";
   `Prover,  "-d", Arg.Float (setv time), " same as --depth";
   `Prover,  "-P", Arg.String (add prvs), " same as --prover";
-  `Prover,  "-T", Arg.String (add trfs), " same as --transf";
+  `Prover,  "-T", Arg.String (add tacs), " same as --tactic";
   `Driver,  "-D", Arg.String (add drvs), " same as --driver";
 ]
 
@@ -156,7 +156,7 @@ let depth () = getv "depth" ~of_json:Json.jint ~default:6 depth
 let configs () = gets "configs" cfgs
 let packages () = gets "packages" pkgs
 let provers () = gets "provers" ~prefix:true prvs
-let transfs () = gets "transfs" ~default:["split_vc";"inline_goal" ] trfs
+let tactics () = gets "tactics" ~default:["split_vc";"inline_goal" ] tacs
 let drivers () = gets "drivers" drvs
 
 let sets fd xs =
@@ -167,7 +167,7 @@ let set_depth = set "depth" ~to_json:(fun n -> `Int n)
 let set_configs = sets "configs"
 let set_packages = sets "packages"
 let set_provers = sets "provers"
-let set_transfs = sets "transfs"
+let set_tactics = sets "tactics"
 let set_drivers = sets "drivers"
 
 let arg0 file =

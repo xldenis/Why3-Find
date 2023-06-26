@@ -325,7 +325,7 @@ let prove_files ~mode ~session ~log ~axioms ~files =
     let time = Wenv.time () in
     let maxdepth = Wenv.depth () in
     let provers = Wenv.provers () in
-    let transfs = Wenv.transfs () in
+    let tactics = Wenv.tactics () in
     let provers = Runner.select env provers in
     let unsuccess = ref [] in
     let minimize = (mode = `Minimize) in
@@ -336,7 +336,7 @@ let prove_files ~mode ~session ~log ~axioms ~files =
     Hammer.run {
       env ;
       client = Client.connect env ;
-      time ; maxdepth ; provers ; transfs ; minimize ;
+      time ; maxdepth ; provers ; tactics ; minimize ;
     } ;
     if Utils.tty then
       begin

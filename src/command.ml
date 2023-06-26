@@ -321,10 +321,15 @@ let () = register ~name:"query" ~args:"[PKG...]"
 (* --- CONFIGURATION                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
+let pp_list =
+  Format.pp_print_list
+    ~pp_sep:(fun fmt () -> Format.fprintf fmt ",@ ")
+    Format.pp_print_string
+
 let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
-      let list = ref false in
-      let save = ref false in
+      let list = ref true in
+      let save = ref true in
       let strict = ref false in
       let relax = ref false in
       let calibrate = ref false in
@@ -337,11 +342,11 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
           [
             "-m", Arg.Set calibrate, "calibrate provers (master)";
             "-v", Arg.Set velocity, "evaluate prover velocity (local)";
-            "-l", Arg.Set list, "list final configuration";
-            "-s", Arg.Set save, "save project configuration";
+            "--quiet", Arg.Clear list, "do not list final configuration";
+            "--dry", Arg.Clear save, "do not save final configuration";
             "--relax", Arg.Set relax, "relax prover version constraints";
             "--strict", Arg.Set strict, "save strict prover versions";
-            "--detect", Arg.Set detect, "update why3 config detect";
+            "--detect", Arg.Set detect, "detect and update why3 config";
           ]
         end
         noargv
@@ -376,10 +381,10 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       if list_provers then
         begin
           let j = Runner.maxjobs env in
-          Format.printf "Provers Configuration:@." ;
+          Format.printf "Prover Configuration:@." ;
+          Format.printf " - proof jobs: %d@." j ;
           Format.printf " - proof time: %a@." Utils.pp_time (Wenv.time ()) ;
           Format.printf " - proof depth: %d@." (Wenv.depth ()) ;
-          Format.printf " - parallel provers: %d@." j ;
         end ;
       let pconfig = if !relax then List.map Runner.relax pconfig else pconfig in
       let provers = Runner.select env @@ pconfig in
@@ -396,17 +401,11 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
         Format.printf "  (no provers, use -P or why3 config detect)@."
       else
       if list_provers && not !velocity && not !calibrate then
-        if List.for_all Runner.relaxed provers then
-          Format.printf " - provers: %s@." (String.concat ", " provers)
-        else
-          List.iter (Format.printf " - %s@.") provers ;
+        Format.printf " - @[<hov 2>provers: %a@]@." pp_list provers ;
       (* --- Transformations ----- *)
-      let transfs = Wenv.transfs () in
-      if !list && transfs <> [] then
-        begin
-          Format.printf "Proof Transformations:@." ;
-          List.iter (Format.printf " - %s@.") transfs ;
-        end ;
+      let tactics = Wenv.tactics () in
+      if !list && tactics <> [] then
+        Format.printf " - @[<hov 2>tactics: %a@]@." pp_list tactics ;
       (* --- Drivers ----- *)
       let drivers = Wenv.drivers () in
       if !list && drivers <> [] then
@@ -424,7 +423,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
               Wenv.set_configs cfgs ;
               Wenv.set_packages pkgs ;
               Wenv.set_provers provers ;
-              Wenv.set_transfs transfs ;
+              Wenv.set_tactics tactics ;
               Wenv.set_drivers drivers ;
               Wenv.save () ;
             end ;

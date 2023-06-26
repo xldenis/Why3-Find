@@ -188,24 +188,24 @@
     --time TIME median proof time
     --depth DEPTH proof search limit
     --prover PRV add automated prover
-    --transf TRANS add transformation
+    --tactic TAC add proof tactic
     --driver DRV add extraction driver
     --remove remove items from configuration
     -p  same as --package
     -t  same as --time
     -d  same as --depth
     -P  same as --prover
-    -T  same as --transf
+    -T  same as --tactic
     -D  same as --driver
     -c force cache update
     -j JOBS max parallel provers
     -m calibrate provers (master)
     -v evaluate prover velocity (local)
-    -l list final configuration
-    -s save project configuration
+    --quiet do not list final configuration
+    --dry do not save final configuration
     --relax relax prover version constraints
     --strict save strict prover versions
-    --detect update why3 config detect
+    --detect detect and update why3 config
     -help  Display this list of options
     --help  Display this list of options
   
@@ -229,14 +229,14 @@
     --time TIME median proof time
     --depth DEPTH proof search limit
     --prover PRV add automated prover
-    --transf TRANS add transformation
+    --tactic TAC add proof tactic
     --driver DRV add extraction driver
     --remove remove items from configuration
     -p  same as --package
     -t  same as --time
     -d  same as --depth
     -P  same as --prover
-    -T  same as --transf
+    -T  same as --tactic
     -D  same as --driver
     -c force cache update
     -j JOBS max parallel provers

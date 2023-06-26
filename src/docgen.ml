@@ -265,7 +265,7 @@ let rec child n fmt crc =
     Format.fprintf fmt "stuck<span class=\"%s\"></span>" icon_failed
   | Crc.Prover(p,t) ->
     Format.fprintf fmt "%s %a" (Crc.shortname p) Utils.pp_time t
-  | Crc.Transf { id ; children ; stuck ; proved } ->
+  | Crc.Tactic { id ; children ; stuck ; proved } ->
     Format.fprintf fmt "%s%a" id pp_verdict (Crc.nverdict ~stuck ~proved) ;
     List.iter (child (n+2) fmt) children
 
@@ -280,7 +280,7 @@ let process_certif env id crc =
     begin fun fmt -> match crc with
       | Crc.Stuck -> ()
       | Crc.Prover _ -> child 4 fmt crc
-      | Crc.Transf _ -> child 4 fmt crc
+      | Crc.Tactic _ -> child 4 fmt crc
     end
 
 let process_proof env id = function

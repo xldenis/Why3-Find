@@ -98,11 +98,11 @@ let result goal prv limit result =
     let _ = S.graft_proof_attempt s n prv ~limit in
     S.update_proof_attempt silent s n prv result
 
-let apply env transf = function
+let apply env tactic = function
   | Task t ->
     begin
       try
-        match Why3.Trans.apply_transform transf env t with
+        match Why3.Trans.apply_transform tactic env t with
         | [ t' ] when Why3.Task.task_equal t t' -> None
         | ts -> Some (tasks ts)
       with _ -> None
@@ -111,8 +111,8 @@ let apply env transf = function
     begin
       try
         let allow_no_effect = false in
-        let ts = S.apply_trans_to_goal s env ~allow_no_effect transf [] n in
-        let tid = S.graft_transf s n transf [] ts in
+        let ts = S.apply_trans_to_goal s env ~allow_no_effect tactic [] n in
+        let tid = S.graft_transf s n tactic [] ts in
         let ns = S.get_sub_tasks s tid in
         Some (nodes s ns)
       with _ -> None
