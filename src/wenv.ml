@@ -27,6 +27,7 @@ let config = "why3find.json"
 let prefix = ref ""
 let sections = Hashtbl.create 0
 let loaded = ref false
+let loadcfg = ref true
 let modified = ref false
 let chdir = ref ""
 
@@ -43,7 +44,7 @@ let load () =
           | Some(dir,path) -> Utils.chdir dir ; prefix := path
           | None -> ()
         end ;
-      if Sys.file_exists config then
+      if !loadcfg && Sys.file_exists config then
         Json.of_file config |> Json.jiter (Hashtbl.add sections)
     end
 
@@ -68,10 +69,43 @@ let prvs = ref []
 let tacs = ref []
 
 (* -------------------------------------------------------------------------- *)
-(* --- Command Line Arguments                                             --- *)
+(* --- Argument Processing                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let removal = ref false
+type item =
+  | Set of string
+  | Add of string
+  | Sub of string
+  | Insert of int * string
+
+let parse_item s =
+  let n = String.length s in
+  if n > 1 then
+    match s.[0] with
+    | '=' -> Set (String.sub s 1 (n-1))
+    | '+' -> Add (String.sub s 1 (n-1))
+    | '-' -> Sub (String.sub s 1 (n-1))
+    | _ ->
+      let rec digits k =
+        if k < n then
+          match s.[k] with
+          | ':' -> k
+          | '0'..'9' -> digits (succ k)
+          | _ -> 0
+        else 0 in
+      let d = digits 0 in
+      if d > 0 then
+        let at = int_of_string (String.sub s 0 d) in
+        Insert(at,String.sub s d (n-d))
+      else Add s
+  else Add s
+
+let _parse_args s =
+  List.map parse_item @@ String.split_on_char ',' s
+
+(* -------------------------------------------------------------------------- *)
+(* --- Command Line Arguments                                             --- *)
+(* -------------------------------------------------------------------------- *)
 
 let setv r v =
   modified := true ;
@@ -102,10 +136,7 @@ let gets fd ?(prefix=false) ?(default=[]) r =
     try get fd ~of_json:(Json.(jmap jstring))
     with Not_found -> default
   in
-  if !removal then
-    List.filter (filter ~prefix !r) cfg
-  else
-    cfg @ List.filter (filter ~prefix cfg) @@ List.rev !r
+  cfg @ List.filter (filter ~prefix cfg) @@ List.rev !r
 
 type opt = [
   | `All
@@ -124,7 +155,7 @@ let alloptions : (opt * string * Arg.spec * string) list = [
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
   `Prover,  "--tactic", Arg.String (add tacs), "TAC add proof tactic";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
-  `Config, "--remove", Arg.Set removal, "remove items from configuration";
+  `Config, "--reset", Arg.Clear loadcfg, "reset configuration";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
   `Prover,  "-t", Arg.Float (setv time), " same as --time";
   `Prover,  "-d", Arg.Float (setv time), " same as --depth";

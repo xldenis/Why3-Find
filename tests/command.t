@@ -190,7 +190,7 @@
     --prover PRV add automated prover
     --tactic TAC add proof tactic
     --driver DRV add extraction driver
-    --remove remove items from configuration
+    --reset reset configuration
     -p  same as --package
     -t  same as --time
     -d  same as --depth
@@ -231,7 +231,7 @@
     --prover PRV add automated prover
     --tactic TAC add proof tactic
     --driver DRV add extraction driver
-    --remove remove items from configuration
+    --reset reset configuration
     -p  same as --package
     -t  same as --time
     -d  same as --depth
