@@ -40,7 +40,10 @@ let progress msg =
            Format.printf "> %s…\027[K\r@?" (String.sub msg 0 (width - 4))
     ) (Format.formatter_of_buffer buffer) msg
 
-let flush () = if tty then Format.printf "\r\027[K"
+let flush () =
+  Format.pp_print_flush Format.std_formatter () ;
+  Format.pp_print_flush Format.err_formatter () ;
+  if tty then Format.printf "\r\027[K"
 
 let log msg =
   flush () ;

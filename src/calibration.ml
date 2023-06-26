@@ -290,7 +290,7 @@ let gauge env profile prv : gauge Fibers.t =
       match r with
       | Some (size,time) -> { time ; size ; alpha = None }
       | None ->
-        Format.eprintf "[Error] can not calibrate prover %s@." p ;
+        Format.eprintf "Error: can not calibrate prover %s@." p ;
         exit 2
     in Hashtbl.replace profile p gv ; gv
 
@@ -305,7 +305,7 @@ let alpha env prv ~size ~time : float Fibers.t =
   match result with
   | Valid t -> t /. time
   | _ ->
-    Format.eprintf "[Error] can not calibrate prover %a (N=%d, %a)@."
+    Format.eprintf "Error: can not calibrate prover %a (N=%d, %a)@."
       Runner.pp_prover prv size Runner.pp_result result ;
     exit 2
 

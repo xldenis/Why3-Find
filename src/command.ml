@@ -378,14 +378,6 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       (* --- Provers ----- *)
       let pconfig = Wenv.provers () in
       let list_provers = !list || !relax || !strict in
-      if list_provers then
-        begin
-          let j = Runner.maxjobs env in
-          Format.printf "Prover Configuration:@." ;
-          Format.printf " - proof jobs: %d@." j ;
-          Format.printf " - proof time: %a@." Utils.pp_time (Wenv.time ()) ;
-          Format.printf " - proof depth: %d@." (Wenv.depth ()) ;
-        end ;
       let pconfig = if !relax then List.map Runner.relax pconfig else pconfig in
       let provers = Runner.select env @@ pconfig in
       if !calibrate then
@@ -393,21 +385,27 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       else
       if !velocity then
         Calibration.velocity_provers env provers ;
-      let provers =
-        if !strict then List.map Runner.id provers else
-        if pconfig = [] then List.map Runner.name provers else
-          pconfig in
+      let provers = List.map (Runner.title ~strict:!strict) provers in
+      (* --- Transformations ----- *)
+      let tactics = Wenv.tactics () in
+      (* --- Drivers ----- *)
+      let drivers = Wenv.drivers () in
+      (* --- Printing -------------- *)
+      if list_provers then
+        begin
+          let j = Runner.maxjobs env in
+          Format.printf "Prover Configuration:@." ;
+          Format.printf " - jobs: %d@." j ;
+          Format.printf " - time: %a@." Utils.pp_time (Wenv.time ()) ;
+          Format.printf " - depth: %d@." (Wenv.depth ()) ;
+        end ;
       if provers = [] then
         Format.printf "  (no provers, use -P or why3 config detect)@."
       else
       if list_provers && not !velocity && not !calibrate then
         Format.printf " - @[<hov 2>provers: %a@]@." pp_list provers ;
-      (* --- Transformations ----- *)
-      let tactics = Wenv.tactics () in
       if !list && tactics <> [] then
         Format.printf " - @[<hov 2>tactics: %a@]@." pp_list tactics ;
-      (* --- Drivers ----- *)
-      let drivers = Wenv.drivers () in
       if !list && drivers <> [] then
         begin
           Format.printf "Extraction Drivers:@." ;

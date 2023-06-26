@@ -40,10 +40,11 @@ val relax : string -> string
 val relaxed : string -> bool
 
 val all : env -> prover list
-val default : env -> prover list
-val find : env -> string -> prover
-val prover : env -> string -> prover
+val find : env -> pattern:string -> prover
 val select : env -> string list -> prover list
+val default : env -> prover list
+val prover : env -> id:string -> prover
+
 val map : (float -> float) -> result -> result
 val crop : timeout:float -> result -> result option
 val definitive : timeout:float -> result -> bool

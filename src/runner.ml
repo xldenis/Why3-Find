@@ -34,6 +34,39 @@ type prover = {
   driver : Driver.driver ;
 }
 
+type sem = V of int | S of string
+let sem s = try V (int_of_string s) with _ -> S s
+let cmp x y =
+  match x,y with
+  | V a,V b -> b - a
+  | V _,S _ -> (-1)
+  | S _,V _ -> (+1)
+  | S a,S b -> String.compare a b
+let rec cmps xs ys =
+  match xs,ys with
+  | [],[] -> 0
+  | [],_ -> (-1)
+  | _,[] -> (+1)
+  | x::rxs,y::rys -> let c = cmp x y in if c <> 0 then c else cmps rxs rys
+let tosem p = List.map sem (String.split_on_char 'c' p)
+
+let compare_wprover (p : Whyconf.prover) (q : Whyconf.prover) =
+  let c = String.compare p.prover_name q.prover_name in
+  if c <> 0 then c else
+    let c = cmps (tosem p.prover_version) (tosem q.prover_version) in
+    if c <> 0 then c else
+      String.compare p.prover_altern q.prover_altern
+
+let compare_config (p : Whyconf.config_prover) (q : Whyconf.config_prover) =
+  compare_wprover p.prover q.prover
+
+let compare_prover (p : prover) (q : prover) =
+  compare_config p.config q.config
+
+(* -------------------------------------------------------------------------- *)
+(* --- Provers                                                            --- *)
+(* -------------------------------------------------------------------------- *)
+
 type callback =
   Why3.Whyconf.prover ->
   Why3.Call_provers.resource_limit ->
@@ -41,32 +74,76 @@ type callback =
   unit
 
 let id prv = Whyconf.prover_parseable_format prv.config.prover
-let name prv = String.lowercase_ascii @@ prv.config.prover.prover_name
-let title ?(strict=false) p = if strict then id p else name p
-
-let pp_prover fmt prv = Format.pp_print_string fmt @@ id prv
+let name prv = String.lowercase_ascii prv.config.prover.prover_name
+let version prv = prv.config.prover.prover_version
+let title ?(strict=false) p =
+  if strict then Printf.sprintf "%s@%s" (name p) (version p) else name p
+let pp_prover fmt p = Format.fprintf fmt "%s@%s" (name p) (version p)
 
 let load (env : Wenv.env) (config : Whyconf.config_prover) =
   try
     let main = Whyconf.get_main env.wconfig in
-    Driver.load_driver_for_prover main env.wenv config
+    { config ; driver = Driver.load_driver_for_prover main env.wenv config }
   with _ ->
-    Format.eprintf "Failed to load driver for %s@."
+    Format.eprintf "Error: failed to load driver for %s@."
       (Whyconf.prover_parseable_format config.prover) ;
     exit 2
 
-let find_exact (env : Wenv.env) s =
-  try
-    let filter = Whyconf.parse_filter_prover s in
-    let config = Whyconf.filter_one_prover env.wconfig filter in
-    let driver = load env config in
-    Some { config ; driver }
-  with _ -> None
+let prover (env : Wenv.env) ~id =
+  load env @@
+  match String.split_on_char ',' id with
+  | [ prover_name ; prover_version ; prover_altern ] ->
+    Whyconf.Mprover.find
+      Whyconf.{ prover_name ; prover_version ; prover_altern }
+      (Whyconf.get_provers env.wconfig)
+  | _ ->
+    raise (Invalid_argument "Runner.get")
 
-let find_default env name =
-  match find_exact env name with
-  | Some prv -> [prv]
-  | None -> []
+let find_shortcut (env : Wenv.env) name =
+  Whyconf.Mprover.find
+    (Wstdlib.Mstr.find name @@ Whyconf.get_prover_shortcuts env.wconfig)
+    (Whyconf.get_provers env.wconfig)
+
+let find_filter (env : Wenv.env) ~name ?(version="") () =
+  let mpr = Whyconf.get_provers env.wconfig in
+  Whyconf.Mprover.fold
+    (fun key cfg acc ->
+       if String.lowercase_ascii key.prover_name = name &&
+          (version = "" || key.prover_version = version)
+       then cfg :: acc else acc
+    ) mpr []
+
+let take_one = function [cfg] -> cfg | _ -> raise Not_found
+let take_best ~pattern ~name = function
+  | [prv] -> prv
+  | [] -> Format.eprintf "Error: prover %s not found@." name ; exit 2
+  | others ->
+    let cfg = List.hd @@ List.sort compare_config others in
+    Format.eprintf
+      "Warning: prover %s not found, fallback to %s@%s@."
+      pattern (String.lowercase_ascii cfg.prover.prover_name)
+      cfg.prover.prover_version ; cfg
+let take_default = function
+  | [] -> []
+  | [cfg] -> [cfg]
+  | others -> [List.hd @@ List.sort compare_config others]
+
+let find env ~pattern =
+  load env @@
+  match String.split_on_char '@' pattern with
+  | [name] ->
+    begin
+      try find_shortcut env name with Not_found ->
+      take_best ~pattern ~name @@ find_filter env ~name ()
+    end
+  | [name;version] ->
+    begin
+      try take_one @@ find_filter env ~name ~version () with Not_found ->
+        take_best ~pattern ~name @@ find_filter env ~name ()
+    end
+  | _ ->
+    Format.eprintf "Invalid prover pattern '%s'@." pattern ;
+    exit 2
 
 let relax name =
   String.lowercase_ascii @@
@@ -76,41 +153,19 @@ let relax name =
 
 let relaxed p = (String.lowercase_ascii p = p)
 
-let find env name =
-  match find_exact env name with
-  | Some prv -> prv
-  | None ->
-    match find_exact env (String.lowercase_ascii name) with
-    | Some prv -> prv
-    | None ->
-      match String.split_on_char ',' name with
-      | shortname :: _ :: _ ->
-        begin
-          match find_exact env (String.lowercase_ascii shortname) with
-          | Some prv ->
-            Format.eprintf "Warning: prover %S not found, fallback to %a.@."
-              name pp_prover prv ;
-            prv
-          | None -> raise Not_found
-        end
-      | _ -> raise Not_found
-
-let prover env name =
-  try find env name
-  with Not_found ->
-    Format.eprintf "Error: prover %S not found." name ;
-    exit 2
-
-let all env =
-  let byid p q = String.compare (id p) (id q) in
-  List.sort byid @@
+let all (env : Wenv.env) =
+  List.sort compare_prover @@
   Whyconf.Mprover.fold
     (fun _id config prvs ->
        if config.Whyconf.prover.prover_altern = "" then
-         let driver = load env config in
-         { config ; driver } :: prvs
+         (load env config) :: prvs
        else prvs
-    ) (Whyconf.get_provers env.Wenv.wconfig) []
+    ) (Whyconf.get_provers env.wconfig) []
+
+let find_default env name =
+  List.map (load env) @@
+  try [find_shortcut env name] with Not_found ->
+    take_default @@ find_filter env ~name ()
 
 let default env =
   find_default env "alt-ergo" @
@@ -121,7 +176,7 @@ let default env =
 let select env provers =
   if provers = []
   then default env
-  else List.map (prover env) provers
+  else List.map (fun pattern -> find env ~pattern) provers
 
 (* -------------------------------------------------------------------------- *)
 (* --- Prover Result                                                      --- *)

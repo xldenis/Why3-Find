@@ -289,7 +289,7 @@ let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
   begin
     if not @@ String.ends_with ~suffix:".mlw" file then
       begin
-        Format.eprintf "Invalid file name: %S@." file ;
+        Format.eprintf "Error: nvalid file name: %S@." file ;
         exit 2
       end ;
     let dir = Filename.chop_extension file in
