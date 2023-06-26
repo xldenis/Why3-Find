@@ -715,10 +715,10 @@ let () = register ~name:"install" ~args:"PKG PATH..."
          \n  Package dependencies and configuration are taken from the\
          \n  local project, or from the command line:\
          \n\
-         \n    **/*.cfg extra why3 configuration\
-         \n    **/*.drv OCaml extraction drivers\
-         \n    DIR all why3 source files in DIR\
-         \n    PKG/**/*.mlw why3 source files\
+         \n    PKG/**         all why3 source files\
+         \n    PKG/**/*.mlw   specified why3 source files\
+         \n    **/*.cfg       extra why3 configuration\
+         \n    **/*.drv       OCaml extraction drivers\
          \n\
          \n  If no source file is given, all why3 source files\
          \n  in directory PKG will be installed.\

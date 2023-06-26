@@ -356,10 +356,10 @@
     Package dependencies and configuration are taken from the
     local project, or from the command line:
   
-      **/*.cfg extra why3 configuration
-      **/*.drv OCaml extraction drivers
-      DIR all why3 source files in DIR
-      PKG/**/*.mlw why3 source files
+      PKG/**         all why3 source files
+      PKG/**/*.mlw   specified why3 source files
+      **/*.cfg       extra why3 configuration
+      **/*.drv       OCaml extraction drivers
   
     If no source file is given, all why3 source files
     in directory PKG will be installed.
