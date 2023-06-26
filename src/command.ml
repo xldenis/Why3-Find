@@ -465,7 +465,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
             "-m", Arg.Unit (set mode `Minimize), "minimize proofs (or update)";
             "-i", Arg.Set ide, "run Why3 IDE on error(s) (implies -s)";
             "-s", Arg.Set session, "save why3 session";
-            "-h", Arg.Set axioms, "report hypotheses and axioms";
+            "-a", Arg.Set axioms, "report axioms and parameters";
           ] @
           Client.options @ [
             "--modules",  Arg.Unit (set log `Modules), "list results by module";
