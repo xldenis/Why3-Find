@@ -1,0 +1,4 @@
+module B
+  use int.Int
+  use a.A
+end

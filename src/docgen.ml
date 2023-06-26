@@ -928,10 +928,51 @@ let parse env =
 (* --- Chapters                                                           --- *)
 (* -------------------------------------------------------------------------- *)
 
-type chapter = { doc: bool ; hfile: string ; page: string }
+type chapter = { src: Docref.source option ; hfile: string ; page: string }
 let chapters = ref []
-let chapter ~doc ~hfile ~page =
-  chapters := { doc ; hfile ; page } :: !chapters
+let chapter ?src ~hfile ~page () =
+  chapters := { src ; hfile ; page } :: !chapters
+
+let documentation () =
+  let rec docs cs = function
+    | [] -> cs
+    | c::rs -> docs (if c.src = None then c::cs else cs) rs
+  in docs [] !chapters
+
+let package () =
+  let cmap = ref Docref.Mstr.empty in
+  List.iter
+    (fun c ->
+       Option.iter
+         (fun (src : Docref.source) ->
+            let path = String.concat "." src.lib in
+            cmap := Docref.Mstr.add path c !cmap ;
+         ) c.src
+    ) !chapters ;
+  let mark = ref [] in
+  let pool = ref [] in
+  let rec walk c =
+    Option.iter
+      (fun (src : Docref.source) ->
+         if not (List.memq c !mark) then
+           begin
+             mark := c :: !mark ;
+             Docref.Mstr.iter
+               (fun _ (thy : Docref.theory) ->
+                  List.iter
+                    (fun (thd : Why3.Theory.theory) ->
+                       let lp,_,_ = Id.path ~lib:src.lib thd.th_name in
+                       let path = String.concat "." lp in
+                       try walk @@ Docref.Mstr.find path !cmap
+                       with Not_found -> ()
+                    ) thy.depends
+               ) src.theories ;
+             pool := c :: !pool
+           end ;
+      ) c.src
+  in
+  Docref.Mstr.iter (fun _ c -> walk c) !cmap ;
+  List.rev !pool
 
 (* -------------------------------------------------------------------------- *)
 (* --- Titling Document                                                   --- *)
@@ -967,7 +1008,7 @@ let process_markdown ~wenv ~henv ~out:dir ~title file =
       declared = Sid.empty ;
       opened = 0 ; section = 0 ;
     } in
-    chapter ~doc:true ~hfile ~page ;
+    chapter ~hfile ~page () ;
     Pdoc.printf out "<header>%a</header>@\n" Pdoc.pp_html title ;
     Pdoc.flush out ;
     push env Div ;
@@ -1004,7 +1045,7 @@ let process_source ~wenv ~henv ~out:dir ~title file =
     opened = 0 ; section = 0 ;
   } in
   begin
-    chapter ~doc:false ~hfile ~page ;
+    chapter ~src ~hfile ~page () ;
     Pdoc.printf out
       "<header>Library \
        <a href=\"index.html\"><code>%s</code></a></header>@\n" path ;
@@ -1046,9 +1087,8 @@ let index ~out:dir ~title =
       let ofile = Filename.concat dir hfile in
       let out = Pdoc.output ~file:ofile ~title in
       Pdoc.printf out "<header>%s</header>@\n" title ;
-      let doc,package = List.partition (fun c -> c.doc) @@ List.rev !chapters in
-      pp_chapters out ~title:"Documentation" doc ;
-      pp_chapters out ~title:"Package" package ;
+      pp_chapters out ~title:"Documentation" @@ documentation () ;
+      pp_chapters out ~title:"Package" @@ package () ;
       Pdoc.flush out ;
       Pdoc.close_all out ;
     end
