@@ -289,7 +289,7 @@ let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
   begin
     if not @@ String.ends_with ~suffix:".mlw" file then
       begin
-        Format.eprintf "Invalid file name: %S@." file ;
+        Format.eprintf "Error: nvalid file name: %S@." file ;
         exit 2
       end ;
     let dir = Filename.chop_extension file in
@@ -324,9 +324,9 @@ let prove_files ~mode ~session ~log ~axioms ~files =
     let env = Wenv.init () in
     let time = Wenv.time () in
     let maxdepth = Wenv.depth () in
-    let provers = Wenv.provers () in
+    let patterns = Wenv.provers () in
     let tactics = Wenv.tactics () in
-    let provers = Runner.select env provers in
+    let provers = Runner.select env ~patterns in
     let unsuccess = ref [] in
     let minimize = (mode = `Minimize) in
     let log : log0 = match log with

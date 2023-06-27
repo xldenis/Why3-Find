@@ -290,7 +290,7 @@ let gauge env profile prv : gauge Fibers.t =
       match r with
       | Some (size,time) -> { time ; size ; alpha = None }
       | None ->
-        Format.eprintf "[Error] can not calibrate prover %s@." p ;
+        Format.eprintf "Error: can not calibrate prover %s@." p ;
         exit 2
     in Hashtbl.replace profile p gv ; gv
 
@@ -305,7 +305,7 @@ let alpha env prv ~size ~time : float Fibers.t =
   match result with
   | Valid t -> t /. time
   | _ ->
-    Format.eprintf "[Error] can not calibrate prover %a (N=%d, %a)@."
+    Format.eprintf "Error: can not calibrate prover %a (N=%d, %a)@."
       Runner.pp_prover prv size Runner.pp_result result ;
     exit 2
 
@@ -377,15 +377,17 @@ let calibrate_provers ~saved env provers =
     in
     Utils.flush () ;
     let profile = create () in
+    Format.printf "Calibration:@." ;
     List.iter
       (fun (prv,res) ->
+         let name = title ~strict:true prv in
          match res with
          | None ->
-           Format.printf " - %-16s no result@." (id prv)
+           Format.printf " - %-16s no result@." name
          | Some(n,t) ->
            Hashtbl.add profile (id prv)
              (Fibers.var ~init:{ size = n ; time = t ; alpha = None } ()) ;
-           Format.printf " - %-16s n=%d %a (%s)@." (id prv) n Utils.pp_time t
+           Format.printf " - %-16s n=%d %a (%s)@." name n Utils.pp_time t
              (if saved then "master" else "locally")
       ) results ;
     Wenv.set "profile" ~to_json profile ;
@@ -408,16 +410,17 @@ let velocity_provers env provers =
         ) provers
     in
     Utils.flush () ;
+    Format.printf "Velocity:@." ;
     List.iter
       (fun (prv,res) ->
+         let name = title ~strict:true prv in
          match res with
          | Some(n,t,1.0) ->
-           Format.printf " - %-16s n=%d %a (master)@."
-             (id prv) n Utils.pp_time t
+           Format.printf " - %-16s n=%d %a (master)@." name n Utils.pp_time t
          | Some(n,tm,a) ->
            let tl = tm *. a in
-           Format.printf " - %-16s n=%d %a / %a (velocity %.1f)@."
-             (id prv) n Utils.pp_time tl Utils.pp_time tm a
+           Format.printf " - %-16s n=%d %a (velocity %.1f)@."
+             name n Utils.pp_time tl a
          | None ->
            Format.printf " - %-16s no calibration (use -m)@." (id prv)
       ) results ;

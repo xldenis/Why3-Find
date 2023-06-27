@@ -56,7 +56,7 @@ let add_builtins bmap p =
     ) bmap @@ Driver.syntax_map p.Runner.driver
 
 let init (wenv : Wenv.env) =
-  let provers = Runner.select wenv @@ Wenv.provers () in
+  let provers = Runner.select wenv ~patterns:(Wenv.provers ()) in
   let builtins = List.fold_left add_builtins Mid.empty provers in
   let drivers = List.concat_map drivers wenv.pkgs @ Wenv.drivers () in
   let main = Whyconf.get_main wenv.wconfig in

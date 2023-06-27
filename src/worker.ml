@@ -119,7 +119,7 @@ let do_prove worker goal timeout data =
   try
     let env = worker.env in
     let cancel = Fibers.signal () in
-    let prover = Runner.find env goal.prover in
+    let prover = Runner.prover env ~id:goal.prover in
     let buffer = Buffer.create (String.length data) in
     Buffer.add_string buffer data ;
     Hashtbl.add worker.pending goal cancel ;

@@ -265,7 +265,7 @@ let library_path file =
 let parse ~wenv ~henv file =
   if not @@ String.ends_with ~suffix:".mlw" file then
     begin
-      Format.eprintf "Invalid file name: %S@." file ;
+      Format.eprintf "Error: invalid file name: %S@." file ;
       exit 2
     end ;
   let dir = Filename.chop_extension file in
@@ -274,7 +274,7 @@ let parse ~wenv ~henv file =
   let thys =
     try fst @@ Why3.Env.read_file Why3.Env.base_language wenv file
     with exn ->
-      Format.eprintf "%s@." (Printexc.to_string exn) ;
+      Format.eprintf "Error: %s@." (Printexc.to_string exn) ;
       exit 1
   in
   let order = ref 0 in

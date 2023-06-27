@@ -190,7 +190,7 @@
     --prover PRV add automated prover
     --tactic TAC add proof tactic
     --driver DRV add extraction driver
-    --remove remove items from configuration
+    --reset reset configuration
     -p  same as --package
     -t  same as --time
     -d  same as --depth
@@ -231,7 +231,7 @@
     --prover PRV add automated prover
     --tactic TAC add proof tactic
     --driver DRV add extraction driver
-    --remove remove items from configuration
+    --reset reset configuration
     -p  same as --package
     -t  same as --time
     -d  same as --depth
@@ -246,7 +246,7 @@
     -m minimize proofs (or update)
     -i run Why3 IDE on error(s) (implies -s)
     -s save why3 session
-    -h report hypotheses and axioms
+    -a report axioms and parameters
     --host HOST Proof Server host (default: none)
     --port PORT Proof Server port (default: 5555)
     --server URL Proof Server address (default: "tcp://HOST:PORT")

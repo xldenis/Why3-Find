@@ -27,6 +27,7 @@ let config = "why3find.json"
 let prefix = ref ""
 let sections = Hashtbl.create 0
 let loaded = ref false
+let loadcfg = ref true
 let modified = ref false
 let chdir = ref ""
 
@@ -43,7 +44,7 @@ let load () =
           | Some(dir,path) -> Utils.chdir dir ; prefix := path
           | None -> ()
         end ;
-      if Sys.file_exists config then
+      if !loadcfg && Sys.file_exists config then
         Json.of_file config |> Json.jiter (Hashtbl.add sections)
     end
 
@@ -68,10 +69,76 @@ let prvs = ref []
 let tacs = ref []
 
 (* -------------------------------------------------------------------------- *)
-(* --- Command Line Arguments                                             --- *)
+(* --- Argument Processing                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let removal = ref false
+type item =
+  | Set of string
+  | Add of string
+  | Sub of string
+  | Insert of int * string
+
+let parse_item s =
+  let n = String.length s in
+  if n > 1 then
+    match s.[0] with
+    | '!' -> Set (String.sub s 1 (n-1))
+    | '+' -> Add (String.sub s 1 (n-1))
+    | '-' -> Sub (String.sub s 1 (n-1))
+    | _ ->
+      let rec digits k =
+        if k < n then
+          match s.[k] with
+          | ':' -> k
+          | '0'..'9' -> digits (succ k)
+          | _ -> 0
+        else 0 in
+      let d = digits 0 in
+      if d > 0 then
+        let at = int_of_string (String.sub s 0 d) in
+        Insert(at,String.sub s (d+1) (n-d-1))
+      else Add s
+  else Add s
+
+let parse opt =
+  List.map parse_item @@ List.concat @@ List.map (String.split_on_char ',') opt
+
+let relax name =
+  String.lowercase_ascii @@ List.hd @@ String.split_on_char '@' name
+
+let relaxed p = (relax p = p)
+
+let prefixeq p q = relax p = relax q
+
+let mem ~prefix x cfg =
+  if prefix then
+    List.exists (fun y -> prefixeq x y) cfg
+  else
+    List.mem x cfg
+
+let test ~prefix x y =
+  if prefix then prefixeq x y else x = y
+
+let sub ~prefix x y = not @@ test ~prefix x y
+
+let rec insert ~prefix n e k = function
+  | [] -> [e]
+  | (x::rxs) as xs ->
+    if k < n then
+      let ys = insert ~prefix n e (succ k) rxs in
+      if test ~prefix e x then ys else x :: ys
+    else
+      e :: List.filter (sub ~prefix e) xs
+
+let process ~prefix cfg = function
+  | Set e -> [e]
+  | Add e -> if mem ~prefix e cfg then cfg else ( cfg @ [e] )
+  | Sub e -> List.filter (sub ~prefix e) cfg
+  | Insert(n,e) -> insert ~prefix n e 0 cfg
+
+(* -------------------------------------------------------------------------- *)
+(* --- Command Line Arguments                                             --- *)
+(* -------------------------------------------------------------------------- *)
 
 let setv r v =
   modified := true ;
@@ -90,22 +157,13 @@ let add r a =
   modified := true ;
   r := a :: !r
 
-let filter ~prefix a =
-  if prefix then
-    fun x -> not @@ List.exists (String.starts_with ~prefix:x) a
-  else
-    fun x -> not @@ List.mem x a
-
-let gets fd ?(prefix=false) ?(default=[]) r =
+let gets fd ?(prefix=false) ?(default=[]) ropt =
   load () ;
   let cfg =
     try get fd ~of_json:(Json.(jmap jstring))
     with Not_found -> default
   in
-  if !removal then
-    List.filter (filter ~prefix !r) cfg
-  else
-    cfg @ List.filter (filter ~prefix cfg) @@ List.rev !r
+  List.fold_left (process ~prefix) cfg (parse !ropt)
 
 type opt = [
   | `All
@@ -124,7 +182,7 @@ let alloptions : (opt * string * Arg.spec * string) list = [
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
   `Prover,  "--tactic", Arg.String (add tacs), "TAC add proof tactic";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
-  `Config, "--remove", Arg.Set removal, "remove items from configuration";
+  `Config, "--reset", Arg.Clear loadcfg, "reset configuration";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
   `Prover,  "-t", Arg.Float (setv time), " same as --time";
   `Prover,  "-d", Arg.Float (setv time), " same as --depth";
@@ -210,7 +268,7 @@ let save () =
           (fun fd js fds -> (fd,js) :: fds)
           sections []
       in Json.to_file config (`Assoc sections) ;
-      Format.printf "Configuration saved to %s@."
+      Format.printf "Why3find config saved to %s@."
         (Filename.concat (Sys.getcwd ()) config) ;
       loaded := false ;
     end
