@@ -25,6 +25,8 @@
 
 val init : unit -> Why3.Env.env * Axioms.henv
 
+module Thy = Why3.Theory
+module Pmod = Why3.Pmodule
 module Mstr = Why3.Wstdlib.Mstr
 
 type ident = Why3.Ident.ident
@@ -34,6 +36,10 @@ type section = {
   cloned_order : int ;
 }
 
+type instance =
+  | Mi of Pmod.mod_inst
+  | Ti of Thy.theory * Thy.symbol_map
+
 type clone = {
   id_section : section ;
   id_source : Why3.Ident.ident ;
@@ -41,9 +47,10 @@ type clone = {
 }
 
 type theory = {
-  theory: Why3.Theory.theory;
-  depends: Why3.Theory.theory list;
-  signature: Axioms.signature;
+  theory: Thy.theory ;
+  depends: Thy.theory list ;
+  signature: Axioms.signature ;
+  instances: instance list ;
   clones: clone list ;
   proofs: Crc.crc Mstr.t ;
 }

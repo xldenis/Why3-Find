@@ -228,7 +228,8 @@ let rec add_munit henv (hs : signature) (m : Pmodule.mod_unit) : signature =
   match m with
   | Udecl pd -> add_pdecl henv hs pd
   | Uuse pm -> add_used hs pm.mod_theory
-  | Uclone mi -> add_cloned hs mi.mi_mod.mod_theory
+  | Uclone mi ->
+    add_cloned hs mi.mi_mod.mod_theory
   | Uscope(_,ms) -> List.fold_left (add_munit henv) hs ms
   | Umeta _ -> hs
 
