@@ -25,7 +25,7 @@
 
 type henv
 
-val init : unit -> henv
-val register : henv -> Docref.theory -> unit
+val init : Axioms.henv -> henv
+val register : henv -> Docref.source -> unit
 
 (* -------------------------------------------------------------------------- *)

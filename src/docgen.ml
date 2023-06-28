@@ -86,7 +86,7 @@ type env = {
   henv : Axioms.henv ; (* axioms *)
   mutable proof_href : int ; (* proof href *)
   mutable clone_decl : int ; (* clone decl indent (when > 0) *)
-  mutable clone_path : string ; (* clone path *)
+  mutable clone_path : string ; (* cloned module path (when relevant) *)
   mutable clone_order : int ; (* clone ranking *)
   mutable declared : Sid.t ; (* locally declared *)
   mutable scope : string option ; (* current module name *)
@@ -574,6 +574,7 @@ let mdecl env n id (pd: Why3.Pdecl.pdecl) def =
           ) defs
     end
 
+(* Declare 'id' from cloned definition 'def' in theory 'th' *)
 let declaration env n id (th : Why3.Theory.theory) def =
   try
     let m = Why3.Pmodule.restore_module th in
@@ -1106,8 +1107,7 @@ let preprocess ~henv ~wenv ~senv file =
   if Filename.check_suffix file ".md" then None else
   if Filename.check_suffix file ".mlw" then
     let src = Docref.parse ~henv ~wenv file in
-    Docref.Mstr.iter (fun _ thy -> Soundness.register senv thy) src.theories ;
-    Some src
+    Soundness.register senv src ; Some src
   else
     Utils.failwith "Don't known what to do with %S" file
 
@@ -1127,7 +1127,7 @@ let generate ~out ~title ~files ~url =
     (* Axioms config *)
     let henv = Axioms.init penv in
     (* Sounness config *)
-    let senv = Soundness.init () in
+    let senv = Soundness.init henv in
     (* Shared resources *)
     Utils.mkdirs @@ Filename.concat out "fonts" ;
     shared ~out ~file:"style.css" ;

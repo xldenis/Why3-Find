@@ -32,25 +32,21 @@ module Mstr = Why3.Wstdlib.Mstr
 type ident = Why3.Ident.ident
 
 type section = {
-  cloned_path : string ;
-  cloned_order : int ;
+  cloned_theory : Thy.theory ;
+  cloned_path : string ; (** of the cloned theory *)
+  cloned_order : int ; (** instance rank *)
 }
-
-type instance =
-  | Mi of Pmod.mod_inst
-  | Ti of Thy.theory * Thy.symbol_map
 
 type clone = {
   id_section : section ;
-  id_source : Why3.Ident.ident ;
-  id_target : Why3.Ident.ident ;
+  id_source : ident ; (** from cloned theory *)
+  id_target : ident ; (** to clone instance *)
 }
 
 type theory = {
   theory: Thy.theory ;
   depends: Thy.theory list ;
   signature: Axioms.signature ;
-  instances: instance list ;
   clones: clone list ;
   proofs: Crc.crc Mstr.t ;
 }
@@ -65,7 +61,6 @@ type source = {
 val create : unit -> source
 val parse : wenv:Why3.Env.env -> henv:Axioms.henv -> string -> source
 val derived : source -> string -> string (* URL name *)
-val instance : instance -> ident (* of the theory *)
 
 val is_keyword : string -> bool
 

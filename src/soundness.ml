@@ -20,30 +20,51 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Compute Soundness                                                  --- *)
+(* --- Soundness Registry                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
+module Id = Why3.Ident
+module Sid = Why3.Ident.Sid
 module Hid = Why3.Ident.Hid
 module Thy = Why3.Theory
 
-type instance = { into : Thy.theory ; instance : Docref.instance }
-type henv = {
-  theories : Docref.theory Hid.t ;
-  instances : instance list Hid.t;
+type instance = {
+  path : string ; (* path *)
+  rank : int ; (* clone number *)
 }
 
-let init () = {
-  theories = Hid.create 0 ;
+type henv = {
+  henv : Axioms.henv ;
+  instances : ((instance,Sid.t ref) Hashtbl.t) Hid.t ;
+  (* [ cloned -> instance -> concrete parameters ] *)
+}
+
+let init henv = {
+  henv ;
   instances = Hid.create 0 ;
 }
 
-let register henv (thy : Docref.theory) =
-  Hid.add henv.theories thy.theory.th_name thy ;
-  List.iter (fun ins ->
-      let th = Docref.instance ins in
-      let inst = { into = thy.theory ; instance = ins } in
-      let known = Hid.find_def henv.instances [] th in
-      Hid.replace henv.instances th (inst :: known)
-    ) thy.instances
+let add henv ~path (c : Docref.clone) =
+  let cloned = c.id_section.cloned_theory.th_name in
+  let rank = c.id_section.cloned_order in
+  let inst = { path ; rank } in
+  Format.eprintf "INSTANCE %s#%d: cloned %s@." path rank c.id_source.id_string ;
+  let hinst =
+    try Hid.find henv.instances cloned with Not_found ->
+      let h = Hashtbl.create 1 in
+      Hid.add henv.instances cloned h ; h in
+  let domain =
+    try Hashtbl.find hinst inst with Not_found ->
+      let d = ref Sid.empty in
+      Hashtbl.add hinst inst d ; d in
+  domain := Sid.add c.id_source !domain
+
+let register henv (src : Docref.source) =
+  let lib = String.concat "." src.lib in
+  Docref.Mstr.iter
+    (fun name (thy : Docref.theory) ->
+       let path = Printf.sprintf "%s.%s" lib name in
+       List.iter (add henv ~path) thy.clones
+    ) src.theories
 
 (* -------------------------------------------------------------------------- *)
