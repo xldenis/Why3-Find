@@ -1020,8 +1020,7 @@ let process_markdown ~wenv ~henv ~out:dir ~title file =
 (* --- MLW File Processing                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_source ~wenv ~henv ~out:dir ~title file =
-  let src = Docref.parse ~henv ~wenv file in
+let process_source ~wenv ~henv ~out:dir ~title file (src : Docref.source) =
   let path = String.concat "." src.lib in
   let page = Printf.sprintf "Library %s" path in
   let title = document_title ~title ~page in
@@ -1102,14 +1101,18 @@ let shared ~out ~file =
   let src = Meta.shared file in
   Utils.copy ~src ~tgt
 
-let process ~wenv ~henv ~out ~title file =
-  if Filename.check_suffix file ".md" then
-    process_markdown ~wenv ~henv ~out ~title file
-  else
+let preprocess ~henv ~wenv file =
+  file ,
+  if Filename.check_suffix file ".md" then None else
   if Filename.check_suffix file ".mlw" then
-    process_source ~wenv ~henv ~out ~title file
+    Some (Docref.parse ~henv ~wenv file)
   else
     Utils.failwith "Don't known what to do with %S" file
+
+let process ~wenv ~henv ~out ~title (file,kind) =
+  match kind with
+  | None -> process_markdown ~wenv ~henv ~out ~title file
+  | Some src -> process_source ~wenv ~henv ~out ~title file src
 
 let generate ~out ~title ~files ~url =
   begin
@@ -1120,7 +1123,8 @@ let generate ~out ~title ~files ~url =
     shared ~out ~file:"icofont.min.css" ;
     shared ~out ~file:"fonts/icofont.woff" ;
     shared ~out ~file:"fonts/icofont.woff2" ;
-    List.iter (process ~wenv ~henv ~title ~out) files ;
+    List.map (preprocess ~wenv ~henv) files |>
+    List.iter (process ~wenv ~henv ~title ~out) ;
     index ~out ~title ;
     Utils.log "Generated %s%s/index.html@."
       (if url then "file://" else "")
