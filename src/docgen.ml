@@ -1101,11 +1101,13 @@ let shared ~out ~file =
   let src = Meta.shared file in
   Utils.copy ~src ~tgt
 
-let preprocess ~henv ~wenv file =
+let preprocess ~henv ~wenv ~senv file =
   file ,
   if Filename.check_suffix file ".md" then None else
   if Filename.check_suffix file ".mlw" then
-    Some (Docref.parse ~henv ~wenv file)
+    let src = Docref.parse ~henv ~wenv file in
+    Docref.Mstr.iter (fun _ thy -> Soundness.register senv thy) src.theories ;
+    Some src
   else
     Utils.failwith "Don't known what to do with %S" file
 
@@ -1116,19 +1118,32 @@ let process ~wenv ~henv ~out ~title (file,kind) =
 
 let generate ~out ~title ~files ~url =
   begin
-    let wenv, henv = Docref.init () in
+    (* Keywords *)
+    Docref.init () ;
+    (* Package config *)
+    let penv = Wenv.init () in
+    (* Why3 environment *)
+    let wenv = penv.wenv in
+    (* Axioms config *)
+    let henv = Axioms.init penv in
+    (* Sounness config *)
+    let senv = Soundness.init () in
+    (* Shared resources *)
     Utils.mkdirs @@ Filename.concat out "fonts" ;
     shared ~out ~file:"style.css" ;
     shared ~out ~file:"script.js" ;
     shared ~out ~file:"icofont.min.css" ;
     shared ~out ~file:"fonts/icofont.woff" ;
     shared ~out ~file:"fonts/icofont.woff2" ;
-    List.map (preprocess ~wenv ~henv) files |>
+    (* Preprocessing *)
+    List.map (preprocess ~wenv ~henv ~senv) files |>
+    (* Processing *)
     List.iter (process ~wenv ~henv ~title ~out) ;
+    (* Indexing *)
     index ~out ~title ;
+    (* Final output *)
     Utils.log "Generated %s%s/index.html@."
-      (if url then "file://" else "")
-      (Utils.absolute out) ;
+      (if url then "file://" else "") (Utils.absolute out) ;
   end
 
 (* -------------------------------------------------------------------------- *)

@@ -20,71 +20,30 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Global References                                                  --- *)
+(* --- Compute Soundness                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-val init : unit -> unit
-
+module Hid = Why3.Ident.Hid
 module Thy = Why3.Theory
-module Pmod = Why3.Pmodule
-module Mstr = Why3.Wstdlib.Mstr
 
-type ident = Why3.Ident.ident
-
-type section = {
-  cloned_path : string ;
-  cloned_order : int ;
+type instance = { into : Thy.theory ; instance : Docref.instance }
+type henv = {
+  theories : Docref.theory Hid.t ;
+  instances : instance list Hid.t;
 }
 
-type instance =
-  | Mi of Pmod.mod_inst
-  | Ti of Thy.theory * Thy.symbol_map
-
-type clone = {
-  id_section : section ;
-  id_source : Why3.Ident.ident ;
-  id_target : Why3.Ident.ident ;
+let init () = {
+  theories = Hid.create 0 ;
+  instances = Hid.create 0 ;
 }
 
-type theory = {
-  theory: Thy.theory ;
-  depends: Thy.theory list ;
-  signature: Axioms.signature ;
-  instances: instance list ;
-  clones: clone list ;
-  proofs: Crc.crc Mstr.t ;
-}
-
-type source = {
-  lib: string list;
-  urlbase: string;
-  profile: Calibration.profile;
-  theories: theory Mstr.t;
-}
-
-val create : unit -> source
-val parse : wenv:Why3.Env.env -> henv:Axioms.henv -> string -> source
-val derived : source -> string -> string (* URL name *)
-val instance : instance -> ident (* of the theory *)
-
-val is_keyword : string -> bool
-
-type href =
-  | NoRef
-  | Ref of Id.id
-  | Def of Id.id * Crc.crc option
-
-type position = Lexing.position * Lexing.position
-
-val find_proof : ident -> theory option -> Crc.crc option
-
-val resolve :
-  src:source -> theory:theory option -> infix:bool ->
-  position -> href
-
-val reference :
-  wenv:Why3.Env.env ->
-  src:source -> scope:string option ->
-  string -> string * ident
+let register henv (thy : Docref.theory) =
+  Hid.add henv.theories thy.theory.th_name thy ;
+  List.iter (fun ins ->
+      let th = Docref.instance ins in
+      let inst = { into = thy.theory ; instance = ins } in
+      let known = Hid.find_def henv.instances [] th in
+      Hid.replace henv.instances th (inst :: known)
+    ) thy.instances
 
 (* -------------------------------------------------------------------------- *)

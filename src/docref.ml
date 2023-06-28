@@ -225,11 +225,6 @@ let init () =
     (* Parser config *)
     Why3.Debug.set_flag Why3.Glob.flag ;
     List.iter (fun k -> Hashtbl.add keywords k ()) Why3.Keywords.keywords ;
-    (* Package config *)
-    let wenv = Wenv.init () in
-    (* Axioms config *)
-    let henv = Axioms.init wenv in
-    wenv.wenv, henv
   end
 
 (* -------------------------------------------------------------------------- *)
@@ -317,6 +312,10 @@ let parse ~wenv ~henv file =
 
 let derived src id =
   Printf.sprintf "%s.%s.html" (String.concat "." src.lib) id
+
+let instance = function
+  | Ti(th,_) -> th.th_name
+  | Mi m -> m.mi_mod.mod_theory.th_name
 
 let create () = {
   lib = [] ; urlbase = "" ;

@@ -29,42 +29,6 @@ module Mid = Ident.Mid
 module Hid = Ident.Hid
 
 (* -------------------------------------------------------------------------- *)
-(* --- Builtin & Extracted Environments                                   --- *)
-(* -------------------------------------------------------------------------- *)
-
-type henv = {
-  builtins : (Runner.prover * string) list Mid.t ;
-  externals : string Mid.t ;
-}
-
-let ocaml64 =
-  Filename.concat Config.datadir @@
-  Filename.concat "extraction_drivers" @@
-  "ocaml64.drv"
-
-let drivers (pkg : Meta.pkg) =
-  List.map (Filename.concat pkg.path) pkg.drivers
-
-let add_builtins bmap p =
-  Mid.merge
-    (fun _ a b ->
-       match a,b with
-       | None, None -> None
-       | Some _, None -> a
-       | None, Some (m,_) -> Some [p,m]
-       | Some xs, Some (m,_) -> Some ((p,m) :: xs)
-    ) bmap @@ Driver.syntax_map p.Runner.driver
-
-let init (wenv : Wenv.env) =
-  let provers = Runner.select wenv ~patterns:(Wenv.provers ()) in
-  let builtins = List.fold_left add_builtins Mid.empty provers in
-  let drivers = List.concat_map drivers wenv.pkgs @ Wenv.drivers () in
-  let main = Whyconf.get_main wenv.wconfig in
-  let pdriver = Pdriver.load_driver main wenv.wenv ocaml64 drivers in
-  let externals = Mid.map fst pdriver.drv_syntax in
-  { builtins ; externals }
-
-(* -------------------------------------------------------------------------- *)
 (* --- Theory & Module Assumed Symbols                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -97,6 +61,47 @@ type signature = {
   used_theories : Theory.theory list ;
   cloned_theories : Theory.theory list ;
 }
+
+type henv = {
+  builtins : (Runner.prover * string) list Mid.t ;
+  externals : string Mid.t ;
+  signatures : signature Hid.t ;
+}
+
+(* -------------------------------------------------------------------------- *)
+(* --- Builtin & Extracted Environments                                   --- *)
+(* -------------------------------------------------------------------------- *)
+
+let ocaml64 =
+  Filename.concat Config.datadir @@
+  Filename.concat "extraction_drivers" @@
+  "ocaml64.drv"
+
+let drivers (pkg : Meta.pkg) =
+  List.map (Filename.concat pkg.path) pkg.drivers
+
+let add_builtins bmap p =
+  Mid.merge
+    (fun _ a b ->
+       match a,b with
+       | None, None -> None
+       | Some _, None -> a
+       | None, Some (m,_) -> Some [p,m]
+       | Some xs, Some (m,_) -> Some ((p,m) :: xs)
+    ) bmap @@ Driver.syntax_map p.Runner.driver
+
+let init (wenv : Wenv.env) =
+  let provers = Runner.select wenv ~patterns:(Wenv.provers ()) in
+  let builtins = List.fold_left add_builtins Mid.empty provers in
+  let drivers = List.concat_map drivers wenv.pkgs @ Wenv.drivers () in
+  let main = Whyconf.get_main wenv.wconfig in
+  let pdriver = Pdriver.load_driver main wenv.wenv ocaml64 drivers in
+  let externals = Mid.map fst pdriver.drv_syntax in
+  { builtins ; externals ; signatures = Hid.create 0 }
+
+(* -------------------------------------------------------------------------- *)
+(* --- Elementary Operations                                              --- *)
+(* -------------------------------------------------------------------------- *)
 
 let empty = {
   assumed = 0 ;
@@ -237,19 +242,17 @@ let module_signature henv (pm : Pmodule.pmodule) : signature =
   List.fold_left (add_munit henv) empty pm.mod_units
 
 (* -------------------------------------------------------------------------- *)
-(* --- Signatute                                                          --- *)
+(* --- Signature                                                          --- *)
 (* -------------------------------------------------------------------------- *)
-
-let sigs = Hid.create 0
 
 let signature henv (thy : Theory.theory) =
   let id = thy.th_name in
-  try Hid.find sigs id
+  try Hid.find henv.signatures id
   with Not_found ->
     let hs =
       try module_signature henv @@ Pmodule.restore_module thy
       with Not_found -> theory_signature henv thy
-    in Hid.add sigs id hs ; hs
+    in Hid.add henv.signatures id hs ; hs
 
 let parameter s id = Mid.find_opt id s.locals
 let parameters s = Mid.values s.locals
