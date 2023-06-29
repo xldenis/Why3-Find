@@ -83,11 +83,11 @@ type env = {
   out : Pdoc.output ; (* output buffer *)
   crc : Pdoc.output ; (* proofs buffer *)
   wenv : Why3.Env.env ; (* why3 env. *)
+  cenv : Docref.cenv ; (* cloning order *)
   henv : Axioms.henv ; (* axioms *)
   mutable proof_href : int ; (* proof href *)
   mutable clone_decl : int ; (* clone decl indent (when > 0) *)
-  mutable clone_path : string ; (* cloned module path (when relevant) *)
-  mutable clone_order : int ; (* clone ranking *)
+  mutable clone_inst : bool ; (* clone instance found *)
   mutable declared : Sid.t ; (* locally declared *)
   mutable scope : string option ; (* current module name *)
   mutable theory : Docref.theory option ; (* current module theory *)
@@ -418,8 +418,8 @@ let process_href env (href : Docref.href) s =
   | Docref.Ref id ->
     if env.clone_decl > 0 && id.id_qid = [] then
       begin
-        env.clone_order <- succ env.clone_order ;
-        env.clone_path <- Id.cat (id.id_lib @ id.id_mod :: id.id_qid) ;
+        Docref.set_instance env.cenv id.self ;
+        env.clone_inst <- true ;
       end ;
     Pdoc.printf env.out "<a title=\"%a\" href=\"%a\">%a</a>"
       Id.pp_title id
@@ -456,16 +456,17 @@ let pp_ident ~env ?attr ?name fmt id =
     | Some a -> a
     | None -> id.id_string
 
-let rec pp_type ~env ~par fmt (ty : Why3.Ty.ty) =
+let rec pp_type ~env ~arg fmt (ty : Why3.Ty.ty) =
+  if arg then Format.pp_print_char fmt ' ' ;
   match ty.ty_node with
   | Tyvar tv -> Format.pp_print_string fmt tv.tv_name.id_string
   | Tyapp(ts,[]) -> pp_ident ~env fmt ts.ts_name
   | Tyapp(ts,args) ->
     begin
-      if par then Format.pp_print_char fmt '(' ;
+      if arg then Format.pp_print_char fmt '(' ;
       pp_ident ~env fmt ts.ts_name ;
-      List.iter (Format.fprintf fmt " %a" (pp_type ~env ~par:true)) args ;
-      if par then Format.pp_print_char fmt ')' ;
+      List.iter (pp_type ~env ~arg:true fmt) args ;
+      if arg then Format.pp_print_char fmt ')' ;
     end
 
 let attributes (rs : Why3.Expr.rsymbol) =
@@ -498,12 +499,12 @@ let symbol env n ?attr (ls : Why3.Term.lsymbol) ?op def =
   match ls.ls_value with
   | None ->
     declare env n "predicate" ?attr ls.ls_name ;
-    List.iter (Pdoc.pp env.out @@ pp_type ~env ~par:true) ls.ls_args ;
+    List.iter (Pdoc.pp env.out @@ pp_type ~env ~arg:true) ls.ls_args ;
     definition env ?op def ;
   | Some r ->
     declare env n "function" ?attr ls.ls_name ;
-    List.iter (Pdoc.pp env.out @@ pp_type ~env ~par:true) ls.ls_args ;
-    Pdoc.printf env.out " : %a" (pp_type ~env ~par:false) r ;
+    List.iter (Pdoc.pp env.out @@ pp_type ~env ~arg:true) ls.ls_args ;
+    Pdoc.printf env.out " : %a" (pp_type ~env ~arg:false) r ;
     definition env ?op def
 
 let decl env n id (d : Why3.Decl.decl) def =
@@ -533,12 +534,10 @@ let signature env (rs : Why3.Expr.rsymbol) =
   begin
     List.iter
       (fun x ->
-         Pdoc.printf env.out " %a"
-           (pp_type ~env ~par:true)
-           Why3.Ity.(ty_of_ity x.pv_ity)
+         Pdoc.pp env.out (pp_type ~env ~arg:true) Why3.Ity.(ty_of_ity x.pv_ity)
       ) rs.rs_cty.cty_args ;
     Pdoc.printf env.out " : %a"
-      (pp_type ~env ~par:false)
+      (pp_type ~env ~arg:false)
       Why3.Ity.(ty_of_ity rs.rs_cty.cty_result) ;
   end
 
@@ -553,7 +552,7 @@ let mdecl env n id (pd: Why3.Pdecl.pdecl) def =
       | LDvar(pv,_) ->
         declare env n "let" id ;
         Pdoc.printf env.out " : %a"
-          (pp_type ~env ~par:false) pv.pv_vs.vs_ty ;
+          (pp_type ~env ~arg:false) pv.pv_vs.vs_ty ;
         definition env def
       | LDsym(rs,df) ->
         let kwd,op = defkind df in
@@ -577,6 +576,7 @@ let mdecl env n id (pd: Why3.Pdecl.pdecl) def =
 (* Declare 'id' from cloned definition 'def' in theory 'th' *)
 let declaration env n id (th : Why3.Theory.theory) def =
   try
+    env.declared <- Sid.add id env.declared ;
     let m = Why3.Pmodule.restore_module th in
     let pd = Why3.Ident.Mid.find id m.mod_known in
     mdecl env n id pd def
@@ -589,15 +589,13 @@ let declaration env n id (th : Why3.Theory.theory) def =
 (* --- Flushing Declarations                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-let by_source_line a b =
+let by_clone_line a b =
   let la = Id.line a.Docref.id_source in
   let lb = Id.line b.Docref.id_source in
   Int.compare la lb
 
-let in_section env (c : Docref.clone) =
-  let s = c.id_section in
-  s.cloned_path = env.clone_path &&
-  s.cloned_order = env.clone_order &&
+let current_instance env (c : Docref.clone) =
+  Docref.current_instance env.cenv c.id_instance &&
   not @@ Sid.mem c.id_target env.declared
 
 let process_clone_proofs env clones =
@@ -624,8 +622,8 @@ let process_clone_axioms env clones =
 
 let process_clone_section env (th : Docref.theory) =
   let cloned =
-    List.sort by_source_line @@
-    List.filter (in_section env) th.clones
+    List.sort by_clone_line @@
+    List.filter (current_instance env) th.clones
   in
   if cloned <> [] then
     begin
@@ -653,12 +651,12 @@ let process_clone_section env (th : Docref.theory) =
 
 let process_clones env =
   begin
-    if env.clone_path <> "" then
+    if env.clone_inst then
       match env.theory with
       | None -> ()
       | Some th ->
         process_clone_section env th ;
-        env.clone_path <- "" ;
+        env.clone_inst <- false ;
         env.clone_decl <- 0 ;
   end
 
@@ -747,6 +745,7 @@ let process_open_module env key =
     process_href env href id ;
     process_axioms_summary env theory ;
     process_proofs_summary env ~crc:false id theory ;
+    Docref.set_container env.cenv ~path ~id ;
   end
 
 let process_close_module env key =
@@ -986,9 +985,9 @@ let document_title ~title ~page =
 (* --- MD File Processing                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_markdown ~wenv ~henv ~out:dir ~title file =
+let process_markdown ~wenv ~cenv ~henv ~out:dir ~title file =
   begin
-    let src = Docref.create () in
+    let src = Docref.empty () in
     let input = Token.input ~doc:true file in
     let basename = Filename.chop_extension @@ Filename.basename file in
     let page = String.capitalize_ascii basename in
@@ -998,13 +997,12 @@ let process_markdown ~wenv ~henv ~out:dir ~title file =
     let out = Pdoc.output ~file:ofile ~title in
     let crc = Pdoc.null () in
     let env = {
-      dir ; src ; input ; out ; crc ; wenv ; henv ;
+      dir ; src ; input ; out ; crc ; wenv ; cenv ; henv ;
       space = false ;  indent = Code ;
       block = Raw; mode = Body ; file = Body ; stack = [] ;
       scope = None ; theory = None ;
       clone_decl = 0 ;
-      clone_path = "" ;
-      clone_order = 0 ;
+      clone_inst = false ;
       proof_href = 0 ;
       declared = Sid.empty ;
       opened = 0 ; section = 0 ;
@@ -1021,7 +1019,7 @@ let process_markdown ~wenv ~henv ~out:dir ~title file =
 (* --- MLW File Processing                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_source ~wenv ~henv ~out:dir ~title file (src : Docref.source) =
+let process_source ~wenv ~cenv ~henv ~out:dir ~title file (src : Docref.source) =
   let path = String.concat "." src.lib in
   let page = Printf.sprintf "Library %s" path in
   let title = document_title ~title ~page in
@@ -1033,13 +1031,12 @@ let process_source ~wenv ~henv ~out:dir ~title file (src : Docref.source) =
       ~title:(Printf.sprintf "Proofs %s" path) in
   let input = Token.input file in
   let env = {
-    dir ; src ; input ; out ; crc ; wenv ; henv ;
+    dir ; src ; input ; out ; crc ; wenv ; henv ; cenv ;
     space = false ; indent = Code ;
     block = Raw ; mode = Body ; file = Body ; stack = [] ;
     scope = None ; theory = None ;
     clone_decl = 0 ;
-    clone_path = "" ;
-    clone_order = 0 ;
+    clone_inst = false ;
     proof_href = 0 ;
     declared = Sid.empty ;
     opened = 0 ; section = 0 ;
@@ -1102,11 +1099,11 @@ let shared ~out ~file =
   let src = Meta.shared file in
   Utils.copy ~src ~tgt
 
-let preprocess ~henv ~wenv ~senv file =
+let preprocess ~cenv ~henv ~wenv ~senv file =
   file ,
   if Filename.check_suffix file ".md" then None else
   if Filename.check_suffix file ".mlw" then
-    let src = Docref.parse ~henv ~wenv file in
+    let src = Docref.parse ~cenv ~henv ~wenv file in
     Soundness.register senv src ; Some src
   else
     Utils.failwith "Don't known what to do with %S" file
@@ -1119,13 +1116,13 @@ let process ~wenv ~henv ~out ~title (file,kind) =
 let generate ~out ~title ~files ~url =
   begin
     (* Keywords *)
-    Docref.init () ;
+    let cenv = Docref.init () in
     (* Package config *)
-    let penv = Wenv.init () in
+    let env = Wenv.init () in
     (* Why3 environment *)
-    let wenv = penv.wenv in
+    let wenv = env.wenv in
     (* Axioms config *)
-    let henv = Axioms.init penv in
+    let henv = Axioms.init env in
     (* Sounness config *)
     let senv = Soundness.init henv in
     (* Shared resources *)
@@ -1136,9 +1133,9 @@ let generate ~out ~title ~files ~url =
     shared ~out ~file:"fonts/icofont.woff" ;
     shared ~out ~file:"fonts/icofont.woff2" ;
     (* Preprocessing *)
-    List.map (preprocess ~wenv ~henv ~senv) files |>
+    List.map (preprocess ~wenv ~cenv ~henv ~senv) files |>
     (* Processing *)
-    List.iter (process ~wenv ~henv ~title ~out) ;
+    List.iter (process ~wenv ~cenv ~henv ~title ~out) ;
     (* Indexing *)
     index ~out ~title ;
     (* Final output *)

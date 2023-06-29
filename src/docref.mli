@@ -23,22 +23,20 @@
 (* --- Global References                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-val init : unit -> unit
-
 module Thy = Why3.Theory
 module Pmod = Why3.Pmodule
 module Mstr = Why3.Wstdlib.Mstr
 
 type ident = Why3.Ident.ident
 
-type section = {
-  cloned_theory : Thy.theory ;
-  cloned_path : string ; (** of the cloned theory *)
-  cloned_order : int ; (** instance rank *)
+type instance = {
+  inst_path : string ; (** container of the clone instance *)
+  inst_order : int ; (** clone declaration offset *)
+  inst_cloned : Thy.theory ; (** cloned theory *)
 }
 
 type clone = {
-  id_section : section ;
+  id_instance : instance ;
   id_source : ident ; (** from cloned theory *)
   id_target : ident ; (** to clone instance *)
 }
@@ -58,8 +56,14 @@ type source = {
   theories: theory Mstr.t;
 }
 
-val create : unit -> source
-val parse : wenv:Why3.Env.env -> henv:Axioms.henv -> string -> source
+type cenv
+val init : unit -> cenv
+val set_container : cenv -> path:string -> id:string -> unit
+val set_instance : cenv -> ident -> unit
+val current_instance : cenv -> instance -> bool
+
+val parse : wenv:Why3.Env.env -> cenv:cenv -> henv:Axioms.henv -> string -> source
+val empty : unit -> source
 val derived : source -> string -> string (* URL name *)
 
 val is_keyword : string -> bool

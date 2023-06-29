@@ -154,24 +154,18 @@ let theory_signature henv (thy : Theory.theory) =
   List.fold_left (add_tdecl henv) empty thy.th_decls
 
 (* -------------------------------------------------------------------------- *)
-(* --- Module Declarations                                                --- *)
+(* --- Constant Detection                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
-  if it.itd_fields = [] && it.itd_constructors = [] then
-    let its = it.itd_its in
-    if nodef its.its_def then add henv hs (Type its.its_ts) else hs
-  else hs
+let is_var x (a : Term.term) =
+  match a.t_node with
+  | Tvar y -> Term.vs_equal x y
+  | _ -> false
 
 let rec cany (ce : Expr.cexp) =
   match ce.c_node with
   | Cany -> true
   | Cfun { e_node = Eexec(ce,_) } -> cany ce
-  | _ -> false
-
-let is_var x (a : Term.term) =
-  match a.t_node with
-  | Tvar y -> Term.vs_equal x y
   | _ -> false
 
 (* Detect (fun result -> result = a) s.t. check a *)
@@ -209,6 +203,16 @@ let constrained (rs : Expr.rsymbol) =
          with Invalid_argument _ -> false)
       | _ -> false
     in List.exists (constrained_post check) rs.rs_cty.cty_post
+
+(* -------------------------------------------------------------------------- *)
+(* --- Module Declarations                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
+  if it.itd_fields = [] && it.itd_constructors = [] then
+    let its = it.itd_its in
+    if nodef its.its_def then add henv hs (Type its.its_ts) else hs
+  else hs
 
 let add_rsymbol henv hs (rs : Expr.rsymbol) (cexp : Expr.cexp) =
   if Id.lemma rs.rs_name then hs else

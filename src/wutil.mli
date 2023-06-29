@@ -19,51 +19,15 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(* -------------------------------------------------------------------------- *)
-(* --- Soundness Registry                                                 --- *)
-(* -------------------------------------------------------------------------- *)
+open Why3
 
-module Id = Why3.Ident
-module Sid = Why3.Ident.Sid
-module Hid = Why3.Ident.Hid
-module Thy = Why3.Theory
+val iter_sm : (Ident.ident -> Ident.ident -> unit) -> Theory.symbol_map -> unit
+val iter_mi : (Ident.ident -> Ident.ident -> unit) -> Pmodule.mod_inst -> unit
 
-type instance = {
-  path : string ; (* path *)
-  rank : int ; (* clone number *)
-}
+val pp_thy : Format.formatter -> Theory.theory -> unit
+val pp_mod : Format.formatter -> Pmodule.pmodule -> unit
+val pp_pdecl : Format.formatter -> Pdecl.pdecl -> unit
+val pp_munit : Format.formatter -> Pmodule.mod_unit -> unit
+val pp_module : Format.formatter -> Pmodule.pmodule -> unit
 
-type henv = {
-  henv : Axioms.henv ;
-  instances : ((instance,Sid.t ref) Hashtbl.t) Hid.t ;
-  (* [ cloned -> instance -> concrete parameters ] *)
-}
-
-let init henv = {
-  henv ;
-  instances = Hid.create 0 ;
-}
-
-let add henv ~path (c : Docref.clone) =
-  let cloned = c.id_instance.inst_cloned.th_name in
-  let rank = c.id_instance.inst_order in
-  let inst = { path ; rank } in
-  let hinst =
-    try Hid.find henv.instances cloned with Not_found ->
-      let h = Hashtbl.create 1 in
-      Hid.add henv.instances cloned h ; h in
-  let domain =
-    try Hashtbl.find hinst inst with Not_found ->
-      let d = ref Sid.empty in
-      Hashtbl.add hinst inst d ; d in
-  domain := Sid.add c.id_source !domain
-
-let register henv (src : Docref.source) =
-  let lib = String.concat "." src.lib in
-  Docref.Mstr.iter
-    (fun name (thy : Docref.theory) ->
-       let path = Printf.sprintf "%s.%s" lib name in
-       List.iter (add henv ~path) thy.clones
-    ) src.theories
-
-(* -------------------------------------------------------------------------- *)
+(**************************************************************************)
