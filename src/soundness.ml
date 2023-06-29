@@ -27,15 +27,17 @@ module Id = Why3.Ident
 module Sid = Why3.Ident.Sid
 module Hid = Why3.Ident.Hid
 module Thy = Why3.Theory
-
-type instance = {
-  path : string ; (* path *)
-  rank : int ; (* clone number *)
-}
+module Sinst = Set.Make
+    (struct
+      type t = Docref.instance
+      let compare (a : t) (b : t) =
+        let cmp = String.compare a.inst_path b.inst_path in
+        if cmp <> 0 then cmp else a.inst_order - b.inst_order
+    end)
 
 type henv = {
   henv : Axioms.henv ;
-  instances : ((instance,Sid.t ref) Hashtbl.t) Hid.t ;
+  instances : Sinst.t ref Hid.t ;
   (* [ cloned -> instance -> concrete parameters ] *)
 }
 
@@ -44,26 +46,18 @@ let init henv = {
   instances = Hid.create 0 ;
 }
 
-let add henv ~path (c : Docref.clone) =
-  let cloned = c.id_instance.inst_cloned.th_name in
-  let rank = c.id_instance.inst_order in
-  let inst = { path ; rank } in
-  let hinst =
-    try Hid.find henv.instances cloned with Not_found ->
-      let h = Hashtbl.create 1 in
-      Hid.add henv.instances cloned h ; h in
-  let domain =
-    try Hashtbl.find hinst inst with Not_found ->
-      let d = ref Sid.empty in
-      Hashtbl.add hinst inst d ; d in
-  domain := Sid.add c.id_source !domain
+let add henv (c : Docref.clone) =
+  let inst = c.id_instance in
+  let key = inst.inst_cloned.th_name in
+  try
+    let s = Hid.find henv.instances key in
+    s := Sinst.add inst !s
+  with Not_found ->
+    Hid.add henv.instances key (ref (Sinst.singleton inst))
 
-let register henv (src : Docref.source) =
-  let lib = String.concat "." src.lib in
+let register henv (s : Docref.source) =
   Docref.Mstr.iter
-    (fun name (thy : Docref.theory) ->
-       let path = Printf.sprintf "%s.%s" lib name in
-       List.iter (add henv ~path) thy.clones
-    ) src.theories
+    (fun _ (thy : Docref.theory) -> List.iter (add henv) thy.clones)
+    s.theories
 
 (* -------------------------------------------------------------------------- *)
