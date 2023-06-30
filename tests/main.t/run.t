@@ -28,11 +28,11 @@
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <link rel="stylesheet" type="text/css" href="style.css">
   <link rel="stylesheet" type="text/css" href="icofont.min.css">
-  <title>Index</title>
+  <title></title>
   </head>
   <body>
-  <header>Index</header>
-  <h1>Package</h1>
+  <header>index — </header>
+  <h1>Development</h1>
   <div class="doc">
   <ul>
   <li><a href="p.a.index.html">Library p.a</a></li>
@@ -53,7 +53,7 @@
   <title>Library p.a</title>
   </head>
   <body>
-  <header>Library <a href="index.html"><code>p.a</code></a></header>
+  <header><a href="index.html">index</a> — <code>library p.a</code></header>
   <div class="doc">
   <p>Before A</p>
   </div>
@@ -80,7 +80,7 @@
   <title>Module p.a.A</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="p.a.index.html">p.a</a>.A</code></header>
+  <header><a href="index.html">index</a> — <code>library <a href="p.a.index.html">p.a</a></code> — <code>module A</code></header>
   <div class="doc">
   <p>Introducing A</p>
   </div>
@@ -116,7 +116,7 @@
   <title>Module p.a.B</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="p.a.index.html">p.a</a>.B</code></header>
+  <header><a href="index.html">index</a> — <code>library <a href="p.a.index.html">p.a</a></code> — <code>module B</code></header>
   <div class="doc">
   <p>Introducing B</p>
   </div>

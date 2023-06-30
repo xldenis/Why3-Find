@@ -26,13 +26,14 @@
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <link rel="stylesheet" type="text/css" href="style.css">
   <link rel="stylesheet" type="text/css" href="icofont.min.css">
-  <title>Main</title>
+  <title>main</title>
   </head>
   <body>
   <nav>
   <a class="toc1" href="#_1">Main Document</a>
   </nav>
-  <header>Main</header>
+  <header><a href="index.html">index</a> — main
+         </header>
   <div class="doc">
   <h1><a id="_1">Main Document</a></h1>
   <p>This package contains one [unique](a.index.html) library, which consists of:</p>
@@ -57,7 +58,7 @@
   <title>Library a</title>
   </head>
   <body>
-  <header>Library <a href="index.html"><code>a</code></a></header>
+  <header><a href="index.html">index</a> — <code>library a</code></header>
   <div class="doc">
   <p>Infix reference: <code class="src"><a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">int.Int.(+)</a></code></p>
   <p>Prefix reference: <code class="src"><a title="int.Int.(-)" href="https://why3.lri.fr/stdlib/int.html#prefix%20-_18">int.Int.(-_)</a></code></p>
@@ -82,7 +83,7 @@
   <title>Theory a.A</title>
   </head>
   <body>
-  <header>Theory <code class="src"><a href="a.index.html">a</a>.A</code></header>
+  <header><a href="index.html">index</a> — <code>library <a href="a.index.html">a</a></code> — <code>module A</code></header>
   <pre class="src">
   <span class="keyword">theory</span> A<span title="2 parameters" class="icon small remark icofont-star"></span><a href="a.proof.html#A" title="Valid (no goals)" class="icon remark icofont-check"></a>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span>
@@ -104,7 +105,7 @@
   <title>Module a.B</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="a.index.html">a</a>.B</code></header>
+  <header><a href="index.html">index</a> — <code>library <a href="a.index.html">a</a></code> — <code>module B</code></header>
   <pre class="src">
   <span class="keyword">module</span> B<span title="2 parameters" class="icon small remark icofont-star"></span><a href="a.proof.html#B" title="Valid (no goals)" class="icon remark icofont-check"></a>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span>

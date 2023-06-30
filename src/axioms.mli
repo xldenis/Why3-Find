@@ -46,6 +46,7 @@ type parameter = {
 
 val ident : param -> Ident.ident
 val is_abstract : parameter -> bool
+val is_hypothesis : parameter -> bool
 val parameter : signature -> Ident.ident -> parameter option
 val parameters : ?all:bool -> signature -> parameter list
 val dependencies : henv -> ?self:bool -> Theory.theory list -> Theory.theory list

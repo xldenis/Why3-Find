@@ -231,7 +231,7 @@ let pp_mark ?href ~title ~cla fmt =
 (* --- Proof Report                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-let pp_vlink ?href fmt r =
+let pp_verdict_raw href fmt r =
   match r with
   | `Valid n ->
     let title = match n with
@@ -247,9 +247,10 @@ let pp_vlink ?href fmt r =
     let title = "Failed (no proof)" in
     pp_mark ?href ~title ~cla:icon_failed fmt
 
-let pp_verdict = pp_vlink ?href:None
+let pp_verdict = pp_verdict_raw None
+let pp_vlink ~href fmt r = pp_verdict_raw (Some href) fmt r
 
-let process_proofs_summary env ?(crc=true) id = function
+let process_proofs_summary env ~crc id = function
   | None -> ()
   | Some Docref.{ proofs } ->
     let stuck,proved =
@@ -329,7 +330,7 @@ let process_axioms env (id : Id.id) =
             "Built-in symbol (%s), extracted to OCaml (%s)" (provers ops) ext
         in Pdoc.ppt env.out (pp_mark ~cla:icon_unsound_param ~title)
 
-let process_abstract env Axioms.{ param } =
+let process_hypothesis env Axioms.{ param } =
   try
     let id = Id.resolve ~lib:env.src.lib @@ Axioms.ident param in
     let key = match param with
@@ -340,23 +341,27 @@ let process_abstract env Axioms.{ param } =
       | Axiom _ -> "axiom"
     in
     Pdoc.printf env.crc
-      "<pre class=\"src\"> %a <a id=\"%a\" href=\"%a\">%a</a>%t</pre>"
+      "@\n  %a <a id=\"%a\" href=\"%a\">%a</a>"
       Pdoc.pp_keyword key
       Id.pp_proof_aname id
       (Id.pp_ahref ~scope:None) id
       Id.pp_local id
-      (pp_mark ?href:None ~title:"Abstract Parameter" ~cla:icon_unsound_param)
   with Not_found -> ()
 
 let process_module_axioms env =
   match env.theory with
   | None -> ()
   | Some { theory } ->
-    Axioms.iter env.henv
+    let pre = lazy (Pdoc.printf env.crc "<pre class=\"src\">") in
+    Axioms.iter env.henv ~self:true
       (fun (p : Axioms.parameter) ->
-         if Axioms.is_abstract p then
-           process_abstract env p)
-      [theory]
+         if Axioms.is_abstract p && Axioms.is_hypothesis p then
+           begin
+             Lazy.force pre ;
+             process_hypothesis env p ;
+           end
+      ) [theory] ;
+    if Lazy.is_val pre then Pdoc.printf env.crc "@\n</pre>@."
 
 type axioms = {
   ext : int ;
@@ -624,7 +629,8 @@ let process_clone_proofs env clones =
          | Some c -> s + Crc.stuck c, p + Crc.proved c
       ) (0,0) clones
   in
-  Pdoc.pp env.out pp_verdict (Crc.nverdict ~stuck ~proved)
+  if stuck + proved <> 0 then
+    Pdoc.pp env.out pp_verdict (Crc.nverdict ~stuck ~proved)
 
 let process_clone_axioms env clones =
   match env.theory with
@@ -651,8 +657,10 @@ let process_clone_section env (th : Docref.theory) =
       let n0 = env.clone_decl in
       let n2 = n0 + 2 in
       let n4 = n2 + 2 in
+      process_clone_axioms env cloned ;
+      process_clone_proofs env cloned ;
       Pdoc.printf env.out
-        " <span class=\"section\">\
+        "<span class=\"section\">\
          {<span class=\"section-toggle\">…</span>\
          <span class=\"section-text\">@\n\
          %a<span class=\"comment section-toggle\">begin</span>@\n"
@@ -665,8 +673,6 @@ let process_clone_section env (th : Docref.theory) =
         "%a<span class=\"comment section-toggle\">end</span>@\n\
          %a</span>}</span>"
         Pdoc.pp_spaces n2 Pdoc.pp_spaces n0 ;
-      process_clone_axioms env cloned ;
-      process_clone_proofs env cloned ;
     end
 
 let process_clones env =
@@ -733,7 +739,7 @@ let process_open_module env key =
       "<pre class=\"src\">%a <a id=\"%s\" href=\"%s\">%s.%s</a>"
       Pdoc.pp_keyword key id url path id ;
     process_axioms_summary env theory ; (* out *)
-    process_proofs_summary env id theory ; (* out & crc *)
+    process_proofs_summary env id  ~crc:true theory ; (* out & crc *)
     Pdoc.printf env.out "</pre>@." ;
     Pdoc.printf env.crc "</pre>@." ;
     let file = Filename.concat env.dir url in
@@ -741,9 +747,11 @@ let process_open_module env key =
     Pdoc.fork env.out ~file ~title ;
     Pdoc.printf env.out
       "<header>\
-       %s <code class=\"src\"><a href=\"%s.index.html\">%s</a>.%s</code>\
-       </header>@\n"
-      kind env.src.urlbase path id ;
+       <a href=\"index.html\">index</a> — \
+       <code>library <a href=\"%s.index.html\">%s</a></code> — \
+       <code>module %s</code>\
+       </header>@."
+      env.src.urlbase path id ;
     env.mode <- Body ;
     env.block <- Raw ;
     if prelude <> "" then
@@ -764,7 +772,7 @@ let process_open_module env key =
     Pdoc.pp_print_char env.out ' ' ;
     process_href env href id ;
     process_axioms_summary env theory ;
-    process_proofs_summary env ~crc:false id theory ;
+    process_proofs_summary env id ~crc:false theory ;
     Docref.set_container env.cenv ~path ~id ;
   end
 
@@ -948,10 +956,10 @@ let parse env =
 (* --- Chapters                                                           --- *)
 (* -------------------------------------------------------------------------- *)
 
-type chapter = { src: Docref.source option ; hfile: string ; page: string }
+type chapter = { src: Docref.source option ; href: string ; title: string }
 let chapters = ref []
-let chapter ?src ~hfile ~page () =
-  chapters := { src ; hfile ; page } :: !chapters
+let chapter ?src ~href ~title () =
+  chapters := { src ; href ; title } :: !chapters
 
 let documentation () =
   let rec docs cs = function
@@ -1009,11 +1017,10 @@ let process_markdown ~wenv ~cenv ~henv ~senv ~out:dir ~title file =
   begin
     let src = Docref.empty () in
     let input = Token.input ~doc:true file in
-    let basename = Filename.chop_extension @@ Filename.basename file in
-    let page = String.capitalize_ascii basename in
+    let page = Filename.chop_extension @@ Filename.basename file in
     let title = document_title ~title ~page in
-    let hfile = basename ^ ".html" in
-    let ofile = Filename.concat dir hfile in
+    let href = page ^ ".html" in
+    let ofile = Filename.concat dir href in
     let out = Pdoc.output ~file:ofile ~title in
     let crc = Pdoc.null () in
     let env = {
@@ -1027,8 +1034,11 @@ let process_markdown ~wenv ~cenv ~henv ~senv ~out:dir ~title file =
       declared = Sid.empty ;
       opened = 0 ; section = 0 ;
     } in
-    chapter ~hfile ~page () ;
-    Pdoc.printf out "<header>%a</header>@\n" Pdoc.pp_html title ;
+    chapter ~href ~title () ;
+    Pdoc.printf env.out
+      "<header>\
+       <a href=\"index.html\">index</a> — %s
+       </header>@." title ;
     Pdoc.flush out ;
     push env Div ;
     parse env ;
@@ -1039,17 +1049,14 @@ let process_markdown ~wenv ~cenv ~henv ~senv ~out:dir ~title file =
 (* --- MLW File Processing                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_source ~wenv ~cenv ~henv ~senv ~out:dir
-    ~title file (src : Docref.source) =
-  let path = String.concat "." src.lib in
-  let page = Printf.sprintf "Library %s" path in
-  let title = document_title ~title ~page in
-  let hfile = src.urlbase ^ ".index.html"in
-  let ofile = Filename.concat dir hfile in
+let process_source ~wenv ~cenv ~henv ~senv ~out:dir file (src : Docref.source) =
+  let title = Printf.sprintf "Library %s" src.urlbase in
+  let href = src.urlbase ^ ".index.html"in
+  let pref = src.urlbase ^ ".proof.html"in
+  let ofile = Filename.concat dir href in
+  let pfile = Filename.concat dir pref in
   let out = Pdoc.output ~file:ofile ~title in
-  let crc = Pdoc.output
-      ~file:(Filename.concat dir (src.urlbase ^ ".proof.html"))
-      ~title:(Printf.sprintf "Proofs %s" path) in
+  let crc = Pdoc.output ~file:pfile ~title in
   let input = Token.input file in
   let env = {
     dir ; src ; input ; out ; crc ; wenv ; henv ; cenv ; senv ;
@@ -1063,20 +1070,27 @@ let process_source ~wenv ~cenv ~henv ~senv ~out:dir
     opened = 0 ; section = 0 ;
   } in
   begin
-    chapter ~src ~hfile ~page () ;
+    chapter ~src ~href ~title () ;
     Pdoc.printf out
-      "<header>Library \
-       <a href=\"index.html\"><code>%s</code></a></header>@\n" path ;
+      "<header>\
+       <a href=\"index.html\">index</a> — <code>library %s</code>\
+       </header>@." src.urlbase ;
     Pdoc.flush out ;
-    Pdoc.printf crc "<header>Proofs (<code>%s</code>)</header>@\n" path ;
-    Pdoc.printf crc "<h1>Prover Calibration</h1>@\n<pre class=\"src\">@\n" ;
+    Pdoc.printf crc
+      "<header>\
+       <a href=\"index.html\">index</a> — \
+       <code>library <a href=\"%s.index.html\">%s</a></code> — \
+       <code>proofs</code>\
+       </header>@." src.urlbase src.urlbase ;
+    Pdoc.flush crc ;
+    Pdoc.printf crc "<h1>Prover Calibration</h1>@\n<pre class=\"src\">" ;
     Calibration.iter
       (fun p n t ->
-         Pdoc.printf crc "  %-10s n=%d %a (%s)@\n"
+         Pdoc.printf crc "@\n  %-10s n=%d %a (%s)"
            (Crc.shortname p) n Utils.pp_time t p
       ) src.profile ;
-    Pdoc.printf crc "</pre>@\n<h1>Proof Certificates</h1>@\n" ;
-    Pdoc.flush crc ;
+    Pdoc.printf crc "@\n</pre>@." ;
+    Pdoc.printf crc "<h1>Proof Certificates</h1>@\n" ;
     parse env ;
     Pdoc.close_all out ;
     Pdoc.close_all crc ;
@@ -1092,21 +1106,21 @@ let pp_chapters out ~title cs =
       Pdoc.printf out "<h1>%s</h1>@\n<div class=\"doc\">@\n<ul>@\n" title ;
       List.iter
         (fun c ->
-           Pdoc.printf out "<li><a href=\"%s\">%s</a></li>@\n" c.hfile c.page
+           Pdoc.printf out "<li><a href=\"%s\">%s</a></li>@\n" c.href c.title
         ) cs ;
       Pdoc.printf out "</ul>@\n</div>@." ;
     end
 
 let index ~out:dir ~title =
-  let hfile = "index.html" in
-  if List.for_all (fun c -> c.hfile <> hfile) !chapters then
+  let href = "index.html" in
+  if List.for_all (fun c -> c.href <> href) !chapters then
     begin
-      let title = document_title ~title ~page:"Index" in
-      let ofile = Filename.concat dir hfile in
+      let ofile = Filename.concat dir href in
       let out = Pdoc.output ~file:ofile ~title in
-      Pdoc.printf out "<header>%s</header>@\n" title ;
+      Pdoc.printf out
+        "<header>index — %s</header>@." title ;
       pp_chapters out ~title:"Documentation" @@ documentation () ;
-      pp_chapters out ~title:"Package" @@ package () ;
+      pp_chapters out ~title:"Development" @@ package () ;
       Pdoc.flush out ;
       Pdoc.close_all out ;
     end
@@ -1132,7 +1146,7 @@ let preprocess ~cenv ~henv ~wenv ~senv file =
 let process ~wenv ~henv ~out ~title (file,kind) =
   match kind with
   | None -> process_markdown ~wenv ~henv ~out ~title file
-  | Some src -> process_source ~wenv ~henv ~out ~title file src
+  | Some src -> process_source ~wenv ~henv ~out file src
 
 let generate ~out ~title ~files ~url =
   begin

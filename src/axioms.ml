@@ -53,6 +53,9 @@ type parameter = {
 }
 
 let is_abstract { builtin ; extern } = builtin = [] && extern = None
+let is_hypothesis = function
+  | { param = (Value _ | Axiom _) } -> true
+  | _ -> false
 
 type signature = {
   abstract : int ; (* number of abstract parameters *)

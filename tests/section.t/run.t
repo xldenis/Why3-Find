@@ -9,7 +9,7 @@
   <title>Module a.A</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="a.index.html">a</a>.A</code></header>
+  <header><a href="index.html">index</a> — <code>library <a href="a.index.html">a</a></code> — <code>module A</code></header>
   <pre class="src">
   <span class="keyword">module</span> A<span title="3 parameters" class="icon small remark icofont-star"></span><a href="a.proof.html#A" title="Failed (no proof)" class="icon failed icofont-warning"></a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>

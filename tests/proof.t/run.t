@@ -9,7 +9,7 @@
   <title>Module clones.A</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="clones.index.html">clones</a>.A</code></header>
+  <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module A</code></header>
   <pre class="src">
   <span class="keyword">module</span> A<span title="3 parameters, 2 hypotheses" class="icon small warning icofont-star"></span><a href="clones.proof.html#A" title="Valid (one goal)" class="icon valid icofont-check"></a>
   
@@ -34,18 +34,18 @@
   <title>Module clones.B</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="clones.index.html">clones</a>.B</code></header>
+  <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module B</code></header>
   <pre class="src">
   <span class="keyword">module</span> B<span title="1 parameter, 1 hypothesis" class="icon small warning icofont-star"></span><a href="clones.proof.html#B" title="Valid (one goal)" class="icon valid icofont-check"></a>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
-    <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
+    <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#">A</a><span title="1 parameter, 1 hypothesis" class="icon small warning icofont-star"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">function</span> <a id="A.e">A.e</a><span title="Parameter" class="icon small remark icofont-star"></span> : int {<a class="attribute" title="clones.A.e" href="clones.A.html#e">def.</a>}
         <span class="keyword">axiom</span> <a id="A.neutral">A.neutral</a><span title="Hypothesis" class="icon small warning icofont-star"></span> {<a class="attribute" title="clones.A.neutral" href="clones.A.html#neutral">def.</a>}
         <span class="keyword">lemma</span> <a id="A.commutative">A.commutative</a><a href="clones.proof.html#B.A.commutative" title="Valid (one goal)" class="icon valid icofont-check"></a> {<a class="attribute" title="clones.A.commutative" href="clones.A.html#commutative">def.</a>}
         <span class="keyword">lemma</span> <a id="A.neutral_com">A.neutral_com</a> {<a class="attribute" title="clones.A.neutral_com" href="clones.A.html#neutral_com">def.</a>}
       <span class="comment section-toggle">end</span>
-    </span>}</span><span title="1 parameter, 1 hypothesis" class="icon small warning icofont-star"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.A.t" href="clones.A.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.A.op" href="clones.A.html#op">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">+</a>), <span class="keyword">axiom</span> <a title="clones.A.neutral" href="clones.A.html#neutral">neutral</a>
+    </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.A.t" href="clones.A.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.A.op" href="clones.A.html#op">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">+</a>), <span class="keyword">axiom</span> <a title="clones.A.neutral" href="clones.A.html#neutral">neutral</a>
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
@@ -60,7 +60,7 @@
   <title>Module certif.S</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="certif.index.html">certif</a>.S</code></header>
+  <header><a href="index.html">index</a> — <code>library <a href="certif.index.html">certif</a></code> — <code>module S</code></header>
   <pre class="src">
   <span class="keyword">module</span> S<a href="certif.proof.html#S" title="Partial proof (6/10 goals)" class="icon warning icofont-warning"></a>
   
@@ -108,10 +108,10 @@
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <link rel="stylesheet" type="text/css" href="style.css">
   <link rel="stylesheet" type="text/css" href="icofont.min.css">
-  <title>Proofs clones</title>
+  <title>Library clones</title>
   </head>
   <body>
-  <header>Proofs (<code>clones</code>)</header>
+  <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>proofs</code></header>
   <h1>Prover Calibration</h1>
   <pre class="src">
     alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)
@@ -119,9 +119,16 @@
   <h1>Proof Certificates</h1>
   <pre class="src"><span class="keyword">module</span> <a id="A" href="clones.A.html">clones.A</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
   <pre class="src"> <span class="keyword">goal</span> <a id="A.neutral_com" href="clones.A.html#neutral_com">neutral_com</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
-      alt-ergo 500ns</pre><pre class="src"><span class="keyword">module</span> <a id="B" href="clones.B.html">clones.B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
+      alt-ergo 500ns</pre><pre class="src">
+    <span class="keyword">axiom</span> <a id="A.neutral" href="clones.A.html#neutral">neutral</a>
+    <span class="keyword">axiom</span> <a id="A.commutative" href="clones.A.html#commutative">commutative</a>
+  </pre>
+  <pre class="src"><span class="keyword">module</span> <a id="B" href="clones.B.html">clones.B</a><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
   <pre class="src"> <span class="keyword">goal</span> <a id="B.A.commutative" href="clones.B.html#A.commutative">A.commutative</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
-      alt-ergo 400ns</pre><script type="text/javascript" src="script.js"></script>
+      alt-ergo 400ns</pre><pre class="src">
+    <span class="keyword">axiom</span> <a id="B.A.neutral" href="clones.B.html#A.neutral">A.neutral</a>
+  </pre>
+  <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
   $ cat html/certif.proof.html
@@ -130,10 +137,10 @@
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <link rel="stylesheet" type="text/css" href="style.css">
   <link rel="stylesheet" type="text/css" href="icofont.min.css">
-  <title>Proofs certif</title>
+  <title>Library certif</title>
   </head>
   <body>
-  <header>Proofs (<code>certif</code>)</header>
+  <header><a href="index.html">index</a> — <code>library <a href="certif.index.html">certif</a></code> — <code>proofs</code></header>
   <h1>Prover Calibration</h1>
   <pre class="src">
     alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)

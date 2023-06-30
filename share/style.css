@@ -3,24 +3,44 @@
 /* -------------------------------------------------------------------------- */
 
 /* -------------------------------------------------------------------------- */
+/* --- Links                                                              --- */
+/* -------------------------------------------------------------------------- */
+
+a {
+    color: teal;
+    outline: none;
+    text-decoration: none;
+}
+
+a:visited {
+    color: teal;
+}
+
+a:hover {
+    background: lightgreen;
+}
+
+a:target {
+    background: lightblue;
+}
+
+/* -------------------------------------------------------------------------- */
 /* --- Header Styling                                                     --- */
 /* -------------------------------------------------------------------------- */
 
 header {
-    /* File title block styling */
+    padding: 4px ;
+    color: darkgrey ;
+    border-bottom: thin solid darkgray ;
 }
 
-header code {
-    font-size: larger;
-}
+header a { color: grey !important }
 
 /* -------------------------------------------------------------------------- */
 /* --- Table Of Contents                                                  --- */
 /* -------------------------------------------------------------------------- */
 
-nav {
-    display: none;
-}
+nav { display: none; }
 
 /* -------------------------------------------------------------------------- */
 /* --- Documentation Styling                                              --- */
@@ -50,24 +70,6 @@ pre.src {
     color: grey;
 }
 
-.src a {
-    color: teal;
-    outline: none;
-    text-decoration: none;
-}
-
-.src a:visited {
-    color: teal;
-}
-
-.src a:target {
-    background: lightblue;
-}
-
-.src a:hover {
-    background: lightgreen;
-}
-
 /* -------------------------------------------------------------------------- */
 /* --- Proof Marks                                                        --- */
 /* -------------------------------------------------------------------------- */
@@ -84,7 +86,7 @@ pre.src {
 .valid { color: green !important }
 .failed { color: red !important }
 .warning { color: orange !important }
-.remark { color: grey !important }
+.remark { color: lightgrey !important }
 
 /* -------------------------------------------------------------------------- */
 /* --- Foldable Section                                                   --- */
