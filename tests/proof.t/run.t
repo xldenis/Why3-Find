@@ -11,13 +11,13 @@
   <body>
   <header>Module <code class="src"><a href="clones.index.html">clones</a>.A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> A<span title="3 parameters, 2 hypotheses" class="icon warning icofont-question-circle"></span><a href="clones.proof.html#A" title="Valid (one goal)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> A<span title="3 parameters, 2 hypotheses" class="icon small warning icofont-star"></span><a href="clones.proof.html#A" title="Valid (one goal)" class="icon valid icofont-check"></a>
   
-    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
-    <span class="keyword">constant</span> <a id="e">e</a><span title="Parameter" class="icon remark icofont-question-circle"></span> : <a title="clones.A.t" href="#t">t</a>
-    <span class="keyword">function</span> <a id="op">op</a><span title="Parameter" class="icon remark icofont-question-circle"></span> <a title="clones.A.t" href="#t">t</a> <a title="clones.A.t" href="#t">t</a> : <a title="clones.A.t" href="#t">t</a>
-    <span class="keyword">axiom</span> <a id="neutral">neutral</a><span title="Hypothesis" class="icon warning icofont-question-circle"></span>: <span class="keyword">forall</span> x. <a title="clones.A.op" href="#op">op</a> x <a title="clones.A.e" href="#e">e</a> = x
-    <span class="keyword">axiom</span> <a id="commutative">commutative</a><span title="Hypothesis" class="icon warning icofont-question-circle"></span>: <span class="keyword">forall</span> x y. <a title="clones.A.op" href="#op">op</a> x y = <a title="clones.A.op" href="#op">op</a> y x
+    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span>
+    <span class="keyword">constant</span> <a id="e">e</a><span title="Parameter" class="icon small remark icofont-star"></span> : <a title="clones.A.t" href="#t">t</a>
+    <span class="keyword">function</span> <a id="op">op</a><span title="Parameter" class="icon small remark icofont-star"></span> <a title="clones.A.t" href="#t">t</a> <a title="clones.A.t" href="#t">t</a> : <a title="clones.A.t" href="#t">t</a>
+    <span class="keyword">axiom</span> <a id="neutral">neutral</a><span title="Hypothesis" class="icon small warning icofont-star"></span>: <span class="keyword">forall</span> x. <a title="clones.A.op" href="#op">op</a> x <a title="clones.A.e" href="#e">e</a> = x
+    <span class="keyword">axiom</span> <a id="commutative">commutative</a><span title="Hypothesis" class="icon small warning icofont-star"></span>: <span class="keyword">forall</span> x y. <a title="clones.A.op" href="#op">op</a> x y = <a title="clones.A.op" href="#op">op</a> y x
     <span class="keyword">lemma</span> <a id="neutral_com">neutral_com</a><a href="clones.proof.html#A.neutral_com" title="Valid (one goal)" class="icon valid icofont-check"></a>: <span class="keyword">forall</span> x. <a title="clones.A.op" href="#op">op</a> <a title="clones.A.e" href="#e">e</a> x = x
   
   <span class="keyword">end</span>
@@ -36,16 +36,16 @@
   <body>
   <header>Module <code class="src"><a href="clones.index.html">clones</a>.B</code></header>
   <pre class="src">
-  <span class="keyword">module</span> B<span title="1 parameter, 1 hypothesis" class="icon warning icofont-question-circle"></span><a href="clones.proof.html#B" title="Valid (one goal)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> B<span title="1 parameter, 1 hypothesis" class="icon small warning icofont-star"></span><a href="clones.proof.html#B" title="Valid (one goal)" class="icon valid icofont-check"></a>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">clone</span> <a title="clones.A" href="clones.A.html#">A</a> <span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">function</span> <a id="A.e">A.e</a><span title="Parameter" class="icon remark icofont-question-circle"></span> : int {<a class="attribute" title="clones.A.e" href="clones.A.html#e">def.</a>}
-        <span class="keyword">axiom</span> <a id="A.neutral">A.neutral</a><span title="Hypothesis" class="icon warning icofont-question-circle"></span> {<a class="attribute" title="clones.A.neutral" href="clones.A.html#neutral">def.</a>}
+        <span class="keyword">function</span> <a id="A.e">A.e</a><span title="Parameter" class="icon small remark icofont-star"></span> : int {<a class="attribute" title="clones.A.e" href="clones.A.html#e">def.</a>}
+        <span class="keyword">axiom</span> <a id="A.neutral">A.neutral</a><span title="Hypothesis" class="icon small warning icofont-star"></span> {<a class="attribute" title="clones.A.neutral" href="clones.A.html#neutral">def.</a>}
         <span class="keyword">lemma</span> <a id="A.commutative">A.commutative</a><a href="clones.proof.html#B.A.commutative" title="Valid (one goal)" class="icon valid icofont-check"></a> {<a class="attribute" title="clones.A.commutative" href="clones.A.html#commutative">def.</a>}
         <span class="keyword">lemma</span> <a id="A.neutral_com">A.neutral_com</a> {<a class="attribute" title="clones.A.neutral_com" href="clones.A.html#neutral_com">def.</a>}
       <span class="comment section-toggle">end</span>
-    </span>}</span><span title="1 parameter, 1 hypothesis" class="icon warning icofont-question-circle"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.A.t" href="clones.A.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.A.op" href="clones.A.html#op">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">+</a>), <span class="keyword">axiom</span> <a title="clones.A.neutral" href="clones.A.html#neutral">neutral</a>
+    </span>}</span><span title="1 parameter, 1 hypothesis" class="icon small warning icofont-star"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.A.t" href="clones.A.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.A.op" href="clones.A.html#op">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">+</a>), <span class="keyword">axiom</span> <a title="clones.A.neutral" href="clones.A.html#neutral">neutral</a>
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
@@ -62,7 +62,7 @@
   <body>
   <header>Module <code class="src"><a href="certif.index.html">certif</a>.S</code></header>
   <pre class="src">
-  <span class="keyword">module</span> S<a href="certif.proof.html#S" title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></a>
+  <span class="keyword">module</span> S<a href="certif.proof.html#S" title="Partial proof (6/10 goals)" class="icon warning icofont-warning"></a>
   
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">use</span> int.<a title="int.MinMax" href="https://why3.lri.fr/stdlib/int.html#MinMax_">MinMax</a>
@@ -71,7 +71,7 @@
   
     <span class="keyword">type</span> <a id="seq">seq</a> &#39;a = L.<a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> &#39;a
   
-    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">function</span> (<a id="mixfix%20%5B%5D">[]</a><a href="certif.proof.html#S.mixfix%20%5B%5D" title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></a>) (u : <a title="certif.S.seq" href="#seq">seq</a> &#39;a) (k : int) : &#39;a
+    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">function</span> (<a id="mixfix%20%5B%5D">[]</a><a href="certif.proof.html#S.mixfix%20%5B%5D" title="Partial proof (3/5 goals)" class="icon warning icofont-warning"></a>) (u : <a title="certif.S.seq" href="#seq">seq</a> &#39;a) (k : int) : &#39;a
       <span class="keyword">requires</span> { 0 <a title="int.Int.(<=)" href="https://why3.lri.fr/stdlib/int.html#infix%20%3C=_25">&lt;=</a> k <a title="int.Int.(<)" href="https://why3.lri.fr/stdlib/int.html#infix%20%3C_21">&lt;</a> L.<a title="list.Length.length" href="https://why3.lri.fr/stdlib/list.html#length_24">length</a> u }
       <span class="keyword">ensures</span> { L.<a title="list.Nth.nth" href="https://why3.lri.fr/stdlib/list.html#nth_104">nth</a> k u = <a title="option.Option.Some" href="https://why3.lri.fr/stdlib/option.html#Some_5">Some</a> result }
       <span class="keyword">variant</span> { u }
@@ -84,7 +84,7 @@
   
     <span class="keyword">lemma</span> <a id="reflexivity">reflexivity</a><a href="certif.proof.html#S.reflexivity" title="Valid (one goal)" class="icon valid icofont-check"></a> : <span class="keyword">forall</span> u : <a title="certif.S.seq" href="#seq">seq</a> &#39;a. u <a title="certif.S.(==)" href="#infix%20%3D%3D">==</a> u
   
-    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">lemma</span> <a id="extensivity">extensivity</a><a href="certif.proof.html#S.extensivity" title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></a> (a b : <a title="certif.S.seq" href="#seq">seq</a> &#39;a)
+    <span class="keyword">let</span> <span class="keyword">rec</span> <span class="keyword">lemma</span> <a id="extensivity">extensivity</a><a href="certif.proof.html#S.extensivity" title="Partial proof (2/3 goals)" class="icon warning icofont-warning"></a> (a b : <a title="certif.S.seq" href="#seq">seq</a> &#39;a)
       <span class="keyword">requires</span> { a <a title="certif.S.(==)" href="#infix%20%3D%3D">==</a> b }
       <span class="keyword">ensures</span> { a = b }
       <span class="section level1"><span class="comment">{</span><span class="attribute section-toggle">proof</span><span class="comment section-text active">…</span><span class="comment">}</span><span class="section-text">
@@ -95,7 +95,7 @@
         <span class="keyword">end</span>
       <span class="comment">{</span><span class="attribute section-toggle">qed</span><span class="comment">}</span></span></span>
   
-    <span class="keyword">goal</span> <a id="wrong">wrong</a><a href="certif.proof.html#S.wrong" title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></a>: 1 = 0
+    <span class="keyword">goal</span> <a id="wrong">wrong</a><a href="certif.proof.html#S.wrong" title="Failed (no proof)" class="icon failed icofont-warning"></a>: 1 = 0
   
   <span class="keyword">end</span>
   </pre>
@@ -141,19 +141,19 @@
     z3         n=33 570ms (Z3,4.8.6)
   </pre>
   <h1>Proof Certificates</h1>
-  <pre class="src"><span class="keyword">module</span> <a id="S" href="certif.S.html">certif.S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-exclamation-tringle"></span></pre>
-  <pre class="src"> <span class="keyword">goal</span> <a id="S.mixfix%20%5B%5D" href="certif.S.html#mixfix%20%5B%5D">([])</a><span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
-      split_vc<span title="Partial proof (3/5 goals)" class="icon warning icofont-exclamation-tringle"></span>
+  <pre class="src"><span class="keyword">module</span> <a id="S" href="certif.S.html">certif.S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-warning"></span></pre>
+  <pre class="src"> <span class="keyword">goal</span> <a id="S.mixfix%20%5B%5D" href="certif.S.html#mixfix%20%5B%5D">([])</a><span title="Partial proof (3/5 goals)" class="icon warning icofont-warning"></span>
+      split_vc<span title="Partial proof (3/5 goals)" class="icon warning icofont-warning"></span>
         alt-ergo 4ms
-        split_vc<span title="Partial proof (1/2 goals)" class="icon warning icofont-exclamation-tringle"></span>
-          stuck<span class="icon failed icofont-exclamation-circle"></span>
+        split_vc<span title="Partial proof (1/2 goals)" class="icon warning icofont-warning"></span>
+          stuck<span class="icon failed icofont-warning"></span>
           alt-ergo 3ms
         alt-ergo 3ms
-        stuck<span class="icon failed icofont-exclamation-circle"></span></pre><pre class="src"> <span class="keyword">goal</span> <a id="S.reflexivity" href="certif.S.html#reflexivity">reflexivity</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
-      alt-ergo 2ms</pre><pre class="src"> <span class="keyword">goal</span> <a id="S.extensivity" href="certif.S.html#extensivity">extensivity</a><span title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></span>
-      split_vc<span title="Partial proof (2/3 goals)" class="icon warning icofont-exclamation-tringle"></span>
+        stuck<span class="icon failed icofont-warning"></span></pre><pre class="src"> <span class="keyword">goal</span> <a id="S.reflexivity" href="certif.S.html#reflexivity">reflexivity</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
+      alt-ergo 2ms</pre><pre class="src"> <span class="keyword">goal</span> <a id="S.extensivity" href="certif.S.html#extensivity">extensivity</a><span title="Partial proof (2/3 goals)" class="icon warning icofont-warning"></span>
+      split_vc<span title="Partial proof (2/3 goals)" class="icon warning icofont-warning"></span>
         alt-ergo 4ms
-        stuck<span class="icon failed icofont-exclamation-circle"></span>
-        cvc4 70ms</pre><pre class="src"> <span class="keyword">goal</span> <a id="S.wrong" href="certif.S.html#wrong">wrong</a><span title="Failed (no proof)" class="icon failed icofont-exclamation-circle"></span></pre><script type="text/javascript" src="script.js"></script>
+        stuck<span class="icon failed icofont-warning"></span>
+        cvc4 70ms</pre><pre class="src"> <span class="keyword">goal</span> <a id="S.wrong" href="certif.S.html#wrong">wrong</a><span title="Failed (no proof)" class="icon failed icofont-warning"></span></pre><script type="text/javascript" src="script.js"></script>
   </body>
   </html>

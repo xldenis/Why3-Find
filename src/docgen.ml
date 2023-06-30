@@ -212,12 +212,11 @@ let rec close ?(parblock=false) env =
 
 let icon_nogoal = "icon remark icofont-check"
 let icon_valid = "icon valid icofont-check"
-let icon_partial = "icon warning icofont-exclamation-tringle"
-let icon_failed = "icon failed icofont-exclamation-circle"
-let icon_params = "icon remark icofont-question-circle"
-let icon_externals = "icon remark icofont-exclamation-circle"
-let icon_unsound = "icon warning icofont-question-circle"
-let icon_sound = "icon valid icofont-question-circle"
+let icon_partial = "icon warning icofont-warning"
+let icon_failed = "icon failed icofont-warning"
+let icon_parameter = "icon small remark icofont-star"
+let icon_sound_param = "icon small valid icofont-star"
+let icon_unsound_param = "icon small warning icofont-star"
 
 let pp_mark ?href ~title ~cla fmt =
   match href with
@@ -311,25 +310,24 @@ let process_axioms env (id : Id.id) =
       | [],None ->
         let icon_sound () =
           if Soundness.is_sound @@ Soundness.compute env.senv theory
-          then icon_sound else icon_unsound in
+          then icon_sound_param else icon_unsound_param in
         let cla,title =
           match param with
-          | Type _ | Logic _ | Param _ -> icon_params, "Parameter"
+          | Type _ | Logic _ | Param _ -> icon_parameter, "Parameter"
           | Value _ -> icon_sound (), "Value Parameter"
           | Axiom _ -> icon_sound (), "Hypothesis"
         in
         Pdoc.ppt env.out (pp_mark ~cla ~title)
       | [], Some ext ->
         let title = Printf.sprintf "External OCaml symbol (%s)" ext in
-        Pdoc.ppt env.out (pp_mark ~cla:icon_externals ~title)
+        Pdoc.ppt env.out (pp_mark ~cla:icon_unsound_param ~title)
       | ops, None ->
         let title = Printf.sprintf "Built-in symbol (%s)" (provers ops) in
-        Pdoc.ppt env.out (pp_mark ~cla:icon_externals ~title)
+        Pdoc.ppt env.out (pp_mark ~cla:icon_unsound_param ~title)
       | ops, Some ext ->
         let title = Printf.sprintf
             "Built-in symbol (%s), extracted to OCaml (%s)" (provers ops) ext
-        in
-        Pdoc.ppt env.out (pp_mark ~cla:icon_externals ~title)
+        in Pdoc.ppt env.out (pp_mark ~cla:icon_unsound_param ~title)
 
 let process_abstract env Axioms.{ param } =
   try
@@ -347,7 +345,7 @@ let process_abstract env Axioms.{ param } =
       Id.pp_proof_aname id
       (Id.pp_ahref ~scope:None) id
       Id.pp_local id
-      (fun fmt -> pp_mark ~title:"Abstract Parameter" ~cla:icon_unsound fmt)
+      (pp_mark ?href:None ~title:"Abstract Parameter" ~cla:icon_unsound_param)
   with Not_found -> ()
 
 let process_module_axioms env =
@@ -386,8 +384,10 @@ let pp_axioms fmt { ext ; prm ; hyp ; pvs ; sound } =
   if ext+prm+hyp+pvs > 0 then
     let ok = Soundness.is_sound sound in
     let cla =
-      if hyp + pvs > 0 then if ok then icon_sound else icon_unsound else
-      if prm > 0 then icon_params else icon_externals in
+      if hyp + pvs > 0 then
+        if ok then icon_sound_param else icon_unsound_param
+      else if prm > 0 then icon_parameter else icon_unsound_param
+    in
     let title =
       let plural k single msg =
         if k = 0 then [] else if k = 1 then [single] else [msg k] in
@@ -396,8 +396,8 @@ let pp_axioms fmt { ext ; prm ; hyp ; pvs ; sound } =
         plural prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
         plural hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
         plural ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
-      ] in
-    pp_mark ~cla ~title fmt
+      ]
+    in pp_mark ~cla ~title fmt
 
 let process_axioms_summary env = function
   | None -> ()

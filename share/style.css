@@ -73,11 +73,13 @@ pre.src {
 /* -------------------------------------------------------------------------- */
 
 .icon {
-    margin: 2px ;
-    vertical-align: text-bottom ;
-    font-size: smaller ;
+    margin-left: 2px ;
+    vertical-align: text-top ;
+    font-size: small ;
     text-decoration: none ;
 }
+
+.icon.small { font-size: x-small }
 
 .valid { color: green !important }
 .failed { color: red !important }
