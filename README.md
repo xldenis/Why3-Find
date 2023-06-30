@@ -168,10 +168,11 @@ certificates are also stored in order to be used as hints for further proof
 lookup. However, a tactic-node with all its sub-goals marked « stuck » would
 be removed.
 
-The median time is one second by default and can be modified with `-t TIME` or
-configured using `why3find config -t TIME -s`. The median time is specified in
-(fraction of) seconds relatively to the *master* machine, Cf. prover calibration
-below.
+The median time is set to one second by default and can be modified with `-t
+TIME` or configured using `why3find config -t TIME -s`. A fraction of seconds or
+suffix time units (`h`,`min`,`s`,`ms`) can be given, eg. `0.5`, `200ms`,
+`3min`. The median time is specified relatively to the *master* machine,
+Cf. prover calibration below.
 
 Proof search is pruned after a maximal number of nested levels. The default
 depth is 6 and it can be modified with `-d DEPTH` or configured using `why3find

@@ -169,7 +169,7 @@ let readfile ~file =
   load ~file buffer ; Buffer.contents buffer
 
 (* -------------------------------------------------------------------------- *)
-(* --- Time Printing                                                      --- *)
+(* --- Time Utilities                                                     --- *)
 (* -------------------------------------------------------------------------- *)
 
 let round t =
@@ -183,7 +183,29 @@ let pp_time fmt t =
   if t < 1e-3 then Format.fprintf fmt "%dns" (int_of_float @@ t *. 1e6) else
   if t < 1.0 then Format.fprintf fmt "%dms" (int_of_float @@ t *. 1e3) else
   if t < 20.0 then Format.fprintf fmt "%.1fs" t else
-    Format.fprintf fmt "%ds" (int_of_float t)
+  if t < 60.0 then Format.fprintf fmt "%ds" (int_of_float t) else
+  if t < 3600.0 then Format.fprintf fmt "%dmin" (int_of_float @@ t /. 60.0) else
+    Format.fprintf fmt "%dh" (int_of_float @@ t /. 3600.0)
+
+let pa_time s =
+  let n = String.length s in
+  if String.ends_with ~suffix:"min" s then
+    60.0 *. (float @@ int_of_string @@ String.sub s 0 (n-3))
+  else
+    match s.[n-1] with
+    | 'h' -> 3600.0 *. (float @@ int_of_string @@ String.sub s 0 (n-1))
+    | 's' ->
+      begin
+        match s.[n-2] with
+        | 'm' -> 1.e-3 *. (float @@ int_of_string @@ String.sub s 0 (n-2))
+        | 'n' -> 1.e-6 *. (float @@ int_of_string @@ String.sub s 0 (n-2))
+        | _ -> float @@ int_of_string @@ String.sub s 0 (n-1)
+      end
+    | _ -> float_of_string s
+
+(* -------------------------------------------------------------------------- *)
+(* --- Pretty Printing                                                    --- *)
+(* -------------------------------------------------------------------------- *)
 
 let pp_hex fmt hs =
   String.iter (fun c -> Format.fprintf fmt "%02x" @@ Char.code c) hs

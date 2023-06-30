@@ -49,6 +49,7 @@ val pp_ok : Format.formatter -> unit
 val pp_ko : Format.formatter -> unit
 val pp_mark : Format.formatter -> bool -> unit
 val pp_time : Format.formatter -> float -> unit
+val pa_time : string -> float (* seconds *)
 val pp_s : Format.formatter -> int -> unit
 val pp_yies : Format.formatter -> int -> unit
 

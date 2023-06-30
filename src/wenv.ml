@@ -173,19 +173,23 @@ type opt = [
   | `Config
 ]
 
+let settime s =
+  try setv time (Utils.pa_time s)
+  with Invalid_argument _ -> Utils.failwith "Invalid time (-t %s)" s
+
 let alloptions : (opt * string * Arg.spec * string) list = [
   `All, "--root", Arg.Set_string chdir, "DIR change to directory";
   `All, "--extra-config", Arg.String (add cfgs), "CFG extra why3 config";
   `Package, "--package", Arg.String (add pkgs), "PKG add package dependency";
-  `Prover,  "--time", Arg.Float (setv time), "TIME median proof time";
+  `Prover,  "--time", Arg.String settime, "TIME median proof time";
   `Prover,  "--depth", Arg.Int (setv depth), "DEPTH proof search limit";
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
   `Prover,  "--tactic", Arg.String (add tacs), "TAC add proof tactic";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
   `Config, "--reset", Arg.Clear loadcfg, "reset configuration";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
-  `Prover,  "-t", Arg.Float (setv time), " same as --time";
-  `Prover,  "-d", Arg.Float (setv time), " same as --depth";
+  `Prover,  "-t", Arg.String settime, " same as --time";
+  `Prover,  "-d", Arg.Int (setv depth), " same as --depth";
   `Prover,  "-P", Arg.String (add prvs), " same as --prover";
   `Prover,  "-T", Arg.String (add tacs), " same as --tactic";
   `Driver,  "-D", Arg.String (add drvs), " same as --driver";
