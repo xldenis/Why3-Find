@@ -11,7 +11,7 @@
   <body>
   <header>Module <code class="src"><a href="drivers.index.html">drivers</a>.A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> A<span title="3 parameters, 1 hypothesis" class="icon warning icofont-question-circle"></span><a href="drivers.proof.html#A" title="Valid (no goals)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> A<span title="3 parameters, 1 hypothesis" class="icon warning icofont-question-circle"></span><a href="drivers.proof.html#A" title="Valid (no goals)" class="icon remark icofont-check"></a>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
     <span class="keyword">val</span> <span class="keyword">function</span> <a id="add">add</a><span title="Parameter" class="icon remark icofont-question-circle"></span> <a title="drivers.A.t" href="#t">t</a> <a title="drivers.A.t" href="#t">t</a> : <a title="drivers.A.t" href="#t">t</a>
     <span class="keyword">predicate</span> <a id="leq">leq</a><span title="Parameter" class="icon remark icofont-question-circle"></span> <a title="drivers.A.t" href="#t">t</a> <a title="drivers.A.t" href="#t">t</a>
@@ -35,7 +35,7 @@
   <pre class="src">
   </pre>
   <h1>Proof Certificates</h1>
-  <pre class="src"><span class="keyword">module</span> <a id="A" href="drivers.A.html">drivers.A</a><span title="Valid (no goals)" class="icon valid icofont-check"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="A" href="drivers.A.html">drivers.A</a><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
   <script type="text/javascript" src="script.js"></script>
   </body>
   </html>

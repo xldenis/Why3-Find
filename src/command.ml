@@ -468,8 +468,8 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
             "--goals", Arg.Unit (set log `Goals), "list results by goals";
             "--proofs", Arg.Unit (set log `Proofs), "list proofs by goals";
             "--stdlib", Arg.Set Prove.stdlib, "report hypotheses from stdlib";
-            "--extern", Arg.Set Prove.externals, "report assumed external symbols";
-            "--builtin", Arg.Set Prove.builtins, "report assumed builtin symbols";
+            "--extern", Arg.Set Prove.externals, "report also external symbols";
+            "--builtin", Arg.Set Prove.builtins, "report also builtin symbols";
           ]
         end
         (add files)

@@ -32,6 +32,7 @@ type soundness =
   | Sound of Docref.instance list
   | Unknown of Docref.instance list
 
+val is_sound : soundness -> bool
 val compute : env -> Docref.theory -> soundness
 
 (* -------------------------------------------------------------------------- *)

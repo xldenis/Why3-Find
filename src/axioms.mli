@@ -45,10 +45,9 @@ type parameter = {
 }
 
 val ident : param -> Ident.ident
-val is_assumed : parameter -> bool
-val assumed : signature -> param list
+val is_abstract : parameter -> bool
 val parameter : signature -> Ident.ident -> parameter option
-val parameters : signature -> parameter list
+val parameters : ?all:bool -> signature -> parameter list
 val dependencies : henv -> ?self:bool -> Theory.theory list -> Theory.theory list
 val iter : henv -> ?self:bool -> (parameter -> unit) -> Theory.theory list -> unit
 

@@ -85,6 +85,7 @@ type env = {
   wenv : Why3.Env.env ; (* why3 env. *)
   cenv : Docref.cenv ; (* cloning order *)
   henv : Axioms.henv ; (* axioms *)
+  senv : Soundness.env ; (* instances *)
   mutable proof_href : int ; (* proof href *)
   mutable clone_decl : int ; (* clone decl indent (when > 0) *)
   mutable clone_inst : bool ; (* clone instance found *)
@@ -209,12 +210,14 @@ let rec close ?(parblock=false) env =
 (* --- Icons                                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
+let icon_nogoal = "icon remark icofont-check"
 let icon_valid = "icon valid icofont-check"
 let icon_partial = "icon warning icofont-exclamation-tringle"
 let icon_failed = "icon failed icofont-exclamation-circle"
+let icon_params = "icon remark icofont-question-circle"
 let icon_externals = "icon remark icofont-exclamation-circle"
-let icon_parameters = "icon remark icofont-question-circle"
-let icon_assumed = "icon warning icofont-question-circle"
+let icon_unsound = "icon warning icofont-question-circle"
+let icon_sound = "icon valid icofont-question-circle"
 
 let pp_mark ?href ~title ~cla fmt =
   match href with
@@ -236,7 +239,8 @@ let pp_vlink ?href fmt r =
       | 0 -> "Valid (no goals)"
       | 1 -> "Valid (one goal)"
       | _ -> Printf.sprintf "Valid (%d goals)" n in
-    pp_mark ?href ~title ~cla:icon_valid fmt
+    let cla = if n > 0 then icon_valid else icon_nogoal in
+    pp_mark ?href ~title ~cla fmt
   | `Partial(p,n) ->
     let title = Printf.sprintf "Partial proof (%d/%d goals)" p n in
     pp_mark ?href ~title ~cla:icon_partial fmt
@@ -299,17 +303,20 @@ let provers ops = String.concat "," (List.map (fun (p,_) -> Runner.name p) ops)
 let process_axioms env (id : Id.id) =
   match env.theory with
   | None -> ()
-  | Some { signature } ->
-    match Axioms.parameter signature id.self with
+  | Some theory ->
+    match Axioms.parameter theory.signature id.self with
     | None -> ()
     | Some { param ; builtin ; extern } ->
       match builtin, extern with
       | [],None ->
+        let icon_sound () =
+          if Soundness.is_sound @@ Soundness.compute env.senv theory
+          then icon_sound else icon_unsound in
         let cla,title =
           match param with
-          | Type _ | Logic _ | Param _ -> icon_parameters, "Parameter"
-          | Value _ -> icon_assumed, "Value Parameter"
-          | Axiom _ -> icon_assumed, "Hypothesis"
+          | Type _ | Logic _ | Param _ -> icon_params, "Parameter"
+          | Value _ -> icon_sound (), "Value Parameter"
+          | Axiom _ -> icon_sound (), "Hypothesis"
         in
         Pdoc.ppt env.out (pp_mark ~cla ~title)
       | [], Some ext ->
@@ -324,7 +331,7 @@ let process_axioms env (id : Id.id) =
         in
         Pdoc.ppt env.out (pp_mark ~cla:icon_externals ~title)
 
-let process_assumed env Axioms.{ param } =
+let process_abstract env Axioms.{ param } =
   try
     let id = Id.resolve ~lib:env.src.lib @@ Axioms.ident param in
     let key = match param with
@@ -340,7 +347,7 @@ let process_assumed env Axioms.{ param } =
       Id.pp_proof_aname id
       (Id.pp_ahref ~scope:None) id
       Id.pp_local id
-      (fun fmt -> pp_mark ~title:"Assumed" ~cla:icon_assumed fmt)
+      (fun fmt -> pp_mark ~title:"Abstract Parameter" ~cla:icon_unsound fmt)
   with Not_found -> ()
 
 let process_module_axioms env =
@@ -348,16 +355,26 @@ let process_module_axioms env =
   | None -> ()
   | Some { theory } ->
     Axioms.iter env.henv
-      (fun prm ->
-         if Axioms.is_assumed prm then
-           process_assumed env prm)
+      (fun (p : Axioms.parameter) ->
+         if Axioms.is_abstract p then
+           process_abstract env p)
       [theory]
 
-type axioms = { ext : int ; prm : int ; hyp :  int ; pvs : int }
-let free = { ext = 0 ; prm = 0 ; hyp = 0 ; pvs = 0 }
+type axioms = {
+  ext : int ;
+  prm : int ;
+  hyp :  int ;
+  pvs : int ;
+  sound : Soundness.soundness ;
+}
+
+let free = {
+  ext = 0 ; prm = 0 ; hyp = 0 ; pvs = 0 ;
+  sound = Soundness.Unknown [] ;
+}
 
 let add_axiom hs (p : Axioms.parameter) =
-  if not @@ Axioms.is_assumed p then
+  if not @@ Axioms.is_abstract p then
     { hs with ext = succ hs.ext }
   else
     match p.param with
@@ -365,12 +382,12 @@ let add_axiom hs (p : Axioms.parameter) =
     | Value _ -> { hs with pvs = succ hs.pvs }
     | Type _ | Logic _ | Param _ -> { hs with prm = succ hs.prm }
 
-let pp_axioms fmt { ext ; prm ; hyp ; pvs } =
+let pp_axioms fmt { ext ; prm ; hyp ; pvs ; sound } =
   if ext+prm+hyp+pvs > 0 then
+    let ok = Soundness.is_sound sound in
     let cla =
-      if hyp + pvs > 0 then icon_assumed else
-      if prm > 0 then icon_parameters else
-        icon_externals in
+      if hyp + pvs > 0 then if ok then icon_sound else icon_unsound else
+      if prm > 0 then icon_params else icon_externals in
     let title =
       let plural k single msg =
         if k = 0 then [] else if k = 1 then [single] else [msg k] in
@@ -384,8 +401,9 @@ let pp_axioms fmt { ext ; prm ; hyp ; pvs } =
 
 let process_axioms_summary env = function
   | None -> ()
-  | Some Docref.{ signature } ->
-    let hs = List.fold_left add_axiom free @@ Axioms.parameters signature in
+  | Some (thy : Docref.theory) ->
+    let hs = List.fold_left add_axiom free @@ Axioms.parameters thy.signature in
+    let hs = { hs with sound = Soundness.compute env.senv thy } in
     Pdoc.pp env.out pp_axioms hs
 
 (* -------------------------------------------------------------------------- *)
@@ -611,13 +629,15 @@ let process_clone_proofs env clones =
 let process_clone_axioms env clones =
   match env.theory with
   | None -> ()
-  | Some { signature } ->
+  | Some theory ->
+    let sound = Soundness.compute env.senv theory in
+    let signature = theory.signature in
     let hs = List.fold_left
         (fun hs clone ->
            match Axioms.parameter signature clone.Docref.id_target with
            | None -> hs
            | Some p -> add_axiom hs p
-        ) free clones in
+        ) { free with sound } clones in
     Pdoc.pp env.out pp_axioms hs
 
 let process_clone_section env (th : Docref.theory) =
@@ -982,10 +1002,10 @@ let document_title ~title ~page =
   if title <> "" then Printf.sprintf "%s — %s" title page else page
 
 (* -------------------------------------------------------------------------- *)
-(* --- MD File Processing                                                 --- *)
+(* --- Markdown File Processing                                           --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_markdown ~wenv ~cenv ~henv ~out:dir ~title file =
+let process_markdown ~wenv ~cenv ~henv ~senv ~out:dir ~title file =
   begin
     let src = Docref.empty () in
     let input = Token.input ~doc:true file in
@@ -997,7 +1017,7 @@ let process_markdown ~wenv ~cenv ~henv ~out:dir ~title file =
     let out = Pdoc.output ~file:ofile ~title in
     let crc = Pdoc.null () in
     let env = {
-      dir ; src ; input ; out ; crc ; wenv ; cenv ; henv ;
+      dir ; src ; input ; out ; crc ; wenv ; cenv ; henv ; senv ;
       space = false ;  indent = Code ;
       block = Raw; mode = Body ; file = Body ; stack = [] ;
       scope = None ; theory = None ;
@@ -1019,7 +1039,8 @@ let process_markdown ~wenv ~cenv ~henv ~out:dir ~title file =
 (* --- MLW File Processing                                                --- *)
 (* -------------------------------------------------------------------------- *)
 
-let process_source ~wenv ~cenv ~henv ~out:dir ~title file (src : Docref.source) =
+let process_source ~wenv ~cenv ~henv ~senv ~out:dir
+    ~title file (src : Docref.source) =
   let path = String.concat "." src.lib in
   let page = Printf.sprintf "Library %s" path in
   let title = document_title ~title ~page in
@@ -1031,7 +1052,7 @@ let process_source ~wenv ~cenv ~henv ~out:dir ~title file (src : Docref.source) 
       ~title:(Printf.sprintf "Proofs %s" path) in
   let input = Token.input file in
   let env = {
-    dir ; src ; input ; out ; crc ; wenv ; henv ; cenv ;
+    dir ; src ; input ; out ; crc ; wenv ; henv ; cenv ; senv ;
     space = false ; indent = Code ;
     block = Raw ; mode = Body ; file = Body ; stack = [] ;
     scope = None ; theory = None ;
@@ -1132,10 +1153,10 @@ let generate ~out ~title ~files ~url =
     shared ~out ~file:"icofont.min.css" ;
     shared ~out ~file:"fonts/icofont.woff" ;
     shared ~out ~file:"fonts/icofont.woff2" ;
-    (* Preprocessing *)
+    (* Pre-processing *)
     List.map (preprocess ~wenv ~cenv ~henv ~senv) files |>
-    (* Processing *)
-    List.iter (process ~wenv ~cenv ~henv ~title ~out) ;
+    (* Doc generation *)
+    List.iter (process ~wenv ~cenv ~henv ~senv ~title ~out) ;
     (* Indexing *)
     index ~out ~title ;
     (* Final output *)
