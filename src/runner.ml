@@ -51,7 +51,9 @@ let rec cmps xs ys =
 let tosem p = List.map sem (String.split_on_char 'c' p)
 
 let compare_wprover (p : Whyconf.prover) (q : Whyconf.prover) =
-  let c = String.compare p.prover_name q.prover_name in
+  let c = String.compare
+      (String.lowercase_ascii p.prover_name)
+      (String.lowercase_ascii q.prover_name) in
   if c <> 0 then c else
     let c = cmps (tosem p.prover_version) (tosem q.prover_version) in
     if c <> 0 then c else
@@ -108,8 +110,9 @@ let find_filter (env : Wenv.env) ~name ?(version="") () =
   let mpr = Whyconf.get_provers env.wconfig in
   Whyconf.Mprover.fold
     (fun key cfg acc ->
-       if String.lowercase_ascii key.prover_name = name &&
-          (version = "" || key.prover_version = version)
+       if key.prover_altern = "" &&
+          (version = "" || key.prover_version = version) &&
+          String.lowercase_ascii key.prover_name = name
        then cfg :: acc else acc
     ) mpr []
 
