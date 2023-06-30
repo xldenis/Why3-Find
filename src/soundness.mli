@@ -23,9 +23,15 @@
 (** Compute Parameterized Module Soundness *)
 (* -------------------------------------------------------------------------- *)
 
-type henv
+type env
 
-val init : Axioms.henv -> henv
-val register : henv -> Docref.source -> unit
+val init : unit -> env
+val register : env -> Docref.source -> unit
+
+type soundness =
+  | Sound of Docref.instance list
+  | Unknown of Docref.instance list
+
+val compute : env -> Docref.theory -> soundness
 
 (* -------------------------------------------------------------------------- *)

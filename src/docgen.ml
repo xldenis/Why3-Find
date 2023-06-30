@@ -1124,7 +1124,7 @@ let generate ~out ~title ~files ~url =
     (* Axioms config *)
     let henv = Axioms.init env in
     (* Sounness config *)
-    let senv = Soundness.init henv in
+    let senv = Soundness.init () in
     (* Shared resources *)
     Utils.mkdirs @@ Filename.concat out "fonts" ;
     shared ~out ~file:"style.css" ;

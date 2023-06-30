@@ -23,7 +23,6 @@
 (* --- Soundness Registry                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-module Id = Why3.Ident
 module Sid = Why3.Ident.Sid
 module Hid = Why3.Ident.Hid
 module Thy = Why3.Theory
@@ -35,29 +34,57 @@ module Sinst = Set.Make
         if cmp <> 0 then cmp else a.inst_order - b.inst_order
     end)
 
-type henv = {
-  henv : Axioms.henv ;
+type soundness =
+  | Sound of Docref.instance list
+  | Unknown of Docref.instance list
+
+type env = {
+  theories : (string,Docref.theory) Hashtbl.t ; (* indexed by path *)
   instances : Sinst.t ref Hid.t ;
-  (* [ cloned -> instance -> concrete parameters ] *)
+  soundness : soundness Hid.t ;
 }
 
-let init henv = {
-  henv ;
+let init () = {
+  theories = Hashtbl.create 0 ;
   instances = Hid.create 0 ;
+  soundness = Hid.create 0 ;
 }
 
-let add henv (c : Docref.clone) =
+let add hinst (c : Docref.clone) =
   let inst = c.id_instance in
   let key = inst.inst_cloned.th_name in
   try
-    let s = Hid.find henv.instances key in
+    let s = Hid.find hinst key in
     s := Sinst.add inst !s
   with Not_found ->
-    Hid.add henv.instances key (ref (Sinst.singleton inst))
+    Hid.add hinst key (ref (Sinst.singleton inst))
 
-let register henv (s : Docref.source) =
+let register henv (src : Docref.source) =
+  let hinst = henv.instances in
   Docref.Mstr.iter
-    (fun _ (thy : Docref.theory) -> List.iter (add henv) thy.clones)
-    s.theories
+    (fun id (thy : Docref.theory) ->
+       let path = Printf.sprintf "%s.%s" (Id.cat src.lib) id in
+       Hashtbl.add henv.theories path thy ;
+       List.iter (add hinst) thy.clones
+    ) src.theories
+
+let rec compute (env : env) (th : Docref.theory) : soundness =
+  let key = th.theory.th_name in
+  try Hid.find env.soundness key with Not_found ->
+    Hid.add env.soundness key (Unknown []) ;
+    let s =
+      if Axioms.assumed th.signature = [] then Sound [] else
+        try
+          let instances = Sinst.elements !(Hid.find env.instances key) in
+          let grounds = List.filter (ground_instance env) instances in
+          if grounds <> [] then Sound grounds else Unknown instances
+        with Not_found -> Unknown []
+    in Hid.replace env.soundness key s ; s
+
+and ground_instance env inst =
+  try
+    let theory = Hashtbl.find env.theories inst.inst_path in
+    match compute env theory with Sound _ -> true | Unknown _ -> false
+  with Not_found -> false
 
 (* -------------------------------------------------------------------------- *)
