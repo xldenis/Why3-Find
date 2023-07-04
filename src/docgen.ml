@@ -275,7 +275,7 @@ let rec child n fmt crc =
 
 let process_certif env id crc =
   Pdoc.printf env.crc
-    "<pre class=\"src\"> %a <a id=\"%a\" href=\"%a\">%a</a>%a%t</pre>"
+    "<pre class=\"src\">@\n  %a <a id=\"%a\" href=\"%a\">%a</a>%a%t</pre>"
     Pdoc.pp_keyword "goal"
     Id.pp_proof_aname id
     (Id.pp_ahref ~scope:None) id
@@ -287,8 +287,9 @@ let process_certif env id crc =
       | Crc.Tactic _ -> child 4 fmt crc
     end
 
-let process_proof env id = function
-  | None -> ()
+let process_proof env id ?(valid=false) = function
+  | None ->
+    if valid then Pdoc.ppt env.out (pp_mark ~title:"cloned" ~cla:icon_nogoal)
   | Some crc ->
     let href fmt = Id.pp_proof_ahref fmt id in
     Pdoc.pp env.out (pp_vlink ~href) (Crc.verdict crc) ;
@@ -348,19 +349,34 @@ let process_hypothesis env Axioms.{ param } =
       Id.pp_local id
   with Not_found -> ()
 
+let process_instance env ~ok (s : Docref.instance) =
+  Pdoc.printf env.crc "@\n  %a <a href=\"%s.html#clone-%d\">%s</a>"
+    Pdoc.pp_keyword "clone" s.inst_path s.inst_order s.inst_path ;
+  Pdoc.ppt env.crc
+    (if ok
+     then pp_mark ~title:"sound instance" ~cla:icon_sound_param
+     else pp_mark ~title:"uncomplete instance" ~cla:icon_unsound_param)
+
 let process_module_axioms env =
   match env.theory with
   | None -> ()
-  | Some { theory } ->
+  | Some thy ->
     let pre = lazy (Pdoc.printf env.crc "<pre class=\"src\">") in
     Axioms.iter env.henv ~self:true
       (fun (p : Axioms.parameter) ->
-         if Axioms.is_abstract p && Axioms.is_hypothesis p then
+         if Axioms.is_hypothesis p && not (Axioms.is_external p) then
            begin
              Lazy.force pre ;
              process_hypothesis env p ;
            end
-      ) [theory] ;
+      ) [thy.theory] ;
+    begin match Soundness.compute env.senv thy with
+      | Sound [] | Unknown [] -> ()
+      | Sound ns ->
+        Lazy.force pre ; List.iter (process_instance env ~ok:true) ns
+      | Unknown ns ->
+        Lazy.force pre ; List.iter (process_instance env ~ok:false) ns
+    end ;
     if Lazy.is_val pre then Pdoc.printf env.crc "@\n</pre>@."
 
 type axioms = {
@@ -373,11 +389,13 @@ type axioms = {
 
 let free = {
   ext = 0 ; prm = 0 ; hyp = 0 ; pvs = 0 ;
-  sound = Soundness.Unknown [] ;
+  sound = Soundness.unknown ;
 }
 
+let free_clone = { free with sound = Soundness.clone }
+
 let add_axiom hs (p : Axioms.parameter) =
-  if not @@ Axioms.is_abstract p then
+  if Axioms.is_external p then
     { hs with ext = succ hs.ext }
   else
     match p.param with
@@ -385,12 +403,14 @@ let add_axiom hs (p : Axioms.parameter) =
     | Value _ -> { hs with pvs = succ hs.pvs }
     | Type _ | Logic _ | Param _ -> { hs with prm = succ hs.prm }
 
-let pp_axioms fmt { ext ; prm ; hyp ; pvs ; sound } =
+let pp_axioms_link ?href fmt { ext ; prm ; hyp ; pvs ; sound } =
   if ext+prm+hyp+pvs > 0 then
-    let ok = Soundness.is_sound sound in
     let cla =
+      if Soundness.is_clone sound then icon_parameter else
       if hyp + pvs > 0 then
-        if ok then icon_sound_param else icon_unsound_param
+        if Soundness.is_sound sound
+        then icon_sound_param
+        else icon_unsound_param
       else if prm > 0 then icon_parameter else icon_unsound_param
     in
     let title =
@@ -401,15 +421,27 @@ let pp_axioms fmt { ext ; prm ; hyp ; pvs ; sound } =
         plural prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
         plural hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
         plural ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
+        match sound with
+        | Soundness.Unknown [] -> ["0 instance found"]
+        | Soundness.Unknown ns ->
+          plural (List.length ns) "1 uncomplete instance" @@
+          Printf.sprintf "%d uncomplete instances"
+        | Soundness.Sound ns ->
+          plural (List.length ns) "1 ground instance" @@
+          Printf.sprintf "%d ground instances"
       ]
-    in pp_mark ~cla ~title fmt
+    in pp_mark ~cla ~title ?href fmt
 
-let process_axioms_summary env = function
+let pp_axioms = pp_axioms_link ?href:None
+
+let process_axioms_summary env id ~crc = function
   | None -> ()
   | Some (thy : Docref.theory) ->
+    let href fmt = Format.fprintf fmt "%s.proof.html#%s" env.src.urlbase id in
     let hs = List.fold_left add_axiom free @@ Axioms.parameters thy.signature in
     let hs = { hs with sound = Soundness.compute env.senv thy } in
-    Pdoc.pp env.out pp_axioms hs
+    Pdoc.pp env.out (pp_axioms_link ~href) hs ;
+    if crc then Pdoc.pp env.crc pp_axioms hs
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -439,12 +471,14 @@ let process_href env (href : Docref.href) s =
     process_proof env id proof
 
   | Docref.Ref id ->
+    Pdoc.printf env.out "<a" ;
     if env.clone_decl > 0 && id.id_qid = [] then
       begin
-        Docref.set_instance env.cenv id.self ;
+        let order = Docref.set_instance env.cenv id.self in
+        Pdoc.printf env.out " id=\"clone-%d\"" order ;
         env.clone_inst <- true ;
       end ;
-    Pdoc.printf env.out "<a title=\"%a\" href=\"%a\">%a</a>"
+    Pdoc.printf env.out " title=\"%a\" href=\"%a\">%a</a>"
       Id.pp_title id
       (Id.pp_ahref ~scope:env.scope) id
       Pdoc.pp_html s
@@ -504,14 +538,14 @@ let defkind = function
   | { Why3.Expr.c_node = Cany } -> "val"," "
   | _ -> "let"," = "
 
-let declare env n kwd ?(attr=[]) id =
+let declare env n kwd ?(attr=[]) ?(valid=false) id =
   begin
     let r = Id.resolve ~lib:env.src.lib id in
     Pdoc.printf env.out "%a%a" Pdoc.pp_spaces n Pdoc.pp_keyword kwd ;
     List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
     Pdoc.printf env.out " <a id=\"%a\">%a</a>" Id.pp_aname r Id.pp_local r ;
     process_axioms env r ;
-    process_proof env r @@ Docref.find_proof r.self env.theory ;
+    process_proof env r ~valid @@ Docref.find_proof r.self env.theory ;
   end
 
 let definition env ?(op=" = ") def =
@@ -548,7 +582,7 @@ let decl env n id (d : Why3.Decl.decl) def =
   | Dind _ ->
     declare env n "inductive" id ; definition env def ;
   | Dprop(Plemma,_,_) ->
-    declare env n "lemma" id ; definition env ~op:" " def
+    declare env n "lemma" ~valid:true id ; definition env ~op:" " def
   | Dprop(Paxiom,_,_) ->
     declare env n "axiom" id ; definition env ~op:" " def
   | Dprop(Pgoal,_,_) -> ()
@@ -636,14 +670,13 @@ let process_clone_axioms env clones =
   match env.theory with
   | None -> ()
   | Some theory ->
-    let sound = Soundness.compute env.senv theory in
     let signature = theory.signature in
     let hs = List.fold_left
         (fun hs clone ->
            match Axioms.parameter signature clone.Docref.id_target with
            | None -> hs
            | Some p -> add_axiom hs p
-        ) { free with sound } clones in
+        ) free_clone clones in
     Pdoc.pp env.out pp_axioms hs
 
 let process_clone_section env (th : Docref.theory) =
@@ -738,8 +771,8 @@ let process_open_module env key =
     Pdoc.printf env.crc
       "<pre class=\"src\">%a <a id=\"%s\" href=\"%s\">%s.%s</a>"
       Pdoc.pp_keyword key id url path id ;
-    process_axioms_summary env theory ; (* out *)
-    process_proofs_summary env id  ~crc:true theory ; (* out & crc *)
+    process_axioms_summary env id ~crc:true theory ; (* out & crc *)
+    process_proofs_summary env id ~crc:true theory ; (* out & crc *)
     Pdoc.printf env.out "</pre>@." ;
     Pdoc.printf env.crc "</pre>@." ;
     let file = Filename.concat env.dir url in
@@ -771,8 +804,9 @@ let process_open_module env key =
     Pdoc.pp env.out Pdoc.pp_keyword key ;
     Pdoc.pp_print_char env.out ' ' ;
     process_href env href id ;
-    process_axioms_summary env theory ;
+    process_axioms_summary env id ~crc:false theory ;
     process_proofs_summary env id ~crc:false theory ;
+    process_module_axioms env ;
     Docref.set_container env.cenv ~path ~id ;
   end
 
@@ -780,7 +814,6 @@ let process_close_module env key =
   begin
     text env ;
     Pdoc.printf env.out "%a@\n</pre>@\n" Pdoc.pp_keyword key ;
-    process_module_axioms env ;
     Pdoc.close env.out ;
     env.mode <- Body ;
     env.block <- Raw ;
@@ -1083,14 +1116,14 @@ let process_source ~wenv ~cenv ~henv ~senv ~out:dir file (src : Docref.source) =
        <code>proofs</code>\
        </header>@." src.urlbase src.urlbase ;
     Pdoc.flush crc ;
-    Pdoc.printf crc "<h1>Prover Calibration</h1>@\n<pre class=\"src\">" ;
+    Pdoc.printf crc "<h1>Provers</h1>@\n<pre class=\"src\">" ;
     Calibration.iter
       (fun p n t ->
          Pdoc.printf crc "@\n  %-10s n=%d %a (%s)"
            (Crc.shortname p) n Utils.pp_time t p
       ) src.profile ;
     Pdoc.printf crc "@\n</pre>@." ;
-    Pdoc.printf crc "<h1>Proof Certificates</h1>@\n" ;
+    Pdoc.printf crc "<h1>Proofs</h1>@\n" ;
     parse env ;
     Pdoc.close_all out ;
     Pdoc.close_all crc ;

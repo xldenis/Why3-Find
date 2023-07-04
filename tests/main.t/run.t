@@ -61,7 +61,7 @@
   <div class="doc">
   <p>Before B</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><span title="1 value" class="icon small warning icofont-star"></span><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><a href="p.a.proof.html#B" title="1 value, 0 instance found" class="icon small warning icofont-star"></a><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
   <div class="doc">
   <p>After B</p>
   </div>
@@ -121,7 +121,7 @@
   <p>Introducing B</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> B<span title="1 value" class="icon small warning icofont-star"></span><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon remark icofont-check"></a>
+  <span class="keyword">module</span> B<a href="p.a.proof.html#B" title="1 value, 0 instance found" class="icon small warning icofont-star"></a><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon remark icofont-check"></a>
   
     <span class="keyword">exception</span> <a id="Error">Error</a>
   

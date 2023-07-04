@@ -150,7 +150,8 @@ let set_container cenv ~path ~id =
   cenv.order <- 0 ; cenv.path <- Printf.sprintf "%s.%s" path id
 
 let set_instance cenv id =
-  cenv.order <- succ cenv.order + Hid.find_def cenv.cloning 0 id
+  let order = succ cenv.order + Hid.find_def cenv.cloning 0 id in
+  cenv.order <- order ; order
 
 let current_instance cenv s =
   s.inst_path = cenv.path && s.inst_order = cenv.order

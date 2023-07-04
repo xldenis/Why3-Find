@@ -68,6 +68,10 @@ let register henv (src : Docref.source) =
        List.iter (add hinst) thy.clones
     ) src.theories
 
+let clone = Sound []
+let unknown = Unknown []
+
+let is_clone = function Sound [] -> true | _ -> false
 let is_sound = function Sound _ -> true | Unknown _ -> false
 
 let rec compute (env : env) (th : Docref.theory) : soundness =
@@ -75,7 +79,11 @@ let rec compute (env : env) (th : Docref.theory) : soundness =
   try Hid.find env.soundness key with Not_found ->
     Hid.add env.soundness key (Unknown []) ;
     let s =
-      if Axioms.parameters th.signature = [] then Sound [] else
+      let ok = List.for_all
+          (fun p -> not (Axioms.is_hypothesis p) || Axioms.is_external p)
+          (Axioms.parameters th.signature)
+      in
+      if ok then Sound [] else
         try
           let instances = Sinst.elements !(Hid.find env.instances key) in
           let grounds = List.filter (ground_instance env) instances in

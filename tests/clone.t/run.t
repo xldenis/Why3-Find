@@ -17,7 +17,7 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="a.index.html">a</a></code> — <code>module A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> A<span title="3 parameters" class="icon small remark icofont-star"></span><a href="a.proof.html#A" title="Failed (no proof)" class="icon failed icofont-warning"></a>
+  <span class="keyword">module</span> A<a href="a.proof.html#A" title="3 parameters" class="icon small remark icofont-star"></a><a href="a.proof.html#A" title="Failed (no proof)" class="icon failed icofont-warning"></a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span>
     <span class="keyword">val</span> <span class="keyword">constant</span> <a id="neutral">neutral</a><span title="Parameter" class="icon small remark icofont-star"></span> : <a title="a.A.t" href="#t">t</a>
@@ -52,7 +52,7 @@
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
     <span class="keyword">let</span> <span class="keyword">constant</span> <a id="zero">zero</a> = 0
-    <span class="keyword">clone</span> <span class="keyword">export</span> <a title="a.A" href="a.A.html#">A</a><span class="section">{<span class="section-toggle">…</span><span class="section-text">
+    <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-1" title="a.A" href="a.A.html#">A</a><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">let</span> <a id="square">square</a> int : int = {<a class="attribute" title="a.A.square" href="a.A.html#square">def.</a>}
         <span class="keyword">let</span> <a id="assoc">assoc</a> (<a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> int) : int = {<a class="attribute" title="a.A.assoc" href="a.A.html#assoc">def.</a>}

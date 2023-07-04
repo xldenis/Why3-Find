@@ -205,7 +205,7 @@ let report_signature henv ~lib (th : Th.theory) =
   | Some henv ->
     List.iter
       (report_parameter ~lib ~signature:true)
-      (Axioms.parameters ~all:true @@ Axioms.signature henv th)
+      (Axioms.parameters @@ Axioms.signature henv th)
 
 let report_hypotheses henv ~lib (ths : Th.theory list) =
   match henv with

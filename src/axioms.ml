@@ -52,13 +52,12 @@ type parameter = {
   extern : string option ;
 }
 
-let is_abstract { builtin ; extern } = builtin = [] && extern = None
+let is_external { builtin ; extern } = builtin <> [] || extern <> None
 let is_hypothesis = function
   | { param = (Value _ | Axiom _) } -> true
   | _ -> false
 
 type signature = {
-  abstract : int ; (* number of abstract parameters *)
   locals : parameter Mid.t ;
   used_theories : Theory.theory list ;
   cloned_theories : Theory.theory list ;
@@ -106,7 +105,6 @@ let init (wenv : Wenv.env) =
 (* -------------------------------------------------------------------------- *)
 
 let empty = {
-  abstract = 0 ;
   locals = Mid.empty ;
   used_theories = [] ;
   cloned_theories = [] ;
@@ -117,8 +115,7 @@ let add henv hs param =
   let builtin = Mid.find_def [] id henv.builtins in
   let extern = Mid.find_opt id henv.externals in
   let prm = { param ; builtin ; extern } in
-  let abstract = if is_abstract prm then succ hs.abstract else hs.abstract in
-  { hs with abstract ; locals = Mid.add id prm hs.locals }
+  { hs with locals = Mid.add id prm hs.locals }
 
 let add_used hs (thy : Theory.theory) =
   { hs with used_theories = thy :: hs.used_theories }
@@ -261,11 +258,7 @@ let signature henv (thy : Theory.theory) =
     in Hid.add henv.signatures id hs ; hs
 
 let parameter s id = Mid.find_opt id s.locals
-let parameters ?(all=false) s =
-  if all then Mid.values s.locals else
-    List.filter_map
-      (fun p -> if is_abstract p then Some p else None)
-      (Mid.values s.locals)
+let parameters s = Mid.values s.locals
 
 (* -------------------------------------------------------------------------- *)
 (* --- Consolidated Hypotheses                                            --- *)
