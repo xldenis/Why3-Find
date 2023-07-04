@@ -19,37 +19,15 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(* -------------------------------------------------------------------------- *)
-(* --- Compute Axioms                                                     --- *)
-(* -------------------------------------------------------------------------- *)
-
-type henv
-val init : Wenv.env -> henv
-
 open Why3
 
-type signature
-val signature : henv -> Theory.theory -> signature
+val iter_sm : (Ident.ident -> Ident.ident -> unit) -> Theory.symbol_map -> unit
+val iter_mi : (Ident.ident -> Ident.ident -> unit) -> Pmodule.mod_inst -> unit
 
-type param =
-  | Type of Ty.tysymbol
-  | Logic of Term.lsymbol
-  | Param of Expr.rsymbol
-  | Value of Expr.rsymbol
-  | Axiom of Decl.prsymbol
+val pp_thy : Format.formatter -> Theory.theory -> unit
+val pp_mod : Format.formatter -> Pmodule.pmodule -> unit
+val pp_pdecl : Format.formatter -> Pdecl.pdecl -> unit
+val pp_munit : Format.formatter -> Pmodule.mod_unit -> unit
+val pp_module : Format.formatter -> Pmodule.pmodule -> unit
 
-type parameter = {
-  param : param ;
-  builtin : (Runner.prover * string) list ;
-  extern : string option ;
-}
-
-val ident : param -> Ident.ident
-val is_external : parameter -> bool
-val is_hypothesis : parameter -> bool
-val parameter : signature -> Ident.ident -> parameter option
-val parameters : signature -> parameter list
-val dependencies : henv -> ?self:bool -> Theory.theory list -> Theory.theory list
-val iter : henv -> ?self:bool -> (parameter -> unit) -> Theory.theory list -> unit
-
-(* -------------------------------------------------------------------------- *)
+(**************************************************************************)

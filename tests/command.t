@@ -257,8 +257,8 @@
     --goals list results by goals
     --proofs list proofs by goals
     --stdlib report hypotheses from stdlib
-    --extern report assumed external symbols
-    --builtin report assumed builtin symbols
+    --extern report also external symbols
+    --builtin report also builtin symbols
     -help  Display this list of options
     --help  Display this list of options
   

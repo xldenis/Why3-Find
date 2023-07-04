@@ -24,7 +24,9 @@
 (* -------------------------------------------------------------------------- *)
 
 module Sid = Why3.Ident.Sid
+module Hid = Why3.Ident.Hid
 module Thy = Why3.Theory
+module Pmod = Why3.Pmodule
 module Mstr = Why3.Wstdlib.Mstr
 
 (* -------------------------------------------------------------------------- *)
@@ -47,21 +49,22 @@ let is_uppercased s =
 type ident = Id.t
 type position = Lexing.position * Lexing.position
 
-type section = {
-  cloned_path : string ;
-  cloned_order : int ;
+type instance = {
+  inst_path : string ; (* container of the clone instance *)
+  inst_order : int ; (* clone declaration offset *)
+  inst_cloned : Thy.theory ; (* cloned theory *)
 }
 
 type clone = {
-  id_section : section ;
-  id_source : ident ;
-  id_target : ident ;
+  id_instance : instance ;
+  id_source : ident ; (* from cloned theory *)
+  id_target : ident ; (* to clone instance *)
 }
 
 type theory = {
   theory: Thy.theory ;
   depends: Thy.theory list ;
-  signature : Axioms.signature ;
+  signature: Axioms.signature ;
   clones: clone list ;
   proofs: Crc.crc Mstr.t ;
 }
@@ -125,103 +128,76 @@ let resolve ~src ~theory ~infix pos =
   with Not_found -> NoRef
 
 (* -------------------------------------------------------------------------- *)
-(* --- Theory Iterators                                                   --- *)
-(* -------------------------------------------------------------------------- *)
-
-let iter_mi f (mi : Why3.Pmodule.mod_inst) =
-  begin
-    let open Why3.Ty in
-    let open Why3.Ity in
-    let open Why3.Term in
-    let open Why3.Decl in
-    let open Why3.Expr in
-    Mts.iter
-      (fun a ity ->
-         match ity.ity_node with
-         | Ityreg b -> f a.ts_name b.reg_name
-         | Ityapp(b,_,_) -> f a.ts_name b.its_ts.ts_name
-         | Ityvar b -> f a.ts_name b.tv_name
-      ) mi.mi_ty ;
-    Mts.iter (fun a b  -> f a.ts_name b.its_ts.ts_name) mi.mi_ts ;
-    Mls.iter (fun a b -> f a.ls_name b.ls_name) mi.mi_ls ;
-    Mpr.iter (fun a b -> f a.pr_name b.pr_name) mi.mi_pr ;
-    Mvs.iter (fun a b -> f a.vs_name b.pv_vs.vs_name) mi.mi_pv ;
-    Mrs.iter (fun a b -> f a.rs_name b.rs_name) mi.mi_rs ;
-    Mxs.iter (fun a b -> f a.xs_name b.xs_name) mi.mi_xs ;
-  end
-
-let iter_sm f (sm : Thy.symbol_map) =
-  begin
-    let open Why3.Ty in
-    let open Why3.Term in
-    let open Why3.Decl in
-    Mts.iter
-      (fun a ty ->
-         match ty.ty_node with
-         | Tyvar _ -> ()
-         | Tyapp(b,_) -> f a.ts_name b.ts_name
-      ) sm.sm_ty ;
-    Mts.iter (fun a b -> f a.ts_name b.ts_name) sm.sm_ts ;
-    Mls.iter (fun a b -> f a.ls_name b.ls_name) sm.sm_ls ;
-    Mpr.iter (fun a b -> f a.pr_name b.pr_name) sm.sm_pr ;
-  end
-
-let section ~order ~path th =
-  let id = th.Thy.th_name in
-  let cat = String.concat "." in
-  let ld,md,qd = Id.path id in
-  let k = incr order ; !order in
-  let p =
-    if ld = [] && qd = [] then
-      cat [path;md]
-    else
-      cat (ld @ md :: qd)
-  in { cloned_path = p ; cloned_order = k }
-
-let iter_module ~order ~path ~depend ~cloned (m : Why3.Pmodule.pmodule) =
-  let open Why3.Pmodule in
-  let rec walk = function
-    | Uscope(_,mus) -> List.iter walk mus
-    | Uclone mi ->
-      let thy = mi.mi_mod.mod_theory in
-      depend thy ;
-      let s = section ~order ~path thy in
-      iter_mi (fun a b ->
-          if Sid.mem b m.mod_local && not @@ Id.lemma b then cloned s a b
-        ) mi
-    | Uuse m -> depend m.mod_theory
-    | _ -> ()
-  in List.iter walk m.mod_units
-
-let iter_theory ~order ~path ~depend ~cloned thy =
-  try
-    let m = Why3.Pmodule.restore_module thy in
-    iter_module ~order ~path ~depend ~cloned m
-  with Not_found ->
-    List.iter
-      (fun d ->
-         match d.Thy.td_node with
-         | Clone(th,sm) ->
-           let s = section ~order ~path th in
-           iter_sm (fun a b -> if Sid.mem b thy.th_local then cloned s a b) sm
-         | _ -> ()
-      ) thy.th_decls
-
-(* -------------------------------------------------------------------------- *)
 (* --- Environment                                                        --- *)
 (* -------------------------------------------------------------------------- *)
+
+type cenv = {
+  cloning : int Hid.t ; (* number of clones per theory/module *)
+  mutable path : string ; (* container name *)
+  mutable order : int ; (* clone section order during parsing *)
+}
 
 let init () =
   begin
     (* Parser config *)
     Why3.Debug.set_flag Why3.Glob.flag ;
     List.iter (fun k -> Hashtbl.add keywords k ()) Why3.Keywords.keywords ;
-    (* Package config *)
-    let wenv = Wenv.init () in
-    (* Axioms config *)
-    let henv = Axioms.init wenv in
-    wenv.wenv, henv
+    (* Cloning env *)
+    { cloning = Hid.create 0 ; path = "" ; order = 0 }
   end
+
+let set_container cenv ~path ~id =
+  cenv.order <- 0 ; cenv.path <- Printf.sprintf "%s.%s" path id
+
+let set_instance cenv id =
+  let order = succ cenv.order + Hid.find_def cenv.cloning 0 id in
+  cenv.order <- order ; order
+
+let current_instance cenv s =
+  s.inst_path = cenv.path && s.inst_order = cenv.order
+
+(* -------------------------------------------------------------------------- *)
+(* --- Theory Iterators                                                   --- *)
+(* -------------------------------------------------------------------------- *)
+
+let instance cenv th =
+  cenv.order <- succ cenv.order ;
+  {
+    inst_path = cenv.path ;
+    inst_order = cenv.order ;
+    inst_cloned = th ;
+  }
+
+let iter_module cenv ~depend ~cloned
+    (m : Why3.Pmodule.pmodule) =
+  let open Why3.Pmodule in
+  let rec walk = function
+    | Uscope(_,mus) -> List.iter walk mus
+    | Uclone mi ->
+      let thy = mi.mi_mod.mod_theory in
+      depend thy ;
+      let s = instance cenv thy in
+      Wutil.iter_mi (fun a b ->
+          if Sid.mem b m.mod_local && not @@ Id.lemma b then cloned s a b
+        ) mi
+    | Uuse m -> depend m.mod_theory
+    | _ -> ()
+  in List.iter walk m.mod_units
+
+let iter_theory cenv ~depend ~cloned thy =
+  try
+    let m = Why3.Pmodule.restore_module thy in
+    iter_module cenv ~depend ~cloned m
+  with Not_found ->
+    List.iter
+      (fun d ->
+         match d.Thy.td_node with
+         | Clone(th,sm) ->
+           let s = instance cenv th in
+           Wutil.iter_sm
+             (fun a b -> if Sid.mem b thy.th_local then cloned s a b) sm
+         | _ -> ()
+      ) thy.th_decls
 
 (* -------------------------------------------------------------------------- *)
 (* --- Proofs                                                             --- *)
@@ -262,7 +238,16 @@ let library_path file =
     scan [] (Filename.chop_extension file)
   else Filename.[chop_extension @@ basename file]
 
-let parse ~wenv ~henv file =
+let derived src id =
+  Printf.sprintf "%s.%s.html" (String.concat "." src.lib) id
+
+let empty () = {
+  lib = [] ; urlbase = "" ;
+  profile = Calibration.create () ;
+  theories = Mstr.empty ;
+}
+
+let parse ~wenv ~cenv ~henv file =
   if not @@ String.ends_with ~suffix:".mlw" file then
     begin
       Format.eprintf "Error: invalid file name: %S@." file ;
@@ -277,38 +262,32 @@ let parse ~wenv ~henv file =
       Format.eprintf "Error: %s@." (Printexc.to_string exn) ;
       exit 1
   in
-  let order = ref 0 in
   let profile, proofs = load_proofs (Filename.concat dir "proof.json") in
   let theories =
-    Mstr.map
-      (fun (theory : Thy.theory) ->
+    Mstr.mapi
+      (fun id (theory : Thy.theory) ->
+         set_container cenv ~path ~id ;
          let depends = ref [] in
          let depend th = depends := th :: !depends in
          let clones = ref [] in
          let cloned s a b =
            clones := {
-             id_section = s ;
+             id_instance = s ;
              id_source = a ;
              id_target = b ;
            } :: !clones in
-         iter_theory ~order ~path ~depend ~cloned theory ;
+         iter_theory cenv ~depend ~cloned theory ;
+         Hid.add cenv.cloning theory.th_name cenv.order ;
          let proofs = zip_goals theory proofs in
          let signature = Axioms.signature henv theory in
          {
-           theory ; depends = List.rev !depends ;
-           signature ; clones = List.rev !clones ; proofs }
+           theory ; signature ; proofs ;
+           depends = List.rev !depends ;
+           clones = List.rev !clones ;
+         }
       ) thys
   in
   { lib ; urlbase = path ; profile ; theories }
-
-let derived src id =
-  Printf.sprintf "%s.%s.html" (String.concat "." src.lib) id
-
-let create () = {
-  lib = [] ; urlbase = "" ;
-  profile = Calibration.create () ;
-  theories = Mstr.empty ;
-}
 
 (* -------------------------------------------------------------------------- *)
 (* --- Global References                                                  --- *)

@@ -9,11 +9,11 @@
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <link rel="stylesheet" type="text/css" href="style.css">
   <link rel="stylesheet" type="text/css" href="icofont.min.css">
-  <title>Index</title>
+  <title></title>
   </head>
   <body>
-  <header>Index</header>
-  <h1>Package</h1>
+  <header>index — </header>
+  <h1>Development</h1>
   <div class="doc">
   <ul>
   <li><a href="a.index.html">Library a</a></li>

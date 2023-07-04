@@ -1,0 +1,42 @@
+module Monoid
+  type t
+  function op t t : t
+end
+
+module Neutral
+  clone export Monoid (* #0 *)
+  constant e : t
+  axiom neutral: forall x. op x e = op x e = x
+end
+
+module Commutative
+  clone Monoid as M   (* #0 *)
+  axiom commutative: forall x y. M.op x y = M.op y x
+end
+
+module Associative
+  clone export Monoid (* #0 *)
+  axiom associative: forall x y z. op x (op y z) = op (op x y) z
+end
+
+module AC
+  clone export Monoid (* #0 *)
+  clone export Commutative with type M.t = t, function M.op = op, axiom .
+  clone export Associative with type t, function op, axiom .
+end
+
+module IntC
+  use int.Int
+  clone Commutative as S with type M.t = int, function M.op = ( + )
+  clone Commutative as P with type M.t = int, function M.op = ( * )
+end
+
+module IntA
+  use int.Int
+  clone Associative with type t = int, function op = (+)
+end
+
+module IntAC
+  use int.Int
+  clone export AC with type t = int, function op = (+)
+end

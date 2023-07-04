@@ -12,11 +12,11 @@
   <title>Library a</title>
   </head>
   <body>
-  <header>Library <a href="index.html"><code>a</code></a></header>
+  <header><a href="index.html">index</a> — <code>library a</code></header>
   <div class="doc">
   <p>Testing Empty Lines</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="a.A" href="a.A.html">A</a><span title="6 parameters" class="icon remark icofont-question-circle"></span><a href="a.proof.html#A" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="a.A" href="a.A.html">A</a><a href="a.proof.html#A" title="6 parameters" class="icon small remark icofont-star"></a><a href="a.proof.html#A" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
   <script type="text/javascript" src="script.js"></script>
   </body>
   </html>
@@ -29,37 +29,37 @@
   <title>Module a.A</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="a.index.html">a</a>.A</code></header>
+  <header><a href="index.html">index</a> — <code>library <a href="a.index.html">a</a></code> — <code>module A</code></header>
   <div class="doc">
   <p>Module A</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> A<span title="6 parameters" class="icon remark icofont-question-circle"></span><a href="a.proof.html#A" title="Valid (no goals)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> A<a href="a.proof.html#A" title="6 parameters" class="icon small remark icofont-star"></a><a href="a.proof.html#A" title="Valid (no goals)" class="icon remark icofont-check"></a>
   </pre>
   <div class="doc">
   <p>Some doc</p>
   <p>More doc</p>
   </div>
   <pre class="src">
-    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
+    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span>
   </pre>
   <div class="doc">
   <p>Some doc</p>
   <p>More doc</p>
   </div>
   <pre class="src">
-    <span class="keyword">type</span> <a id="u">u</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
+    <span class="keyword">type</span> <a id="u">u</a><span title="Parameter" class="icon small remark icofont-star"></span>
   
-    <span class="keyword">type</span> <a id="w">w</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
-    <span class="keyword">type</span> <a id="k">k</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
+    <span class="keyword">type</span> <a id="w">w</a><span title="Parameter" class="icon small remark icofont-star"></span>
+    <span class="keyword">type</span> <a id="k">k</a><span title="Parameter" class="icon small remark icofont-star"></span>
   
-    <span class="keyword">type</span> <a id="r">r</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
+    <span class="keyword">type</span> <a id="r">r</a><span title="Parameter" class="icon small remark icofont-star"></span>
   </pre>
   <div class="doc">
   <p>Doc between</p>
   </div>
   <pre class="src">
-    <span class="keyword">type</span> <a id="s">s</a><span title="Parameter" class="icon remark icofont-question-circle"></span>
+    <span class="keyword">type</span> <a id="s">s</a><span title="Parameter" class="icon small remark icofont-star"></span>
   </pre>
   <div class="doc">
   <p>End doc</p>

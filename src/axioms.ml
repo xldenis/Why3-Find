@@ -29,13 +29,49 @@ module Mid = Ident.Mid
 module Hid = Ident.Hid
 
 (* -------------------------------------------------------------------------- *)
-(* --- Builtin & Extracted Environments                                   --- *)
+(* --- Theory & Module Assumed Symbols                                    --- *)
 (* -------------------------------------------------------------------------- *)
+
+type param =
+  | Type of Ty.tysymbol
+  | Logic of Term.lsymbol
+  | Param of Expr.rsymbol
+  | Value of Expr.rsymbol
+  | Axiom of Decl.prsymbol
+
+let ident = function
+  | Type ty -> ty.ts_name
+  | Logic ls -> ls.ls_name
+  | Param rs -> rs.rs_name
+  | Value rs -> rs.rs_name
+  | Axiom pr -> pr.pr_name
+
+type parameter = {
+  param : param ;
+  builtin : (Runner.prover * string) list ;
+  extern : string option ;
+}
+
+let is_external { builtin ; extern } = builtin <> [] || extern <> None
+let is_hypothesis = function
+  | { param = (Value _ | Axiom _) } -> true
+  | _ -> false
+
+type signature = {
+  locals : parameter Mid.t ;
+  used_theories : Theory.theory list ;
+  cloned_theories : Theory.theory list ;
+}
 
 type henv = {
   builtins : (Runner.prover * string) list Mid.t ;
   externals : string Mid.t ;
+  signatures : signature Hid.t ;
 }
+
+(* -------------------------------------------------------------------------- *)
+(* --- Builtin & Extracted Environments                                   --- *)
+(* -------------------------------------------------------------------------- *)
 
 let ocaml64 =
   Filename.concat Config.datadir @@
@@ -62,44 +98,13 @@ let init (wenv : Wenv.env) =
   let main = Whyconf.get_main wenv.wconfig in
   let pdriver = Pdriver.load_driver main wenv.wenv ocaml64 drivers in
   let externals = Mid.map fst pdriver.drv_syntax in
-  { builtins ; externals }
+  { builtins ; externals ; signatures = Hid.create 0 }
 
 (* -------------------------------------------------------------------------- *)
-(* --- Theory & Module Assumed Symbols                                    --- *)
+(* --- Elementary Operations                                              --- *)
 (* -------------------------------------------------------------------------- *)
-
-type param =
-  | Type of Ty.tysymbol
-  | Logic of Term.lsymbol
-  | Param of Expr.rsymbol
-  | Value of Expr.rsymbol
-  | Axiom of Decl.prsymbol
-
-let ident = function
-  | Type ty -> ty.ts_name
-  | Logic ls -> ls.ls_name
-  | Param rs -> rs.rs_name
-  | Value rs -> rs.rs_name
-  | Axiom pr -> pr.pr_name
-
-type parameter = {
-  param : param ;
-  builtin : (Runner.prover * string) list ;
-  extern : string option ;
-}
-
-let is_assumed { builtin ; extern } =
-  builtin = [] && extern = None
-
-type signature = {
-  assumed : int ;
-  locals : parameter Mid.t ;
-  used_theories : Theory.theory list ;
-  cloned_theories : Theory.theory list ;
-}
 
 let empty = {
-  assumed = 0 ;
   locals = Mid.empty ;
   used_theories = [] ;
   cloned_theories = [] ;
@@ -110,8 +115,7 @@ let add henv hs param =
   let builtin = Mid.find_def [] id henv.builtins in
   let extern = Mid.find_opt id henv.externals in
   let prm = { param ; builtin ; extern } in
-  let assumed = if is_assumed prm then succ hs.assumed else hs.assumed in
-  { hs with assumed ; locals = Mid.add id prm hs.locals }
+  { hs with locals = Mid.add id prm hs.locals }
 
 let add_used hs (thy : Theory.theory) =
   { hs with used_theories = thy :: hs.used_theories }
@@ -149,24 +153,18 @@ let theory_signature henv (thy : Theory.theory) =
   List.fold_left (add_tdecl henv) empty thy.th_decls
 
 (* -------------------------------------------------------------------------- *)
-(* --- Module Declarations                                                --- *)
+(* --- Constant Detection                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
-  if it.itd_fields = [] && it.itd_constructors = [] then
-    let its = it.itd_its in
-    if nodef its.its_def then add henv hs (Type its.its_ts) else hs
-  else hs
+let is_var x (a : Term.term) =
+  match a.t_node with
+  | Tvar y -> Term.vs_equal x y
+  | _ -> false
 
 let rec cany (ce : Expr.cexp) =
   match ce.c_node with
   | Cany -> true
   | Cfun { e_node = Eexec(ce,_) } -> cany ce
-  | _ -> false
-
-let is_var x (a : Term.term) =
-  match a.t_node with
-  | Tvar y -> Term.vs_equal x y
   | _ -> false
 
 (* Detect (fun result -> result = a) s.t. check a *)
@@ -205,6 +203,16 @@ let constrained (rs : Expr.rsymbol) =
       | _ -> false
     in List.exists (constrained_post check) rs.rs_cty.cty_post
 
+(* -------------------------------------------------------------------------- *)
+(* --- Module Declarations                                                --- *)
+(* -------------------------------------------------------------------------- *)
+
+let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
+  if it.itd_fields = [] && it.itd_constructors = [] then
+    let its = it.itd_its in
+    if nodef its.its_def then add henv hs (Type its.its_ts) else hs
+  else hs
+
 let add_rsymbol henv hs (rs : Expr.rsymbol) (cexp : Expr.cexp) =
   if Id.lemma rs.rs_name then hs else
     match rs.rs_logic with
@@ -228,7 +236,8 @@ let rec add_munit henv (hs : signature) (m : Pmodule.mod_unit) : signature =
   match m with
   | Udecl pd -> add_pdecl henv hs pd
   | Uuse pm -> add_used hs pm.mod_theory
-  | Uclone mi -> add_cloned hs mi.mi_mod.mod_theory
+  | Uclone mi ->
+    add_cloned hs mi.mi_mod.mod_theory
   | Uscope(_,ms) -> List.fold_left (add_munit henv) hs ms
   | Umeta _ -> hs
 
@@ -236,26 +245,20 @@ let module_signature henv (pm : Pmodule.pmodule) : signature =
   List.fold_left (add_munit henv) empty pm.mod_units
 
 (* -------------------------------------------------------------------------- *)
-(* --- Signatute                                                          --- *)
+(* --- Signature                                                          --- *)
 (* -------------------------------------------------------------------------- *)
-
-let sigs = Hid.create 0
 
 let signature henv (thy : Theory.theory) =
   let id = thy.th_name in
-  try Hid.find sigs id
+  try Hid.find henv.signatures id
   with Not_found ->
     let hs =
       try module_signature henv @@ Pmodule.restore_module thy
       with Not_found -> theory_signature henv thy
-    in Hid.add sigs id hs ; hs
+    in Hid.add henv.signatures id hs ; hs
 
 let parameter s id = Mid.find_opt id s.locals
 let parameters s = Mid.values s.locals
-let assumed s =
-  List.filter_map
-    (fun p -> if is_assumed p then Some p.param else None)
-    (Mid.values s.locals)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Consolidated Hypotheses                                            --- *)

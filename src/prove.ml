@@ -310,6 +310,7 @@ let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
       if axioms then
         Some (Axioms.init env)
       else None in
+    Utils.flush () ;
     let failed = report_results log henv ~lib proofs in
     if failed then unsuccess := file :: !unsuccess ;
     Fibers.return ()

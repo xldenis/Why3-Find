@@ -28,11 +28,11 @@
   <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
   <link rel="stylesheet" type="text/css" href="style.css">
   <link rel="stylesheet" type="text/css" href="icofont.min.css">
-  <title>Index</title>
+  <title></title>
   </head>
   <body>
-  <header>Index</header>
-  <h1>Package</h1>
+  <header>index — </header>
+  <h1>Development</h1>
   <div class="doc">
   <ul>
   <li><a href="p.a.index.html">Library p.a</a></li>
@@ -53,15 +53,15 @@
   <title>Library p.a</title>
   </head>
   <body>
-  <header>Library <a href="index.html"><code>p.a</code></a></header>
+  <header><a href="index.html">index</a> — <code>library p.a</code></header>
   <div class="doc">
   <p>Before A</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a><a href="p.a.proof.html#A" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.A" href="p.a.A.html">A</a><a href="p.a.proof.html#A" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
   <div class="doc">
   <p>Before B</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><span title="1 value" class="icon warning icofont-question-circle"></span><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon valid icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><a href="p.a.proof.html#B" title="1 value, 0 instance found" class="icon small warning icofont-star"></a><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
   <div class="doc">
   <p>After B</p>
   </div>
@@ -80,12 +80,12 @@
   <title>Module p.a.A</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="p.a.index.html">p.a</a>.A</code></header>
+  <header><a href="index.html">index</a> — <code>library <a href="p.a.index.html">p.a</a></code> — <code>module A</code></header>
   <div class="doc">
   <p>Introducing A</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> A<a href="p.a.proof.html#A" title="Valid (no goals)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> A<a href="p.a.proof.html#A" title="Valid (no goals)" class="icon remark icofont-check"></a>
   
     <span class="keyword">type</span> <a id="t">t</a> = <a id="A">A</a> | <a id="B">B</a>
   </pre>
@@ -116,16 +116,16 @@
   <title>Module p.a.B</title>
   </head>
   <body>
-  <header>Module <code class="src"><a href="p.a.index.html">p.a</a>.B</code></header>
+  <header><a href="index.html">index</a> — <code>library <a href="p.a.index.html">p.a</a></code> — <code>module B</code></header>
   <div class="doc">
   <p>Introducing B</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> B<span title="1 value" class="icon warning icofont-question-circle"></span><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> B<a href="p.a.proof.html#B" title="1 value, 0 instance found" class="icon small warning icofont-star"></a><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon remark icofont-check"></a>
   
     <span class="keyword">exception</span> <a id="Error">Error</a>
   
-    <span class="keyword">val</span> <a id="wrong">wrong</a><span title="Value Parameter" class="icon warning icofont-question-circle"></span> () : unit
+    <span class="keyword">val</span> <a id="wrong">wrong</a><span title="Value Parameter" class="icon small warning icofont-star"></span> () : unit
       <span class="keyword">raises</span> { <a title="p.a.B.Error" href="#Error">Error</a> }
   </pre>
   <div class="doc">
