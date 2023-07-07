@@ -117,17 +117,12 @@ let find_filter (env : Wenv.env) ~name ?(version="") () =
     ) mpr []
 
 let take_one = function [cfg] -> cfg | _ -> raise Not_found
-let take_best ~pattern ~name = function
-  | [prv] -> prv
+let take_best ~name = function
   | [] ->
     Format.eprintf "Warning: prover %s not found@." name ;
     raise Not_found
-  | others ->
-    let cfg = List.hd @@ List.sort compare_config others in
-    Format.eprintf
-      "Warning: prover %s not found, fallback to %s@%s@."
-      pattern (String.lowercase_ascii cfg.prover.prover_name)
-      cfg.prover.prover_version ; cfg
+  | [prv] -> prv
+  | others -> List.hd @@ List.sort compare_config others
 
 let take_default = function
   | [] -> []
@@ -142,12 +137,14 @@ let find env ~pattern =
       | [name] ->
         begin
           try find_shortcut env name with Not_found ->
-            take_best ~pattern ~name @@ find_filter env ~name ()
+            take_best ~name @@ find_filter env ~name ()
         end
       | [name;version] ->
         begin
           try take_one @@ find_filter env ~name ~version () with Not_found ->
-            take_best ~pattern ~name @@ find_filter env ~name ()
+            Format.eprintf
+              "Warning: prover %s@%s not found@." name version ;
+            raise Not_found
         end
       | _ ->
         Format.eprintf "Invalid prover pattern '%s'@." pattern ;
