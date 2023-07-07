@@ -82,7 +82,7 @@ let parse_item s =
   let n = String.length s in
   if n > 1 then
     match s.[0] with
-    | '!' -> Set (String.sub s 1 (n-1))
+    | ':' -> Set (String.sub s 1 (n-1))
     | '+' -> Add (String.sub s 1 (n-1))
     | '-' -> Sub (String.sub s 1 (n-1))
     | _ ->
@@ -110,31 +110,36 @@ let relaxed p = (relax p = p)
 
 let prefixeq p q = relax p = relax q
 
-let mem ~prefix x cfg =
-  if prefix then
-    List.exists (fun y -> prefixeq x y) cfg
-  else
-    List.mem x cfg
-
 let test ~prefix x y =
   if prefix then prefixeq x y else x = y
 
-let sub ~prefix x y = not @@ test ~prefix x y
+let diff ~prefix e y = not @@ test ~prefix e y
 
-let rec insert ~prefix n e k = function
+let rec update ~prefix e = function
   | [] -> [e]
-  | (x::rxs) as xs ->
-    if k < n then
-      let ys = insert ~prefix n e (succ k) rxs in
-      if test ~prefix e x then ys else x :: ys
+  | x::xs ->
+    if test ~prefix e x
+    then e :: xs
+    else x :: update ~prefix e xs
+
+(* invariant pos <= at *)
+let rec insert ~prefix ~at e pos = function
+  | [] -> [e]
+  | x::xs ->
+    if test ~prefix e x then
+      if pos < at
+      then insert ~prefix ~at e (succ pos) xs
+      else e :: List.filter (diff ~prefix e) xs
     else
-      e :: List.filter (sub ~prefix e) xs
+    if pos < at
+    then x :: insert ~prefix ~at e (succ pos) xs
+    else e :: x :: List.filter (diff ~prefix e) xs
 
 let process ~prefix cfg = function
   | Set e -> [e]
-  | Add e -> if mem ~prefix e cfg then cfg else ( cfg @ [e] )
-  | Sub e -> List.filter (sub ~prefix e) cfg
-  | Insert(n,e) -> insert ~prefix n e 0 cfg
+  | Add e -> update ~prefix e cfg
+  | Sub e -> List.filter (diff ~prefix e) cfg
+  | Insert(at,e) -> insert ~prefix ~at e 0 cfg
 
 (* -------------------------------------------------------------------------- *)
 (* --- Command Line Arguments                                             --- *)
@@ -165,6 +170,9 @@ let gets fd ?(prefix=false) ?(default=[]) ropt =
   in
   List.fold_left (process ~prefix) cfg (parse !ropt)
 
+let sets fd xs =
+  set fd ~to_json:Fun.id (`List (List.map (fun x -> `String x) xs))
+
 type opt = [
   | `All
   | `Package
@@ -173,19 +181,23 @@ type opt = [
   | `Config
 ]
 
+let settime s =
+  try setv time (Utils.pa_time s)
+  with Invalid_argument _ -> Utils.failwith "Invalid time (-t %s)" s
+
 let alloptions : (opt * string * Arg.spec * string) list = [
   `All, "--root", Arg.Set_string chdir, "DIR change to directory";
   `All, "--extra-config", Arg.String (add cfgs), "CFG extra why3 config";
   `Package, "--package", Arg.String (add pkgs), "PKG add package dependency";
-  `Prover,  "--time", Arg.Float (setv time), "TIME median proof time";
+  `Prover,  "--time", Arg.String settime, "TIME median proof time";
   `Prover,  "--depth", Arg.Int (setv depth), "DEPTH proof search limit";
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
   `Prover,  "--tactic", Arg.String (add tacs), "TAC add proof tactic";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
   `Config, "--reset", Arg.Clear loadcfg, "reset configuration";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
-  `Prover,  "-t", Arg.Float (setv time), " same as --time";
-  `Prover,  "-d", Arg.Float (setv time), " same as --depth";
+  `Prover,  "-t", Arg.String settime, " same as --time";
+  `Prover,  "-d", Arg.Int (setv depth), " same as --depth";
   `Prover,  "-P", Arg.String (add prvs), " same as --prover";
   `Prover,  "-T", Arg.String (add tacs), " same as --tactic";
   `Driver,  "-D", Arg.String (add drvs), " same as --driver";
@@ -210,15 +222,12 @@ let add_config = add cfgs
 let add_driver = add drvs
 
 let time () = getv "time" ~of_json:Json.jfloat ~default:1.0 time
-let depth () = getv "depth" ~of_json:Json.jint ~default:6 depth
+let depth () = getv "depth" ~of_json:Json.jint ~default:4 depth
 let configs () = gets "configs" cfgs
 let packages () = gets "packages" pkgs
 let provers () = gets "provers" ~prefix:true prvs
 let tactics () = gets "tactics" ~default:["split_vc";"inline_goal" ] tacs
 let drivers () = gets "drivers" drvs
-
-let sets fd xs =
-  set fd ~to_json:Fun.id (`List (List.map (fun x -> `String x) xs))
 
 let set_time = set "time" ~to_json:(fun v -> `Float v)
 let set_depth = set "depth" ~to_json:(fun n -> `Int n)
@@ -256,7 +265,7 @@ let argfiles ~exts files = load () ;
 (* --- Saving Project Config                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-let is_modified () = !modified
+let is_modified () = not !loadcfg || !modified
 let set_modified () = modified := true
 
 let save () =

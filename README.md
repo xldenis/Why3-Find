@@ -99,17 +99,23 @@ Package, prover, tactic and driver options can be used for adding, removing
 or re-ordering multiple items at a time. Multiple items must be separated by
 coma (`,`) and each item can be prefixed with: `+` to add the item (default),
 `-` to remove the item or `!` to remove all existing items. Using `n:a` will
-move or insert item `a` into position `n` in the list, starting from `0`.
+move or move item `a` at position `n` in the list (starting from `0`).
 If no prefix is specified, `+` is assumed (add).
 
 For instance, specifying `--prover -cvc5,+alt-ergo,2:z3` will remove `cvc5` from
 the current configuration then add `alt-ergo` and finally insert or move `z3` to
 position 2.
 
+Provers can be pinned to precise versions, using `prover@version`.  Prover names
+are case-insensitive and may also refer to prover shortcuts from Why3
+configuration.  Using `--relax` will remove all prover versions and `--strict`
+will pin all configured provers to their current version.
+
 The command `why3find config` can be used to manage the package configuration.
 Typical examples are:
 
     why3find config                  # Show current config
+    why3find config --detect         # Update Why3 prover configuration
     why3find config --reset          # Restore default condig (and save)
     why3find config […]              # Manage packages, provers, etc. (and save)
 
@@ -168,10 +174,11 @@ certificates are also stored in order to be used as hints for further proof
 lookup. However, a tactic-node with all its sub-goals marked « stuck » would
 be removed.
 
-The median time is one second by default and can be modified with `-t TIME` or
-configured using `why3find config -t TIME -s`. The median time is specified in
-(fraction of) seconds relatively to the *master* machine, Cf. prover calibration
-below.
+The median time is set to one second by default and can be modified with `-t
+TIME` or configured using `why3find config -t TIME -s`. A fraction of seconds or
+suffix time units (`h`,`min`,`s`,`ms`) can be given, eg. `0.5`, `200ms`,
+`3min`. The median time is specified relatively to the *master* machine,
+Cf. prover calibration below.
 
 Proof search is pruned after a maximal number of nested levels. The default
 depth is 6 and it can be modified with `-d DEPTH` or configured using `why3find

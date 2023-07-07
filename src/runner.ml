@@ -51,7 +51,9 @@ let rec cmps xs ys =
 let tosem p = List.map sem (String.split_on_char 'c' p)
 
 let compare_wprover (p : Whyconf.prover) (q : Whyconf.prover) =
-  let c = String.compare p.prover_name q.prover_name in
+  let c = String.compare
+      (String.lowercase_ascii p.prover_name)
+      (String.lowercase_ascii q.prover_name) in
   if c <> 0 then c else
     let c = cmps (tosem p.prover_version) (tosem q.prover_version) in
     if c <> 0 then c else
@@ -76,8 +78,8 @@ type callback =
 let id prv = Whyconf.prover_parseable_format prv.config.prover
 let name prv = String.lowercase_ascii prv.config.prover.prover_name
 let version prv = prv.config.prover.prover_version
-let title ?(strict=false) p =
-  if strict then Printf.sprintf "%s@%s" (name p) (version p) else name p
+let fullname p = Format.sprintf "%s@%s" (name p) (version p)
+let infoname p = Format.sprintf "%s(%s)" (name p) (version p)
 let pp_prover fmt p = Format.fprintf fmt "%s@%s" (name p) (version p)
 
 let load (env : Wenv.env) (config : Whyconf.config_prover) =
@@ -108,42 +110,47 @@ let find_filter (env : Wenv.env) ~name ?(version="") () =
   let mpr = Whyconf.get_provers env.wconfig in
   Whyconf.Mprover.fold
     (fun key cfg acc ->
-       if String.lowercase_ascii key.prover_name = name &&
-          (version = "" || key.prover_version = version)
+       if key.prover_altern = "" &&
+          (version = "" || key.prover_version = version) &&
+          String.lowercase_ascii key.prover_name = name
        then cfg :: acc else acc
     ) mpr []
 
 let take_one = function [cfg] -> cfg | _ -> raise Not_found
-let take_best ~pattern ~name = function
+let take_best ~name = function
+  | [] ->
+    Format.eprintf "Warning: prover %s not found@." name ;
+    raise Not_found
   | [prv] -> prv
-  | [] -> Format.eprintf "Error: prover %s not found@." name ; exit 2
-  | others ->
-    let cfg = List.hd @@ List.sort compare_config others in
-    Format.eprintf
-      "Warning: prover %s not found, fallback to %s@%s@."
-      pattern (String.lowercase_ascii cfg.prover.prover_name)
-      cfg.prover.prover_version ; cfg
+  | others -> List.hd @@ List.sort compare_config others
+
 let take_default = function
   | [] -> []
   | [cfg] -> [cfg]
   | others -> [List.hd @@ List.sort compare_config others]
 
 let find env ~pattern =
-  load env @@
-  match String.split_on_char '@' pattern with
-  | [name] ->
-    begin
-      try find_shortcut env name with Not_found ->
-      take_best ~pattern ~name @@ find_filter env ~name ()
-    end
-  | [name;version] ->
-    begin
-      try take_one @@ find_filter env ~name ~version () with Not_found ->
-        take_best ~pattern ~name @@ find_filter env ~name ()
-    end
-  | _ ->
-    Format.eprintf "Invalid prover pattern '%s'@." pattern ;
-    exit 2
+  try
+    let prover =
+      load env @@
+      match String.split_on_char '@' pattern with
+      | [name] ->
+        begin
+          try find_shortcut env name with Not_found ->
+            take_best ~name @@ find_filter env ~name ()
+        end
+      | [name;version] ->
+        begin
+          try take_one @@ find_filter env ~name ~version () with Not_found ->
+            Format.eprintf
+              "Warning: prover %s@%s not found@." name version ;
+            raise Not_found
+        end
+      | _ ->
+        Format.eprintf "Invalid prover pattern '%s'@." pattern ;
+        exit 2
+    in Some prover
+  with Not_found -> None
 
 let find_default env name =
   List.map (load env) @@
@@ -158,7 +165,7 @@ let default env =
 
 let select env ~patterns =
   if patterns = [] then default env
-  else List.map (fun pattern -> find env ~pattern) patterns
+  else List.filter_map (fun pattern -> find env ~pattern) patterns
 
 let all (env : Wenv.env) =
   List.sort compare_prover @@
@@ -228,21 +235,21 @@ let to_json (r : result) : Json.t =
 (* -------------------------------------------------------------------------- *)
 
 let cachedir = ".why3find"
-let version = ".why3find/v1"
+let cachever = ".why3find/v1"
 
 let destroycache () =
   begin
     if Utils.tty then
-      Utils.log "Upgrading cache (%s)@." (Filename.basename version) ;
+      Utils.log "Upgrading cache (%s)@." (Filename.basename cachever) ;
     Utils.rmpath cachedir ;
   end
 
 let preparecache () =
   begin
     Utils.mkdirs cachedir ;
-    let out = open_out version in
+    let out = open_out cachever in
     output_string out "why3find cache " ;
-    output_string out (Filename.basename version) ;
+    output_string out (Filename.basename cachever) ;
     output_string out "\n" ;
     close_out out ;
   end
@@ -250,7 +257,7 @@ let preparecache () =
 let checkcache = lazy
   begin
     let cd = Sys.file_exists cachedir in
-    let cv = Sys.file_exists version in
+    let cv = Sys.file_exists cachever in
     Utils.flush () ;
     if cd && not cv then destroycache () ;
     if not cd || not cv then preparecache () ;

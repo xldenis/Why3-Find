@@ -326,6 +326,18 @@ let pp_list =
     ~pp_sep:(fun fmt () -> Format.fprintf fmt ",@ ")
     Format.pp_print_string
 
+let rec configuration configs provers =
+  match configs , provers with
+  | [] , ps -> List.map Runner.infoname ps
+  | cs , [] -> List.map (Printf.sprintf "(?%s)") cs
+  | c::cs , p::ps ->
+    let cn = Wenv.relax c in
+    let pn = Runner.name p in
+    if cn <> pn then Printf.sprintf "(?%s)" c :: configuration cs provers else
+      let q = Runner.fullname p in
+      if c = q then q :: configuration cs ps else
+        Runner.infoname p :: configuration cs ps
+
 let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
       let list = ref true in
@@ -377,15 +389,20 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
         end ;
       (* --- Provers ----- *)
       let pconfig = Wenv.provers () in
-      let list_provers = !list || !relax || !strict in
       let patterns = if !relax then List.map Wenv.relax pconfig else pconfig in
       let provers = Runner.select env ~patterns in
+      let pnames =
+        if !strict then List.map Runner.fullname provers else
+        if !relax then List.map Runner.infoname provers else
+          configuration patterns provers
+      in
+      let prvs =
+        if !strict then List.map Runner.fullname provers else patterns in
       if !calibrate then
         Calibration.calibrate_provers ~saved:!save env provers
       else
       if !velocity then
         Calibration.velocity_provers env provers ;
-      let provers = List.map (Runner.title ~strict:!strict) provers in
       if provers = [] then
         Format.eprintf "Warning: no provers, use -P or why3 config detect@." ;
       (* --- Transformations ----- *)
@@ -393,31 +410,36 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       (* --- Drivers ----- *)
       let drivers = Wenv.drivers () in
       (* --- Printing -------------- *)
-      if list_provers then
+      if !list || !relax || !strict then
         begin
-          let j = Runner.maxjobs env in
+          let jobs = Runner.maxjobs env in
+          let time = Wenv.time () in
           Format.printf "Configuration:@." ;
-          Format.printf " - jobs: %d@." j ;
-          Format.printf " - time: %a@." Utils.pp_time (Wenv.time ()) ;
-          Format.printf " - depth: %d@." (Wenv.depth ()) ;
+          Format.printf " - runner: %d jobs, %a@."
+            jobs Utils.pp_time time ;
+          if provers <> [] then
+            Format.printf " - @[<hov 2>provers: %a%t@]@."
+              pp_list pnames
+              (fun fmt ->
+                 if patterns = [] && not !strict then
+                   Format.fprintf fmt " (default)"
+              ) ;
         end ;
-      if list_provers && provers <> [] then
-        Format.printf " - @[<hov 2>provers: %a%t@]@." pp_list provers
-          (fun fmt -> if patterns = [] then Format.fprintf fmt " (default)") ;
       if !list && tactics <> [] then
-        Format.printf " - @[<hov 2>tactics: %a@]@." pp_list tactics ;
+        Format.printf " - @[<hov 2>tactics: %a@ (depth %d)@]@."
+          pp_list tactics (Wenv.depth ());
       if !list && drivers <> [] then
         Format.printf " - @[<hov 2>drivers: %a@]@." pp_list drivers ;
       (* --- Updating -------------- *)
-      if !save then
+      if !save || !strict || !relax then
         begin
           if Runner.is_modified () then
             Runner.save_config env ;
-          if Wenv.is_modified () then
+          if Wenv.is_modified () || !strict || !relax then
             begin
               Wenv.set_configs cfgs ;
               Wenv.set_packages pkgs ;
-              Wenv.set_provers provers ;
+              Wenv.set_provers prvs ;
               Wenv.set_tactics tactics ;
               Wenv.set_drivers drivers ;
               Wenv.save () ;

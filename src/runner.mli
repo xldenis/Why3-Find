@@ -35,10 +35,12 @@ type result =
 
 val id : prover -> string
 val name : prover -> string
-val title : ?strict:bool -> prover -> string
+val version : prover -> string
+val fullname : prover -> string
+val infoname : prover -> string
 
 val all : env -> prover list
-val find : env -> pattern:string -> prover
+val find : env -> pattern:string -> prover option
 val prover : env -> id:string -> prover
 val select : env -> patterns:string list -> prover list
 val default : env -> prover list
