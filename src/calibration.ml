@@ -380,7 +380,7 @@ let calibrate_provers ~saved env provers =
     Format.printf "Calibration:@." ;
     List.iter
       (fun (prv,res) ->
-         let name = title ~strict:true prv in
+         let name = fullname prv in
          match res with
          | None ->
            Format.printf " - %-16s no result@." name
@@ -413,7 +413,7 @@ let velocity_provers env provers =
     Format.printf "Velocity:@." ;
     List.iter
       (fun (prv,res) ->
-         let name = title ~strict:true prv in
+         let name = fullname prv in
          match res with
          | Some(n,t,1.0) ->
            Format.printf " - %-16s n=%d %a (master)@." name n Utils.pp_time t
