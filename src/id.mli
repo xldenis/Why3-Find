@@ -52,11 +52,12 @@ val resolve : lib:string list -> t -> id
 val of_infix : string -> string
 val to_infix : string -> string
 
+val set_package_url : string -> unit
+
 val pp_local : Format.formatter -> id -> unit
 val pp_title : Format.formatter -> id -> unit
 val pp_aname : Format.formatter -> id -> unit
 val pp_ahref : scope:string option -> Format.formatter -> id -> unit
-
 val pp_proof_aname : Format.formatter -> id -> unit
 val pp_proof_ahref : Format.formatter -> id -> unit
 

@@ -531,10 +531,12 @@ let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
       Arg.parse_argv argv
         begin
           Wenv.options ~packages:true ~drivers:true () @ [
-            "-t", Arg.Set_string title, "document title (default none)" ;
-            "-u", Arg.Set url, "output generated URI" ;
+            "-t", Arg.Set_string title, "TITLE document title (default none)" ;
             "-o", Arg.Set_string out,
-            "destination directory (default \"html\")" ;
+            "DIR destination directory (default \"html\")" ;
+            "-u", Arg.Set url, "output generated URI" ;
+            "--url", Arg.String Id.set_package_url ,
+            "URL prefix URL for external packages."
           ]
         end
         (fun f -> files := f :: !files)

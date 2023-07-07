@@ -176,6 +176,9 @@ let pp_htmlfile fmt r =
 
 let pp_aname fmt r = pp_anchor fmt r.id_qid
 
+let package_url = ref None
+let set_package_url prefix = package_url := Some prefix
+
 let pp_ahref ~scope fmt r =
   match r.id_pkg with
   | `Local ->
@@ -186,7 +189,11 @@ let pp_ahref ~scope fmt r =
     if not local then pp_htmlfile fmt r ;
     pp_selector fmt r.id_qid
   | `Package m ->
-    Format.fprintf fmt "file://%s/html/" m.path ;
+    begin
+      match !package_url with
+      | None -> Format.fprintf fmt "file://%s/html/" m.path
+      | Some prefix -> Format.fprintf fmt "%s/%s/" prefix m.name
+    end ;
     pp_htmlfile fmt r ;
     pp_selector fmt r.id_qid
   | `Stdlib ->

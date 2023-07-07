@@ -286,9 +286,10 @@
     --driver DRV add extraction driver
     -p  same as --package
     -D  same as --driver
-    -t document title (default none)
+    -t TITLE document title (default none)
+    -o DIR destination directory (default "html")
     -u output generated URI
-    -o destination directory (default "html")
+    --url URL prefix URL for external packages.
     -help  Display this list of options
     --help  Display this list of options
   
