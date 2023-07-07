@@ -29,6 +29,7 @@ val init : unit -> env
 val register : env -> Docref.source -> unit
 
 type soundness =
+  | Unsound
   | Sound of Docref.instance list
   | Unknown of Docref.instance list
 
@@ -37,6 +38,7 @@ val unknown : soundness
 
 val is_clone : soundness -> bool
 val is_sound : soundness -> bool
+val is_unsound : soundness -> bool
 val compute : env -> Docref.theory -> soundness
 
 (* -------------------------------------------------------------------------- *)

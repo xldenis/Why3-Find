@@ -37,7 +37,7 @@
   <h1>Proofs</h1>
   <pre class="src"><span class="keyword">module</span> <a id="A" href="drivers.A.html">drivers.A</a><span title="3 parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
   <pre class="src">
-    <span class="keyword">axiom</span> <a id="A.increasing" href="drivers.A.html#increasing">increasing</a>
+    <span class="keyword">axiom</span> <a id="A.increasing" href="drivers.A.html#increasing">increasing</a><span title="uncloned hypothesis" class="icon small warning icofont-star"></span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
   </body>

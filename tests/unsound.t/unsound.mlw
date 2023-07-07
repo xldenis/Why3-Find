@@ -1,0 +1,12 @@
+module Dummy
+
+  let admit1 () : unit
+    ensures { false } = assume { false }
+
+  let admit2 () : unit
+    ensures { false } = val foo () : unit ensures { false } in foo ()
+
+  let admit3 () : unit
+    ensures { true } = let foo = any unit ensures { true } in ()
+
+end

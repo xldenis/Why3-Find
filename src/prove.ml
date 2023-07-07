@@ -181,6 +181,7 @@ let report_parameter ~lib ~signature (prm : Axioms.parameter) =
           | Param _ -> "param", parameters
           | Value _ -> "value", procedures
           | Axiom _ -> "axiom", hypotheses
+          | Unsafe _ -> "unsafe", procedures
         in
         let action, count =
           if builtin || extern then externalized else

@@ -217,6 +217,7 @@ let icon_failed = "icon failed icofont-warning"
 let icon_parameter = "icon small remark icofont-star"
 let icon_sound_param = "icon small valid icofont-star"
 let icon_unsound_param = "icon small warning icofont-star"
+let icon_unsafe_param = "icon small failed icofont-star"
 
 let pp_mark ?href ~title ~cla fmt =
   match href with
@@ -311,13 +312,17 @@ let process_axioms env (id : Id.id) =
       match builtin, extern with
       | [],None ->
         let icon_sound () =
-          if Soundness.is_sound @@ Soundness.compute env.senv theory
-          then icon_sound_param else icon_unsound_param in
+          match Soundness.compute env.senv theory with
+          | Unsound -> icon_unsafe_param
+          | Sound _ -> icon_sound_param
+          | Unknown _ -> icon_unsound_param
+        in
         let cla,title =
           match param with
           | Type _ | Logic _ | Param _ -> icon_parameter, "Parameter"
           | Value _ -> icon_sound (), "Value Parameter"
           | Axiom _ -> icon_sound (), "Hypothesis"
+          | Unsafe _ -> icon_unsafe_param, "Unsound Definition"
         in
         Pdoc.ppt env.out (pp_mark ~cla ~title)
       | [], Some ext ->
@@ -331,22 +336,35 @@ let process_axioms env (id : Id.id) =
             "Built-in symbol (%s), extracted to OCaml (%s)" (provers ops) ext
         in Pdoc.ppt env.out (pp_mark ~cla:icon_unsound_param ~title)
 
-let process_hypothesis env Axioms.{ param } =
+let process_hypothesis env (s : Soundness.soundness) (p : Axioms.parameter) =
   try
-    let id = Id.resolve ~lib:env.src.lib @@ Axioms.ident param in
-    let key = match param with
+    let id = Id.resolve ~lib:env.src.lib @@ Axioms.ident p.param in
+    let key = match p.param with
       | Type _ -> "type"
       | Logic _ -> "logic"
       | Param _ -> "param"
       | Value _ -> "value"
       | Axiom _ -> "axiom"
+      | Unsafe _ -> "unsound"
+    in
+    let qualif fmt =
+      if Axioms.is_unsafe p then
+        pp_mark ~cla:icon_unsafe_param ~title:"unsafe definition" fmt
+      else
+      if Axioms.is_external p then
+        pp_mark ~cla:icon_unsound_param ~title:"external" fmt
+      else if Axioms.is_hypothesis p then
+        if Soundness.is_sound s then
+          pp_mark ~cla:icon_sound_param ~title:"witnessed hypothesis" fmt
+        else
+          pp_mark ~cla:icon_unsound_param ~title:"uncloned hypothesis" fmt
     in
     Pdoc.printf env.crc
-      "@\n  %a <a id=\"%a\" href=\"%a\">%a</a>"
+      "@\n  %a <a id=\"%a\" href=\"%a\">%a</a>%t"
       Pdoc.pp_keyword key
       Id.pp_proof_aname id
       (Id.pp_ahref ~scope:None) id
-      Id.pp_local id
+      Id.pp_local id qualif
   with Not_found -> ()
 
 let process_instance env ~ok (s : Docref.instance) =
@@ -362,16 +380,18 @@ let process_module_axioms env =
   | None -> ()
   | Some thy ->
     let pre = lazy (Pdoc.printf env.crc "<pre class=\"src\">") in
+    let sound = Soundness.compute env.senv thy in
     Axioms.iter env.henv ~self:true
       (fun (p : Axioms.parameter) ->
-         if Axioms.is_hypothesis p && not (Axioms.is_external p) then
+         if Axioms.is_hypothesis p &&
+            not @@ Id.standard @@ Axioms.ident p.param then
            begin
              Lazy.force pre ;
-             process_hypothesis env p ;
+             process_hypothesis env sound p ;
            end
       ) [thy.theory] ;
-    begin match Soundness.compute env.senv thy with
-      | Sound [] | Unknown [] -> ()
+    begin match sound with
+      | Unsound | Sound [] | Unknown [] -> ()
       | Sound ns ->
         Lazy.force pre ; List.iter (process_instance env ~ok:true) ns
       | Unknown ns ->
@@ -384,11 +404,12 @@ type axioms = {
   prm : int ;
   hyp :  int ;
   pvs : int ;
+  unsafe : int ;
   sound : Soundness.soundness ;
 }
 
 let free = {
-  ext = 0 ; prm = 0 ; hyp = 0 ; pvs = 0 ;
+  ext = 0 ; prm = 0 ; hyp = 0 ; pvs = 0 ; unsafe = 0 ;
   sound = Soundness.unknown ;
 }
 
@@ -401,16 +422,18 @@ let add_axiom hs (p : Axioms.parameter) =
     match p.param with
     | Axiom _ -> { hs with hyp = succ hs.hyp }
     | Value _ -> { hs with pvs = succ hs.pvs }
+    | Unsafe _ -> { hs with unsafe = succ hs.unsafe }
     | Type _ | Logic _ | Param _ -> { hs with prm = succ hs.prm }
 
-let pp_axioms_link ?href fmt { ext ; prm ; hyp ; pvs ; sound } =
-  if ext+prm+hyp+pvs > 0 then
+let pp_axioms_link ?href fmt { ext ; prm ; hyp ; pvs ; unsafe ; sound } =
+  if ext+prm+hyp+pvs+unsafe > 0 then
     let cla =
       if Soundness.is_clone sound then icon_parameter else
-      if hyp + pvs > 0 then
-        if Soundness.is_sound sound
-        then icon_sound_param
-        else icon_unsound_param
+      if hyp + pvs + unsafe > 0 then
+        match sound with
+        | Unsound -> icon_unsafe_param
+        | Sound _ -> icon_sound_param
+        | Unknown _ -> icon_unsound_param
       else if prm > 0 then icon_parameter else icon_unsound_param
     in
     let title =
@@ -422,6 +445,9 @@ let pp_axioms_link ?href fmt { ext ; prm ; hyp ; pvs ; sound } =
         plural hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
         plural ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
         match sound with
+        | Soundness.Unsound ->
+          plural unsafe "1 unsound definition" @@
+          Printf.sprintf "%d unsafe definitions"
         | Soundness.Unknown [] -> ["0 instance found"]
         | Soundness.Unknown ns ->
           plural (List.length ns) "1 uncomplete instance" @@

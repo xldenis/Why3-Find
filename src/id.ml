@@ -82,6 +82,12 @@ let resolve ~lib id =
         with _ -> `Stdlib
     in { self = id ; id_pkg ; id_lib = lp ; id_mod ; id_qid }
 
+let standard id =
+  let lp,_,_ = path id in
+  lp <> [] &&
+  not @@ Filename.is_relative (file id) &&
+  try let _ = Meta.find (List.hd lp) in false with _ -> true
+
 (* List Printing *)
 
 let pp_prefix fmt q =
