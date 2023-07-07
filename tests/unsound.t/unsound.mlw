@@ -1,4 +1,5 @@
 module Dummy
+  use int.Int
 
   let admit1 () : unit
     ensures { false } = assume { false }
@@ -6,7 +7,10 @@ module Dummy
   let admit2 () : unit
     ensures { false } = val foo () : unit ensures { false } in foo ()
 
-  let admit3 () : unit
+  let ok_unit () : unit
     ensures { true } = let foo = any unit ensures { true } in ()
+
+  let ok_some () : int
+    ensures { result >= 0 } = let foo = any int ensures { result >= 0 } in foo
 
 end
