@@ -35,6 +35,7 @@ module Sinst = Set.Make
     end)
 
 type soundness =
+  | Unsound
   | Sound of Docref.instance list
   | Unknown of Docref.instance list
 
@@ -72,23 +73,26 @@ let clone = Sound []
 let unknown = Unknown []
 
 let is_clone = function Sound [] -> true | _ -> false
-let is_sound = function Sound _ -> true | Unknown _ -> false
+let is_sound = function Sound _ -> true | Unsound | Unknown _ -> false
+let is_unsound = function Unsound -> true | Sound _ | Unknown _ -> false
 
 let rec compute (env : env) (th : Docref.theory) : soundness =
   let key = th.theory.th_name in
   try Hid.find env.soundness key with Not_found ->
     Hid.add env.soundness key (Unknown []) ;
     let s =
-      let ok = List.for_all
-          (fun p -> not (Axioms.is_hypothesis p) || Axioms.is_external p)
-          (Axioms.parameters th.signature)
-      in
-      if ok then Sound [] else
-        try
-          let instances = Sinst.elements !(Hid.find env.instances key) in
-          let grounds = List.filter (ground_instance env) instances in
-          if grounds <> [] then Sound grounds else Unknown instances
-        with Not_found -> Unknown []
+      let ps = Axioms.parameters th.signature in
+      if List.exists (fun p -> Axioms.is_unsafe p) ps then Unsound else
+        let ok = List.for_all
+            (fun p -> not (Axioms.is_hypothesis p) || Axioms.is_external p)
+            ps
+        in
+        if ok then Sound [] else
+          try
+            let instances = Sinst.elements !(Hid.find env.instances key) in
+            let grounds = List.filter (ground_instance env) instances in
+            if grounds <> [] then Sound grounds else Unknown instances
+          with Not_found -> Unknown []
     in Hid.replace env.soundness key s ; s
 
 and ground_instance env inst =

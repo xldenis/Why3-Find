@@ -135,15 +135,17 @@ let hypotheses   = "Hypothesis",ref 0
 let parameters   = "Parameter ",ref 0
 let procedures   = "Procedure ",ref 0
 let externalized = "External  ",ref 0
+let unsoundness  = "Unsound   ",ref 0
 
 let print_axioms_stats () =
+  let u = !(snd unsoundness) in
   let p = !(snd parameters) in
   let h = !(snd hypotheses) in
   let r = !(snd procedures) in
   let e = !(snd externalized) in
   let d = !(snd dependencies) in
   let s = !(snd standardized) in
-  if p+h+r+e+d+s = 0 then
+  if u+p+h+r+e+d+s = 0 then
     Format.printf "Hypotheses: none@."
   else
     begin
@@ -158,10 +160,14 @@ let print_axioms_stats () =
         Format.printf " - externalized: @{<orange>%d@}@\n" e ;
       if s > 0 then
         Format.printf " - standardized: @{<orange>%d@}@\n" s ;
+      if u > 0 then
+        Format.printf " - unsound%a: @{<red>%d@}@\n" Utils.pp_s u u ;
       if d > 0 then
         Format.printf " - dependenc%a: @{<red>%d@}@\n" Utils.pp_yies d d ;
       Format.print_flush ()
     end
+
+let pp_print_red fmt = Format.fprintf fmt "@{<red>%s@}"
 
 let report_parameter ~lib ~signature (prm : Axioms.parameter) =
   try
@@ -174,20 +180,21 @@ let report_parameter ~lib ~signature (prm : Axioms.parameter) =
        ((!builtins && builtin) || (!externals || not extern))
     then
       begin
-        let kind, param =
+        let pp, kind, param =
           match prm.param with
-          | Type _ -> "type ", parameters
-          | Logic _ -> "logic", parameters
-          | Param _ -> "param", parameters
-          | Value _ -> "value", procedures
-          | Axiom _ -> "axiom", hypotheses
+          | Type _ -> Format.pp_print_string,"type ", parameters
+          | Logic _ -> Format.pp_print_string,"logic", parameters
+          | Param _ -> Format.pp_print_string,"param", parameters
+          | Value _ -> Format.pp_print_string,"value", procedures
+          | Axiom _ -> Format.pp_print_string,"axiom", hypotheses
+          | Unsafe _ -> pp_print_red,"value", unsoundness
         in
         let action, count =
           if builtin || extern then externalized else
           if signature then param else
           if std then standardized else dependencies
         in incr count ;
-        Format.printf "  %s %s %a" action kind Id.pp_title ident ;
+        Format.printf "  %a %s %a" pp action kind Id.pp_title ident ;
         let categories = List.filter (fun c -> c <> "") [
             if std then "stdlib" else "" ;
             if builtin then "builtin" else "" ;
