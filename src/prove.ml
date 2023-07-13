@@ -327,6 +327,14 @@ let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
 (* --- Prove Command                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
+type outcome = {
+  provers : Runner.prover list ;
+  tactics : string list ;
+  time : int ;
+  mem : int ;
+  unfixed : string list ;
+}
+
 let prove_files ~mode ~session ~log ~axioms ~files =
   begin
     let env = Wenv.init () in
@@ -353,7 +361,12 @@ let prove_files ~mode ~session ~log ~axioms ~files =
         Crc.print_stats () ;
         if axioms then print_axioms_stats () ;
       end ;
-    List.rev !unsuccess ;
+    {
+      provers ; tactics ;
+      time = max 1 (int_of_float (0.5 +. time)) ;
+      mem = Runner.memlimit env ;
+      unfixed = List.rev !unsuccess ;
+    }
   end
 
 (* -------------------------------------------------------------------------- *)

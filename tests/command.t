@@ -117,8 +117,6 @@
   
     Run why3 ide on the given file.
   
-    Also loads the « hammer » strategy.
-  
   OPTIONS:
   
     -v|--verbose print why3 command
