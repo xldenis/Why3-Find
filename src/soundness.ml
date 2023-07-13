@@ -84,7 +84,7 @@ let rec compute (env : env) (th : Docref.theory) : soundness =
       let ps = Axioms.parameters th.signature in
       if List.exists (fun p -> Axioms.is_unsafe p) ps then Unsound else
         let ok = List.for_all
-            (fun p -> not (Axioms.is_hypothesis p) || Axioms.is_external p)
+            (fun p -> not (Axioms.is_hypothesis p))
             ps
         in
         if ok then Sound [] else
