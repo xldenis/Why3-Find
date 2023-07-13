@@ -33,6 +33,7 @@ val absolute : string -> string
 val load : file:string -> Buffer.t -> unit
 val readfile : file:string -> string
 val writefile : file:string -> string -> unit
+val dump : file:string -> (Format.formatter -> unit) -> unit
 
 val readdir : (string -> unit) -> string -> unit
 val iterpath :

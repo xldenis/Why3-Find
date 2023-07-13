@@ -42,4 +42,11 @@ type henv = {
 
 val run : henv -> unit
 
+val config :
+  tactics:string list ->
+  provers:Runner.prover list ->
+  time:int ->
+  mem:int ->
+  string (* config file *)
+
 (* -------------------------------------------------------------------------- *)

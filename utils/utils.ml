@@ -168,6 +168,12 @@ let readfile ~file =
   let buffer = Buffer.create 2048 in
   load ~file buffer ; Buffer.contents buffer
 
+let dump ~file pp =
+  let out = open_out file in
+  let fmt = Format.formatter_of_out_channel out in
+  pp fmt ; Format.pp_print_flush fmt () ;
+  close_out out
+
 (* -------------------------------------------------------------------------- *)
 (* --- Time Utilities                                                     --- *)
 (* -------------------------------------------------------------------------- *)

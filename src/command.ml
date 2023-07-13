@@ -502,20 +502,20 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
          OPTIONS:\n" ;
       let session = !session || !ide in
       let files = Wenv.argfiles ~exts:[".mlw"] @@ List.rev !files in
-      let tofix = Prove.prove_files
-          ~mode:!mode ~session ~log:!log ~axioms:!axioms ~files
-      in
-      match tofix with
-      | [] -> ()
-      | f::_ ->
-        if not !ide then
-          exit 1
-        else
-          begin
-            let pkgs = Wenv.packages () in
-            Format.printf "proof failed: running why3 ide %s@." f ;
-            exec ~prefix:["ide"] ~pkgs [| f |]
-          end
+      let result = Prove.prove_files
+          ~mode:!mode ~session ~log:!log ~axioms:!axioms ~files in
+      let n = List.length result.unfixed in
+      if n > 0 then
+        begin
+          Format.printf "Error: %d unproved file(s)@." n ;
+          if not !ide then exit 1 ;
+          let file = List.hd result.unfixed in
+          let pkgs = Wenv.packages () in
+          let Prove.{ provers ; time ; mem ; tactics } = result in
+          let cfg = Hammer.config ~tactics ~provers ~time ~mem in
+          Format.printf "Fixing %s@." file ;
+          exec ~prefix:["ide"] ~pkgs [| "--extra-config" ; cfg ; file |]
+        end
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -909,7 +909,6 @@ let () = register ~name:"ide" ~args:"[-p PKG] FILE"
          \n  why3find ide [OPTIONS] FILE\n\n\
          DESCRIPTION:\n\
          \n  Run why3 ide on the given file.\n\
-         \n  Also loads the « hammer » strategy.\n\
          \n\
          OPTIONS:\n\
          \n  -v|--verbose print why3 command\

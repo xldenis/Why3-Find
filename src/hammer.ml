@@ -255,3 +255,70 @@ let run henv =
     Option.iter Client.terminate henv.client
 
 (* -------------------------------------------------------------------------- *)
+(* --- Why3 IDE Config                                                    --- *)
+(* -------------------------------------------------------------------------- *)
+
+let session = ".why3find"
+let hammer = ".why3find/hammer.cfg"
+
+
+(* -------------------------------------------------------------------------- *)
+(* --- Hammer Config                                                      --- *)
+(* -------------------------------------------------------------------------- *)
+
+let config ~tactics ~provers ~time ~mem =
+  let c_skip fmt = ignore fmt in
+  let c_label l fmt = Format.fprintf fmt "%s:@\n" l in
+  let c_goto l fmt = Format.fprintf fmt "g %s@\n" l in
+  let c_prover ~time fmt =
+    List.iter
+      (fun p ->
+         Format.fprintf fmt "c %s %d %d@\n"
+           (Runner.id p) time mem
+      ) provers in
+  let c_tactic ~goto fmt =
+    List.iter
+      (fun t ->
+         Format.fprintf fmt "t %s %s@\n" t goto
+      ) tactics in
+  let c_list pps fmt = List.iter (fun pp -> pp fmt) pps in
+  let c_strategy fmt ~name ~descr ~shortcut pps =
+    Format.fprintf fmt
+      "[strategy]@\n\
+       code = \"%t\"@\n\
+       name = \"%s\"@\n\
+       desc = \"%s\"@\n\
+       shortcut = \"%c\"@\n@."
+      (c_list pps) name descr shortcut
+  in
+  begin
+    Utils.mkdirs session ;
+    Utils.dump ~file:hammer
+      begin fun fmt ->
+        c_strategy fmt ~name:"hammer" ~shortcut:'H'
+          ~descr:"Hammer (why3find provers & tactics)" [
+          c_label "root" ;
+          c_prover ~time ;
+          c_tactic ~goto:"root" ;
+          if time > 1 then c_prover ~time:(time * 2) else c_skip ;
+        ] ;
+        c_strategy fmt ~name:"provers" ~shortcut:'P'
+          ~descr:"Hammer Prove (why3find provers)" [
+          c_prover ~time ;
+        ] ;
+        c_strategy fmt ~name:"tactics" ~shortcut:'U'
+          ~descr:"Hammer Unfold (why3find tactics)" [
+          c_label "tactic" ;
+          c_tactic ~goto:"prover" ;
+          c_goto "final" ;
+          c_label "prover" ;
+          c_prover ~time ;
+          c_goto "tactic" ;
+          c_label "final" ;
+          if time > 1 then c_prover ~time:(2 * time) else c_skip ;
+        ] ;
+      end ;
+    hammer
+  end
+
+(* -------------------------------------------------------------------------- *)

@@ -96,6 +96,7 @@ val maxjobs : Wenv.env -> int
 val pp_goals : Format.formatter -> unit
 
 val is_modified : unit -> bool
+val memlimit : env -> int
 val save_config : env -> unit
 val print_stats : unit -> unit
 

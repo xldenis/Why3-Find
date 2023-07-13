@@ -30,10 +30,18 @@ val stdlib : bool ref
 val externals : bool ref
 val builtins : bool ref
 
+type outcome = {
+  provers : Runner.prover list ;
+  tactics : string list ;
+  time : int ;
+  mem : int ;
+  unfixed : string list ;
+}
+
 val prove_files :
   mode:mode ->
   session:bool ->
   log:log ->
   axioms:bool ->
   files:string list ->
-  string list
+  outcome

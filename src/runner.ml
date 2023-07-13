@@ -393,10 +393,12 @@ let update_client env =
       Why3.Prove_client.set_max_running_provers njobs ;
     end
 
+let memlimit env = Whyconf.memlimit (Whyconf.get_main env.Wenv.wconfig)
+
 let limit env t =
   Call_provers.{
     limit_time = t +. 0.5 ;
-    limit_mem = Whyconf.memlimit (Whyconf.get_main env.Wenv.wconfig) ;
+    limit_mem = memlimit env ;
     limit_steps = (-1) ;
   }
 

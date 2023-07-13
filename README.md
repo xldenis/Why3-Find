@@ -184,6 +184,14 @@ Proof search is pruned after a maximal number of nested levels. The default
 depth is 6 and it can be modified with `-d DEPTH` or configured using `why3find
 config -d DEPTH`.
 
+When using `why3find prove -i` mode, the Why3 IDE is loaded with custom
+proof strategies that mimics the why3find proof strategy:
+ - strategy `hammer` (keyboard shortcut `H`) repeatedly applies the provers,
+   then try the tactics, then finally retries the provers with a longer time.
+ - strategy `provers` (keyboard shortcut `P`) only applies the provers;
+ - strategy `unfold` (keyboard shortcut `U`) applies the tactics,
+   then go into strategy `hammer`.
+
 *Prover Cache* is stored in hidden file `.why3find` at the root of the package
 directory.  You can bypass access to the cache with option `--no-cache`,
 however, it will still be updated for further use.
@@ -300,10 +308,10 @@ some information details, typically proof details. Examples:
 Section delimiters can have various format:
 
     (*proof*) … (*qed*)   # folded by default
-    (*[Title]*)           # open a section with « Title » (folded)
-    (*[Title]-*)          # initially folded section
-    (*[Title]+*)          # initially unfolded section
-    (*/[End]*)            # close the section with « End » closing title
+    (*[Title]*)           # open a section with « Title » (initially visible)
+    (*[Title]-*)          # open an initially folded section (not visible)
+    (*[Title]+*)          # open an initially unfolded section (visible)
+    (*/[End]*)            # close current section with « End » closing title
 
 Actually, `(*proof*)…(*qed*)` is a shortcut for `(*[Proof]-*)…(*/[Qed]*)`.
 Nested sections are allowed. Notice also that sections are authorized to overlap
