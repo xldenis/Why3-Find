@@ -351,9 +351,7 @@ let process_hypothesis env (s : Soundness.soundness) (p : Axioms.parameter) =
       if Axioms.is_unsafe p then
         pp_mark ~cla:icon_unsafe_param ~title:"unsafe definition" fmt
       else
-      if Axioms.is_external p then
-        pp_mark ~cla:icon_unsound_param ~title:"external" fmt
-      else if Axioms.is_hypothesis p then
+      if Axioms.is_hypothesis p then
         if Soundness.is_sound s then
           pp_mark ~cla:icon_sound_param ~title:"witnessed hypothesis" fmt
         else
@@ -400,7 +398,6 @@ let process_module_axioms env =
     if Lazy.is_val pre then Pdoc.printf env.crc "@\n</pre>@."
 
 type axioms = {
-  ext : int ;
   prm : int ;
   hyp :  int ;
   pvs : int ;
@@ -409,24 +406,21 @@ type axioms = {
 }
 
 let free = {
-  ext = 0 ; prm = 0 ; hyp = 0 ; pvs = 0 ; unsafe = 0 ;
+  prm = 0 ; hyp = 0 ; pvs = 0 ; unsafe = 0 ;
   sound = Soundness.unknown ;
 }
 
 let free_clone = { free with sound = Soundness.clone }
 
 let add_axiom hs (p : Axioms.parameter) =
-  if Axioms.is_external p then
-    { hs with ext = succ hs.ext }
-  else
-    match p.param with
-    | Axiom _ -> { hs with hyp = succ hs.hyp }
-    | Value _ -> { hs with pvs = succ hs.pvs }
-    | Unsafe _ -> { hs with unsafe = succ hs.unsafe }
-    | Type _ | Logic _ | Param _ -> { hs with prm = succ hs.prm }
+  match p.param with
+  | Axiom _ -> { hs with hyp = succ hs.hyp }
+  | Value _ -> { hs with pvs = succ hs.pvs }
+  | Unsafe _ -> { hs with unsafe = succ hs.unsafe }
+  | Type _ | Logic _ | Param _ -> { hs with prm = succ hs.prm }
 
-let pp_axioms_link ?href fmt { ext ; prm ; hyp ; pvs ; unsafe ; sound } =
-  if ext+prm+hyp+pvs+unsafe > 0 then
+let pp_axioms_link ?href fmt { prm ; hyp ; pvs ; unsafe ; sound } =
+  if prm+hyp+pvs+unsafe > 0 then
     let cla =
       if Soundness.is_clone sound then icon_parameter else
       if hyp + pvs + unsafe > 0 then
@@ -443,7 +437,6 @@ let pp_axioms_link ?href fmt { ext ; prm ; hyp ; pvs ; unsafe ; sound } =
         plural pvs "1 value" @@ Printf.sprintf "%d values" ;
         plural prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
         plural hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
-        plural ext "1 external symbol" @@ Printf.sprintf "%d external symbols" ;
         match sound with
         | Soundness.Unsound ->
           plural unsafe "1 unsound definition" @@
