@@ -3,9 +3,11 @@
   dune_3,
   dune-site,
   alt-ergo,
+  bisect_ppx,
   menhir,
   menhirLib,
   mlmpfr,
+  ppxlib,
   why3,
   zmq,
   zeromq,
@@ -23,21 +25,36 @@ buildDunePackage {
     mkdir home
     export HOME=$(pwd)/home
     why3 config detect
+    export DUNE_INSTRUMENT_WITH=meta_bisect_ppx
   '';
-
-  doCheck = true;
 
   buildInputs = [
     dune_3
     dune-site
     alt-ergo
+    bisect_ppx
     mlmpfr
     menhir
     menhirLib
+    ppxlib
     why3
     zeromq
     zmq
     yojson
     terminal_size
   ];
+
+  doCheck = true;
+
+  checkPhase = ''
+    BISECT_FILE=$(pwd)/bisect \
+    dune runtest -p why3find -j1 --force --instrument-with bisect_ppx
+    bisect-ppx-report cobertura report.xml
+    bisect-ppx-report summary | sed -e 's/.*(\(1\?[0-9]\{2\}\.[0-9]\+%\))/Coverage: \1/' > coverage.txt
+  '' ;
+
+  postInstall = ''
+    cp report.xml $out
+    cp coverage.txt $out
+  '';
 }
