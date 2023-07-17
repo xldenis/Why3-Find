@@ -93,9 +93,8 @@ let exec
     ?(pkgs=[])
     ?(skip=0)
     argv =
-  let open Bag in
-  let args = ref empty in
-  let pkgs = ref (Bag.of_list pkgs) in
+  let args = ref [] in
+  let pkgs = ref pkgs in
   let drivers = ref drivers in
   let configs = ref configs in
   let p = ref skip in
@@ -105,47 +104,46 @@ let exec
       | "-p" | "--package" ->
         incr p ;
         if !p < Array.length argv then
-          pkgs += argv.(!p)
+          pkgs := argv.(!p) :: !pkgs
         else
           failwith "missing PKG name"
       | "--drivers" when auto && !drivers = None -> drivers := Some []
       | "--configs" when auto && !configs = None -> configs := Some []
       | "-v" | "--verbose" -> verbose := true
-      | arg ->
-        args += arg
+      | arg -> args := arg :: !args
     end ; incr p
   done ;
-  let pkgs = Meta.find_all (Bag.to_list !pkgs) in
+  let pkgs = Meta.find_all (List.rev !pkgs) in
   let cfg =
     match !configs with
-    | None -> Bag.empty
+    | None -> []
     | Some cs ->
-      Bag.map (Printf.sprintf "--extra-config=%s") cs ++
-      Bag.merge
+      List.map (Printf.sprintf "--extra-config=%s") cs @
+      List.concat @@ List.map
         (fun (pkg : Meta.pkg) ->
-           Bag.map
+           List.map
              (Printf.sprintf "--extra-config=%s/%s" pkg.path)
              pkg.configs
         ) pkgs in
   let drv =
     match !drivers with
-    | None -> Bag.empty
+    | None -> []
     | Some ds ->
-      Bag.map (Printf.sprintf "--driver=%s") ds ++
-      Bag.merge
+      List.map (Printf.sprintf "--driver=%s") ds @
+      List.concat @@ List.map
         (fun (pkg : Meta.pkg) ->
-           Bag.map
+           List.map
              (Printf.sprintf "--driver=%s/%s" pkg.path)
              pkg.drivers
         ) pkgs in
   let load =
-    Bag.map
+    List.map
       (fun (pkg : Meta.pkg) -> Printf.sprintf "--library=%s" pkg.path)
       pkgs in
   let argv =
-    to_array @@
-    Bag.of_list (cmd::prefix) ++ cfg +> "-L" +> "." ++ load ++ drv ++ !args
-  in
+    Array.of_list @@ List.concat [
+      cmd::prefix ; cfg ; [ "-L" ; "." ] ; load ; drv ; !args
+    ] in
   if !verbose then
     begin
       Format.printf "%s" cmd ;
