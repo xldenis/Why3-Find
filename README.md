@@ -1,3 +1,5 @@
+![](https://git.frama-c.com/dev/why3find/badges/master/pipeline.svg?key_text=Tests) ![](https://git.frama-c.com/dev/why3find/badges/master/coverage.svg?key_text=Coverage)
+
 # Why3 Library Manager
 
 The `why3find` utility is dedicated to the management of Why3 packages.  In

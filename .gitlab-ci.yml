@@ -1,6 +1,13 @@
 build:
   script:
     - nix-build nix/pkgs.nix -A why3find
+    - cat result/coverage.txt
+  coverage: '/Coverage: \d+\.\d+\%/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: result/report.xml
 
 default:
   tags:
