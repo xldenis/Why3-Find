@@ -33,12 +33,15 @@ type crc =
       proved : int ;
     }
 
-let stuck = function
+let stuck = Stuck
+let prover p f = Prover(p,f)
+
+let get_stuck = function
   | Stuck -> 1
   | Prover _ -> 0
   | Tactic { stuck } -> stuck
 
-let proved = function
+let get_proved = function
   | Stuck -> 0
   | Prover _ -> 1
   | Tactic { proved } -> proved
@@ -47,19 +50,21 @@ let size = function
   | Stuck | Prover _ -> 1
   | Tactic { stuck ; proved } -> stuck + proved
 
-let complete = function
+let is_stuck = function Stuck -> true | Prover _ | Tactic _ -> false
+
+let is_complete = function
   | Stuck -> false
   | Prover _ -> true
   | Tactic { stuck } -> stuck = 0
 
-let unknown = function
+let is_unknown = function
   | Stuck -> true
   | Prover _ -> false
   | Tactic { stuck ; proved } -> stuck > 0 && proved = 0
 
-let apply id children =
-  let stuck = List.fold_left (fun n c -> n + stuck c) 0 children in
-  let proved = List.fold_left (fun n c -> n + proved c) 0 children in
+let tactic id children =
+  let stuck = List.fold_left (fun n c -> n + get_stuck c) 0 children in
+  let proved = List.fold_left (fun n c -> n + get_proved c) 0 children in
   if stuck > 0 && proved = 0 then Stuck else
     Tactic { id ; children ; stuck ; proved }
 
@@ -70,7 +75,7 @@ let nverdict ~stuck:s ~proved:p =
   if p = 0 then `Failed s else
     `Partial(p,s+p)
 
-let verdict crc = nverdict ~stuck:(stuck crc) ~proved:(proved crc)
+let verdict crc = nverdict ~stuck:(get_stuck crc) ~proved:(get_proved crc)
 
 let pp_result fmt ~stuck:s ~proved:p =
   if s = 0 then
@@ -82,8 +87,8 @@ let pp_result fmt ~stuck:s ~proved:p =
   else Format.fprintf fmt "%t (%d/%d)" Utils.pp_ko p (s+p)
 
 let pretty fmt crc =
-  let s = stuck crc in
-  let p = proved crc in
+  let s = get_stuck crc in
+  let p = get_proved crc in
   pp_result fmt ~stuck:s ~proved:p
 
 
@@ -111,12 +116,12 @@ let rec of_json (js : Json.t) : crc =
     | `Assoc fds when List.mem_assoc "tactic" fds ->
       let f = List.assoc "tactic" fds |> Json.jstring in
       let xs = List.assoc "children" fds |> Json.jlist in
-      apply f (List.map of_json xs)
+      tactic f (List.map of_json xs)
     | `Assoc fds when List.mem_assoc "transf" fds ->
       (* Deprecated *)
       let f = List.assoc "transf" fds |> Json.jstring in
       let xs = List.assoc "children" fds |> Json.jlist in
-      apply f (List.map of_json xs)
+      tactic f (List.map of_json xs)
     | _ -> Stuck
   with _ -> Stuck
 
@@ -135,7 +140,7 @@ let rec merge a b =
   | Tactic { id = f ; children = xs } ,
     Tactic { id = g ; children = ys }
     when f = g && List.length xs = List.length ys ->
-    apply f (List.map2 merge xs ys)
+    tactic f (List.map2 merge xs ys)
   | _ -> b
 
 let fixed = ref 0
@@ -157,12 +162,12 @@ let rec stats a b =
       incr nstuck ;
 
     | Stuck, _ ->
-      (if complete b then fixed else updated) += size b ;
-      nstuck += stuck b ;
-      nproved += proved b ;
+      (if is_complete b then fixed else updated) += size b ;
+      nstuck += get_stuck b ;
+      nproved += get_proved b ;
 
     | _, Stuck ->
-      incr (if complete a then broken else updated) ;
+      incr (if is_complete a then broken else updated) ;
       incr nstuck ;
 
     | Prover _, Prover _ ->
@@ -170,7 +175,7 @@ let rec stats a b =
       incr nproved ;
 
     | Tactic _ , Prover _ ->
-      incr (if complete a then minimized else fixed) ;
+      incr (if is_complete a then minimized else fixed) ;
       incr nproved ;
 
     | Tactic { id = f0 ; children = cs0 } ,
@@ -180,14 +185,14 @@ let rec stats a b =
 
     | _ ->
       let r =
-        match complete a, complete b with
+        match is_complete a, is_complete b with
         | true, true | false, false -> updated
         | true, false -> broken
         | false, true -> fixed
       in
       r += size b ;
-      nstuck += stuck b ;
-      nproved += proved b ;
+      nstuck += get_stuck b ;
+      nproved += get_proved b ;
 
   end
 

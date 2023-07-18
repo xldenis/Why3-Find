@@ -56,7 +56,7 @@ let schedule profile ~replay ~depth goal hint =
   let result = Fibers.var () in
   Queue.push
     { profile ; goal ; hint ; replay ; depth ; result }
-    (if complete hint then q2 else q1) ;
+    (if is_complete hint then q2 else q1) ;
   result
 
 let pop () =
@@ -64,7 +64,7 @@ let pop () =
   try Some (Queue.pop q2) with Queue.Empty ->
     None
 
-let stuck = Fibers.return Stuck
+let stuck = Fibers.return stuck
 
 type strategy = node -> crc Fibers.t
 let fail : strategy = fun _ -> stuck
@@ -74,7 +74,7 @@ let (@>) (h : strategy) (n : node) : crc Fibers.t =
 
 let (>>>) (h1 : strategy) (h2 : strategy) : strategy = fun n ->
   let* r = h1 @> n in
-  if r <> Stuck then Fibers.return r else h2 @> n
+  if not @@ is_stuck r then Fibers.return r else h2 @> n
 
 let rec smap (f : 'a -> strategy) (xs : 'a list) : strategy =
   match xs with
@@ -117,8 +117,8 @@ let prove env ?client ?cancel prover timeout : strategy = fun n ->
           | None -> ()
         in Fibers.monitor ~signal ~handler runner
   in match verdict with
-  | Valid t -> Prover( Runner.name prover, Utils.round t )
-  | _ -> Stuck
+  | Valid t -> Crc.prover (Runner.name prover) (Utils.round t)
+  | _ -> Crc.stuck
 
 (* -------------------------------------------------------------------------- *)
 (* --- Try Transformation on Node                                         --- *)
@@ -128,7 +128,8 @@ let rec subgoals ({ profile ; replay ; depth } as n) goals hints =
   match goals, hints with
   | [], _ -> []
   | g::gs, [] ->
-    schedule profile ~replay ~depth:(succ depth) g Stuck :: subgoals n gs []
+    let h = Crc.stuck in
+    schedule profile ~replay ~depth:(succ depth) g h :: subgoals n gs []
   | g::gs, h::hs ->
     schedule profile ~replay ~depth:(succ depth) g h :: subgoals n gs hs
 
@@ -136,7 +137,7 @@ let apply env depth tr hs : strategy = fun n ->
   if n.depth > depth then stuck else
     match Session.apply env.Wenv.wenv tr n.goal with
     | None -> stuck
-    | Some gs -> Crc.apply tr @+ Fibers.all @@ subgoals n gs hs
+    | Some gs -> Crc.tactic tr @+ Fibers.all @@ subgoals n gs hs
 
 (* -------------------------------------------------------------------------- *)
 (* --- Hammer Strategy                                                    --- *)
@@ -148,12 +149,13 @@ let hammer0 h : strategy =
 
 let hammer13 h time : strategy = fun n ->
   let cancel = Fibers.signal () in
-  let watch r = if r <> Stuck then Fibers.emit cancel () ; r in
+  let watch r = if not @@ Crc.is_stuck r then Fibers.emit cancel () ; r in
   let+ results =
     Fibers.all @@ List.map
       (fun prv -> watch @+ prove h.env ?client:h.client ~cancel prv time n)
-      h.provers
-  in try List.find (fun r -> r <> Stuck) results with Not_found -> Stuck
+      h.provers in
+  try List.find (fun r -> not @@ Crc.is_stuck r) results
+  with Not_found -> Crc.stuck
 
 let hammer1 h = hammer13 h h.time
 let hammer3 h = hammer13 h (2.0 *. h.time)
@@ -239,7 +241,7 @@ let run henv =
       | Some node ->
         Fibers.background @@
         begin
-          let pr = if complete node.hint then p2 else p1 in
+          let pr = if is_complete node.hint then p2 else p1 in
           incr pr ;
           let* r = process henv node in
           decr pr ;
@@ -255,16 +257,11 @@ let run henv =
     Option.iter Client.terminate henv.client
 
 (* -------------------------------------------------------------------------- *)
-(* --- Why3 IDE Config                                                    --- *)
+(* --- Why3 Hammer Config                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
 let session = ".why3find"
 let hammer = ".why3find/hammer.cfg"
-
-
-(* -------------------------------------------------------------------------- *)
-(* --- Hammer Config                                                      --- *)
-(* -------------------------------------------------------------------------- *)
 
 let config ~tactics ~provers ~time ~mem =
   let c_skip fmt = ignore fmt in

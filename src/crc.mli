@@ -23,7 +23,7 @@
 (* --- Proof Certificates                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-type crc =
+type crc = private
   | Stuck
   | Prover of string * float
   | Tactic of {
@@ -33,20 +33,24 @@ type crc =
       proved : int ;
     }
 
+val stuck : crc
+val prover : string -> float -> crc
+val tactic : string -> crc list -> crc
+
 type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
 val verdict : crc -> verdict
 val nverdict : stuck:int -> proved:int -> verdict
 
-val stuck : crc -> int
-val proved : crc -> int
-val unknown : crc -> bool
-val complete : crc -> bool
+val get_stuck : crc -> int
+val get_proved : crc -> int
+val is_stuck : crc -> bool
+val is_unknown : crc -> bool
+val is_complete : crc -> bool
 val pretty : Format.formatter -> crc -> unit
 val pp_result : Format.formatter -> stuck:int -> proved:int -> unit
 val dump : Format.formatter -> crc -> unit
 val shortname : string -> string (* prover short name *)
 
-val apply : string -> crc list -> crc
 val merge : crc -> crc -> crc
 val of_json : Json.t -> crc
 val to_json : crc -> Json.t

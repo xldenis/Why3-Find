@@ -256,7 +256,7 @@ let process_proofs_summary env ~crc id = function
   | Some Docref.{ proofs } ->
     let stuck,proved =
       Docref.Mstr.fold
-        (fun _g c (s,p) -> s + Crc.stuck c , p + Crc.proved c)
+        (fun _g c (s,p) -> s + Crc.get_stuck c , p + Crc.get_proved c)
         proofs (0,0) in
     let href fmt = Format.fprintf fmt "%s.proof.html#%s" env.src.urlbase id in
     let r = Crc.nverdict ~stuck ~proved in
@@ -679,7 +679,7 @@ let process_clone_proofs env clones =
       (fun (s,p) clone ->
          match Docref.find_proof clone.Docref.id_target env.theory with
          | None -> (s,p)
-         | Some c -> s + Crc.stuck c, p + Crc.proved c
+         | Some c -> s + Crc.get_stuck c, p + Crc.get_proved c
       ) (0,0) clones
   in
   if stuck + proved <> 0 then

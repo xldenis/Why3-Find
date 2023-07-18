@@ -218,7 +218,7 @@ let zip_goals theory proofs =
   List.fold_left
     (fun cmap task ->
        let a = Session.task_name task in
-       Mstr.add a (Mstr.find_def Crc.Stuck a proofs) cmap
+       Mstr.add a (Mstr.find_def Crc.stuck a proofs) cmap
     )
     Mstr.empty
     (Why3.Task.split_theory theory None None)

@@ -93,11 +93,11 @@ let prove_theory mode profile strategy theory =
     Fibers.all @@ List.map
       (fun task ->
          let goal = Session.goal_name task in
-         let hint = M.find_def Crc.Stuck goal hints in
+         let hint = M.find_def Crc.stuck goal hints in
          let+ crc =
            match mode with
            | `Force ->
-             Hammer.schedule profile ~replay:false ~depth:0 task Stuck
+             Hammer.schedule profile ~replay:false ~depth:0 task Crc.stuck
            | `Replay ->
              Hammer.schedule profile ~replay:true ~depth:0 task hint
            | `Update | `Minimize ->
@@ -105,7 +105,7 @@ let prove_theory mode profile strategy theory =
              Hammer.schedule ~replay:false ~depth:0 profile task hint
          in
          if Utils.tty then Crc.stats hint crc ;
-         if not (Crc.complete crc) then
+         if not (Crc.is_complete crc) then
            begin
              Utils.flush () ;
              begin
@@ -238,9 +238,9 @@ let report_results log henv ~lib proofs =
       (fun (_,goals) ->
          List.iter
            (fun (_,crc) ->
-              stuck := !stuck + Crc.stuck crc ;
-              proved := !proved + Crc.proved crc ;
-              if not @@ Crc.complete crc then failed := true ;
+              stuck := !stuck + Crc.get_stuck crc ;
+              proved := !proved + Crc.get_proved crc ;
+              if not @@ Crc.is_complete crc then failed := true ;
            ) goals
       ) proofs ;
     let ths = List.map (fun (th,_) -> Session.theory th) proofs in
@@ -257,7 +257,7 @@ let report_results log henv ~lib proofs =
              let thy = Session.theory th in
              let tn = Session.name th in
              let (s,p) = List.fold_left
-                 (fun (s,p) (_,c) -> s + Crc.stuck c, p + Crc.proved c)
+                 (fun (s,p) (_,c) -> s + Crc.get_stuck c, p + Crc.get_proved c)
                  (0,0) goals in
              Format.printf "Theory %s.%s: %t@." path tn
                (Crc.pp_result ~stuck:s ~proved:p) ;
@@ -273,7 +273,7 @@ let report_results log henv ~lib proofs =
                  List.iter
                    (fun (g,c) ->
                       Format.printf "  @[<hv 2>Goal %s %a@ %a@]@." g
-                        Utils.pp_mark (Crc.complete c) Crc.dump c
+                        Utils.pp_mark (Crc.is_complete c) Crc.dump c
                    ) goals
              end ;
              report_signature henv ~lib thy
