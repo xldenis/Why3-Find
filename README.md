@@ -12,6 +12,7 @@ predefined site(s). It is designed to be fully compatible with Dune and OPAM.
 - [Package Configuration](#package-configuration)
 - [Package Proving](#package-proving)
 - [Package Documentation](#package-documentation)
+- [Package Soundness](#package-soundness)
 - [OCaml Code Extraction](#ocaml-code-extraction)
 
 ## Why3 Packages
@@ -338,6 +339,45 @@ also taken into account when consolidating hypotheses. Extracted symbols are
 reported but not counted as parameters. Erased axioms or builtin symbols from
 prover drivers are considered to be built-in symbols and are not counted as
 actual hypotheses or paremeters.
+
+## Package Soundness
+
+When proving a module or when generating the documentation of the package,
+`why3find` will also collect all the abstract definitions and properties through
+all your dependencies. Indeed, the validity of your proofs generalizes to any
+ground instance of abstract defintitions that satisfies all the assumed
+properties. Although, if no such ground instance exist, your proofs are still
+valid from a logical point of view, but they no useful meaning. In this respect,
+a module with no ground instance can be considered _unsound_.
+
+The `why3find` documentation generator promotes the development of _sound_
+packages by checking that every module with abstract parameters or assumed
+properties is actually refined by a clone instance from some other _sound_
+module. In the generated documentation, each module is annotated with its
+abstract parameters and assumed properties; known instances are also reported
+and soundness is checked by transitive closure. Hence, each abstract module is
+expected to be cloned inside a sound module in order to witness the consistency
+of its hypotheses.
+
+Modules hypotheses are classified as follows:
+
+- abstract types, constants, pure logic functions and predicates are _sound_
+since Why3 checks for all types to be inhabited (hence, including arrow types).
+- axioms are considered to be possibly _unsound_.
+- any declaration of an abstract values with a non-trivial _post-condition_ is
+considered to be possibly _unsound_.
+- introduction of `any ...` values inside `let` definitions are considered to be always
+_sound_ since Why3 generates proof obligations to demonstrate that such a value exists.
+- any _assumed_ assertion (`assume { _ }`) inside a `let` definition is considered
+to be _always_ unsound since it is not possible to refine such an assumption by cloning.
+- any abstract values _inside_ a `let` definition is also considered to
+be _always_ unsound for the same reason.
+- hypotheses and abstract parameters from the Why3 standard library are _all_
+  considered to be _sound_.
+
+When proving a module with `why3find prove` you can list all the abstract
+parameters and assumed properties involved by your proofs with option `-a`.
+Other options are available, see `why3find prove -h` for further details.
 
 ## OCaml Code Extraction
 
