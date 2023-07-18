@@ -357,9 +357,9 @@ When proving a module or when generating the documentation of the package,
 `why3find` will also collect all the abstract definitions and properties through
 all your dependencies. Indeed, the validity of your proofs generalizes to any
 ground instance of abstract defintitions that satisfies all the assumed
-properties. Although, if no such ground instance exist, your proofs are still
-valid from a logical point of view, but they no useful meaning. In this respect,
-a module with no ground instance can be considered _unsound_.
+properties. Although, if no such ground instance exists, your proofs are still
+valid from a logical point of view, but they have no useful value. In this respect,
+a module with no ground instance can be considered to be _unsound_.
 
 The `why3find` documentation generator promotes the development of _sound_
 packages by checking that every module with abstract parameters or assumed
@@ -374,9 +374,8 @@ Modules hypotheses are classified as follows:
 
 - abstract types, constants, pure logic functions and predicates are _sound_
 since Why3 checks for all types to be inhabited (hence, including arrow types).
-- axioms are considered to be possibly _unsound_.
-- any declaration of an abstract values with a non-trivial _post-condition_ is
-considered to be possibly _unsound_.
+- axioms and déclaration of abstract values with non-trivial post-condititions are all
+considered to be possibly _unsound_ unless a sound clone instance of the module is witnessed.
 - introduction of `any ...` values inside `let` definitions are considered to be always
 _sound_ since Why3 generates proof obligations to demonstrate that such a value exists.
 - any _assumed_ assertion (`assume { _ }`) inside a `let` definition is considered
