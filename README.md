@@ -236,6 +236,17 @@ It is highly recommended to update all proofs on the *master* machine with
 `why3find prove -f` after modifying the proof calibration. Usually, you calibrate
 provers once at the very beginning of the project.
 
+*Proof Server* can be used in order to increase parallelism and stability in
+collaborative development. First, you need to launch a centralized `why3find
+server` that will serve as a centralized proxy and will manage the proof
+database on disk. Then, a number of `why3find client` can dynamically connect
+to the server to offer their locally available provers for proving tasks. Any
+user can then connect to the server to obtain proof results, by using `why3find
+prove --server` options. Hence, proof results can be shared among different
+users during development. By launching a large number of clients, you can build
+large proof clusters. Prover calibration of each contributing client is used by
+the server to ensure the consistency of the distributed proof results.
+
 ## Package Documentation
 
 The `why3find doc` command is used to build HTML documentation for the package.
