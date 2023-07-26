@@ -142,7 +142,7 @@ let exec
       pkgs in
   let argv =
     Array.of_list @@ List.concat [
-      cmd::prefix ; cfg ; [ "-L" ; "." ] ; load ; drv ; !args
+      cmd::prefix ; cfg ; [ "-L" ; "." ] ; load ; drv ; List.rev !args
     ] in
   if !verbose then
     begin
