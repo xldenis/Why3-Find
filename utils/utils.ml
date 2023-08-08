@@ -92,8 +92,10 @@ let rec iterpath ?(enter=ignore) ?(file=ignore) ?(leave=ignore) p =
         enter p ;
         readdir
           (fun d ->
-             let pd = Filename.concat p d in
-             iterpath ~enter ~file ~leave pd ;
+             let pd =
+               if p = Filename.current_dir_name then d else
+                 Filename.concat p d
+             in iterpath ~enter ~file ~leave pd ;
           ) p ;
         leave p ;
       end
