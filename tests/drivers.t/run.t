@@ -11,7 +11,7 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="drivers.index.html">drivers</a></code> — <code>module A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> A<a href="drivers.proof.html#A" title="3 parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></a><a href="drivers.proof.html#A" title="Valid (no goals)" class="icon remark icofont-check"></a>
+  <span class="keyword">module</span> A<a href="drivers.proof.html#A" title="3 logic parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></a><a href="drivers.proof.html#A" title="Valid (no goals)" class="icon remark icofont-check"></a>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span>
     <span class="keyword">val</span> <span class="keyword">function</span> <a id="add">add</a><span title="Parameter" class="icon small remark icofont-star"></span> <a title="drivers.A.t" href="#t">t</a> <a title="drivers.A.t" href="#t">t</a> : <a title="drivers.A.t" href="#t">t</a>
     <span class="keyword">predicate</span> <a id="leq">leq</a><span title="Parameter" class="icon small remark icofont-star"></span> <a title="drivers.A.t" href="#t">t</a> <a title="drivers.A.t" href="#t">t</a>
@@ -35,7 +35,7 @@
   <pre class="src">
   </pre>
   <h1>Proofs</h1>
-  <pre class="src"><span class="keyword">module</span> <a id="A" href="drivers.A.html">drivers.A</a><span title="3 parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="A" href="drivers.A.html">drivers.A</a><span title="3 logic parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
   <pre class="src">
     <span class="keyword">axiom</span> <a id="A.increasing" href="drivers.A.html#increasing">increasing</a><span title="uncloned hypothesis" class="icon small warning icofont-star"></span>
   </pre>

@@ -17,7 +17,7 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="a.index.html">a</a></code> — <code>module A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> A<a href="a.proof.html#A" title="3 parameters" class="icon small remark icofont-star"></a><a href="a.proof.html#A" title="Failed (no proof)" class="icon failed icofont-warning"></a>
+  <span class="keyword">module</span> A<a href="a.proof.html#A" title="3 logic parameters" class="icon small remark icofont-star"></a><a href="a.proof.html#A" title="Failed (no proof)" class="icon failed icofont-warning"></a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span>
     <span class="keyword">val</span> <span class="keyword">constant</span> <a id="neutral">neutral</a><span title="Parameter" class="icon small remark icofont-star"></span> : <a title="a.A.t" href="#t">t</a>

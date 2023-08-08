@@ -69,10 +69,17 @@ let register henv (src : Docref.source) =
        List.iter (add hinst) thy.clones
     ) src.theories
 
-let clone = Sound []
+let free = Sound []
 let unknown = Unknown []
 
-let is_clone = function Sound [] -> true | _ -> false
+let merge a b =
+  match a,b with
+  | Unsound, _ | _, Unsound -> Unsound
+  | Sound xs , Sound ys -> Sound (xs @ ys)
+  | Unknown xs , Unknown ys -> Unknown (xs @ ys)
+  | (Unknown _ as w), Sound _ | Sound _, (Unknown _ as w) -> w
+
+let is_free = function Sound [] -> true | _ -> false
 let is_sound = function Sound _ -> true | Unsound | Unknown _ -> false
 let is_unsound = function Unsound -> true | Sound _ | Unknown _ -> false
 

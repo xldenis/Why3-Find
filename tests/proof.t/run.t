@@ -11,7 +11,7 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> A<a href="clones.proof.html#A" title="3 parameters, 2 hypotheses, 1 uncomplete instance" class="icon small warning icofont-star"></a><a href="clones.proof.html#A" title="Valid (one goal)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> A<a href="clones.proof.html#A" title="3 logic parameters, 2 hypotheses, 1 uncomplete instance" class="icon small warning icofont-star"></a><a href="clones.proof.html#A" title="Valid (one goal)" class="icon valid icofont-check"></a>
   
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span>
     <span class="keyword">constant</span> <a id="e">e</a><span title="Parameter" class="icon small remark icofont-star"></span> : <a title="clones.A.t" href="#t">t</a>
@@ -36,9 +36,9 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module B</code></header>
   <pre class="src">
-  <span class="keyword">module</span> B<a href="clones.proof.html#B" title="1 parameter, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></a><a href="clones.proof.html#B" title="Valid (one goal)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> B<a href="clones.proof.html#B" title="1 logic parameter, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></a><a href="clones.proof.html#B" title="Valid (one goal)" class="icon valid icofont-check"></a>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
-    <span class="keyword">clone</span> <a id="clone-1" title="clones.A" href="clones.A.html#">A</a><span title="1 parameter, 1 hypothesis" class="icon small remark icofont-star"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
+    <span class="keyword">clone</span> <a id="clone-1" title="clones.A" href="clones.A.html#">A</a><span title="1 logic parameter, 1 hypothesis" class="icon small remark icofont-star"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">function</span> <a id="A.e">A.e</a><span title="Parameter" class="icon small remark icofont-star"></span> : int {<a class="attribute" title="clones.A.e" href="clones.A.html#e">def.</a>}
         <span class="keyword">axiom</span> <a id="A.neutral">A.neutral</a><span title="Hypothesis" class="icon small warning icofont-star"></span> {<a class="attribute" title="clones.A.neutral" href="clones.A.html#neutral">def.</a>}
@@ -117,7 +117,7 @@
     alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)
   </pre>
   <h1>Proofs</h1>
-  <pre class="src"><span class="keyword">module</span> <a id="A" href="clones.A.html">clones.A</a><span title="3 parameters, 2 hypotheses, 1 uncomplete instance" class="icon small warning icofont-star"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="A" href="clones.A.html">clones.A</a><span title="3 logic parameters, 2 hypotheses, 1 uncomplete instance" class="icon small warning icofont-star"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
   <pre class="src">
     <span class="keyword">axiom</span> <a id="A.neutral" href="clones.A.html#neutral">neutral</a><span title="uncloned hypothesis" class="icon small warning icofont-star"></span>
     <span class="keyword">axiom</span> <a id="A.commutative" href="clones.A.html#commutative">commutative</a><span title="uncloned hypothesis" class="icon small warning icofont-star"></span>
@@ -125,7 +125,7 @@
   </pre>
   <pre class="src">
     <span class="keyword">goal</span> <a id="A.neutral_com" href="clones.A.html#neutral_com">neutral_com</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>
-      alt-ergo 500ns</pre><pre class="src"><span class="keyword">module</span> <a id="B" href="clones.B.html">clones.B</a><span title="1 parameter, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
+      alt-ergo 500ns</pre><pre class="src"><span class="keyword">module</span> <a id="B" href="clones.B.html">clones.B</a><span title="1 logic parameter, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
   <pre class="src">
     <span class="keyword">axiom</span> <a id="B.A.neutral" href="clones.B.html#A.neutral">A.neutral</a><span title="uncloned hypothesis" class="icon small warning icofont-star"></span>
   </pre>

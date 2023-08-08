@@ -407,10 +407,10 @@ type axioms = {
 
 let free = {
   prm = 0 ; hyp = 0 ; pvs = 0 ; unsafe = 0 ;
-  sound = Soundness.unknown ;
+  sound = Soundness.free ;
 }
 
-let free_clone = { free with sound = Soundness.clone }
+let unknown =  { free with sound = Soundness.unknown }
 
 let add_axiom hs (p : Axioms.parameter) =
   match p.param with
@@ -422,7 +422,7 @@ let add_axiom hs (p : Axioms.parameter) =
 let pp_axioms_link ?href fmt { prm ; hyp ; pvs ; unsafe ; sound } =
   if prm+hyp+pvs+unsafe > 0 then
     let cla =
-      if Soundness.is_clone sound then icon_parameter else
+      if Soundness.is_free sound then icon_parameter else
       if hyp + pvs + unsafe > 0 then
         match sound with
         | Unsound -> icon_unsafe_param
@@ -434,8 +434,8 @@ let pp_axioms_link ?href fmt { prm ; hyp ; pvs ; unsafe ; sound } =
       let plural k single msg =
         if k = 0 then [] else if k = 1 then [single] else [msg k] in
       String.concat ", " @@ List.concat [
-        plural pvs "1 value" @@ Printf.sprintf "%d values" ;
-        plural prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
+        plural pvs "1 value parameter" @@ Printf.sprintf "%d value parameters" ;
+        plural prm "1 logic parameter" @@ Printf.sprintf "%d logic parameters" ;
         plural hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
         match sound with
         | Soundness.Unsound ->
@@ -457,7 +457,7 @@ let process_axioms_summary env id ~crc = function
   | None -> ()
   | Some (thy : Docref.theory) ->
     let href fmt = Format.fprintf fmt "%s.proof.html#%s" env.src.urlbase id in
-    let hs = List.fold_left add_axiom free @@ Axioms.parameters thy.signature in
+    let hs = List.fold_left add_axiom unknown @@ Axioms.parameters thy.signature in
     let hs = { hs with sound = Soundness.compute env.senv thy } in
     Pdoc.pp env.out (pp_axioms_link ~href) hs ;
     if crc then Pdoc.pp env.crc pp_axioms hs
@@ -695,7 +695,7 @@ let process_clone_axioms env clones =
            match Axioms.parameter signature clone.Docref.id_target with
            | None -> hs
            | Some p -> add_axiom hs p
-        ) free_clone clones in
+        ) free clones in
     Pdoc.pp env.out pp_axioms hs
 
 let process_clone_section env (th : Docref.theory) =
@@ -1152,18 +1152,44 @@ let process_source ~wenv ~cenv ~henv ~senv ~out:dir file (src : Docref.source) =
 (* --- Generating Index                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
-let pp_chapters out ~title cs =
+let process_chapter_proofs out (src : Docref.source) =
+  let (stuck,proved) =
+    Docref.Mstr.fold
+      (fun _ (thy : Docref.theory) acc ->
+         Docref.Mstr.fold
+           (fun _ (crc : Crc.crc) (stuck,proved) ->
+              stuck + Crc.get_stuck crc,
+              proved + Crc.get_proved crc
+           ) thy.proofs acc
+      ) src.theories (0,0)
+  in Pdoc.pp out pp_verdict (Crc.nverdict ~stuck ~proved)
+
+let process_chapter_axioms out (senv : Soundness.env) (src : Docref.source) =
+  let hs =
+    Docref.Mstr.fold
+      (fun _ (thy : Docref.theory) hs ->
+         let hs =
+           List.fold_left add_axiom hs @@ Axioms.parameters thy.signature in
+         let sound = Soundness.compute senv thy in
+         { hs with sound = Soundness.merge hs.sound sound }
+      ) src.theories free
+  in Pdoc.pp out pp_axioms hs
+
+let pp_chapters out ~senv ~title cs =
   if cs <> [] then
     begin
       Pdoc.printf out "<h1>%s</h1>@\n<div class=\"doc\">@\n<ul>@\n" title ;
       List.iter
         (fun c ->
-           Pdoc.printf out "<li><a href=\"%s\">%s</a></li>@\n" c.href c.title
+           Pdoc.printf out "<li><a href=\"%s\">%s</a>" c.href c.title ;
+           Option.iter (process_chapter_axioms out senv) c.src ;
+           Option.iter (process_chapter_proofs out) c.src ;
+           Pdoc.printf out "</li>@\n" ;
         ) cs ;
       Pdoc.printf out "</ul>@\n</div>@." ;
     end
 
-let index ~out:dir ~title =
+let index ~out:dir ~senv ~title =
   let href = "index.html" in
   if List.for_all (fun c -> c.href <> href) !chapters then
     begin
@@ -1171,8 +1197,8 @@ let index ~out:dir ~title =
       let out = Pdoc.output ~file:ofile ~title in
       Pdoc.printf out
         "<header>index — %s</header>@." title ;
-      pp_chapters out ~title:"Documentation" @@ documentation () ;
-      pp_chapters out ~title:"Development" @@ package () ;
+      pp_chapters out ~senv ~title:"Documentation" @@ documentation () ;
+      pp_chapters out ~senv ~title:"Development" @@ package () ;
       Pdoc.flush out ;
       Pdoc.close_all out ;
     end
@@ -1224,7 +1250,7 @@ let generate ~out ~title ~files ~url =
     (* Doc generation *)
     List.iter (process ~wenv ~cenv ~henv ~senv ~title ~out) ;
     (* Indexing *)
-    index ~out ~title ;
+    index ~out ~senv ~title ;
     (* Final output *)
     Utils.log "Generated %s%s/index.html@."
       (if url then "file://" else "") (Utils.absolute out) ;
