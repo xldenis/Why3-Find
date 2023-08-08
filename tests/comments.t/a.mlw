@@ -1,0 +1,8 @@
+(* Skipped Comment (1) *)
+
+(* Skipped Comment (2) *)
+module Foo
+  (* Printed
+     Huge
+     Comment *)
+end
