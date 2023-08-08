@@ -289,6 +289,10 @@ module or theory documentation file. For instance:
 
     (** This goes back to the index page *)
 
+Remark: regular comments inside modules are printed as they are, along with the
+code.  However, code comments that live outside modules are not printed since
+index pages only contains documentation blocs.
+
 *Basic Markdown Format* can be used in plain markdown page and to why3
 documentation comments. The following documentation snippets show examples:
 

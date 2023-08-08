@@ -971,9 +971,11 @@ let parse env =
     | Eof -> close env ; bsync env
     | Char c -> text env ; Pdoc.pp_html_c out c
     | Text s -> text env ; Pdoc.pp_html_s out s
-    | Comment s -> text env ; Pdoc.pp_html_s out ~className:"comment" s
-    | Verb s -> text env ;
-      Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
+    | Comment s ->
+      if env.mode = Pre then
+        (text env ; Pdoc.pp_html_s out ~className:"comment" s)
+    | Verb s ->
+      text env ; Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
     | Ref s -> process_reference ~wenv ~env s
     | Style(Emph,_) -> process_style env Emph
     | Style(Bold,_) -> process_style env Bold
