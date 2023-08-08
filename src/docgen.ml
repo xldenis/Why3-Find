@@ -407,10 +407,10 @@ type axioms = {
 
 let free = {
   prm = 0 ; hyp = 0 ; pvs = 0 ; unsafe = 0 ;
-  sound = Soundness.unknown ;
+  sound = Soundness.free ;
 }
 
-let free_clone = { free with sound = Soundness.clone }
+let unknown =  { free with sound = Soundness.unknown }
 
 let add_axiom hs (p : Axioms.parameter) =
   match p.param with
@@ -422,7 +422,7 @@ let add_axiom hs (p : Axioms.parameter) =
 let pp_axioms_link ?href fmt { prm ; hyp ; pvs ; unsafe ; sound } =
   if prm+hyp+pvs+unsafe > 0 then
     let cla =
-      if Soundness.is_clone sound then icon_parameter else
+      if Soundness.is_free sound then icon_parameter else
       if hyp + pvs + unsafe > 0 then
         match sound with
         | Unsound -> icon_unsafe_param
@@ -457,7 +457,7 @@ let process_axioms_summary env id ~crc = function
   | None -> ()
   | Some (thy : Docref.theory) ->
     let href fmt = Format.fprintf fmt "%s.proof.html#%s" env.src.urlbase id in
-    let hs = List.fold_left add_axiom free @@ Axioms.parameters thy.signature in
+    let hs = List.fold_left add_axiom unknown @@ Axioms.parameters thy.signature in
     let hs = { hs with sound = Soundness.compute env.senv thy } in
     Pdoc.pp env.out (pp_axioms_link ~href) hs ;
     if crc then Pdoc.pp env.crc pp_axioms hs
@@ -695,7 +695,7 @@ let process_clone_axioms env clones =
            match Axioms.parameter signature clone.Docref.id_target with
            | None -> hs
            | Some p -> add_axiom hs p
-        ) free_clone clones in
+        ) free clones in
     Pdoc.pp env.out pp_axioms hs
 
 let process_clone_section env (th : Docref.theory) =
