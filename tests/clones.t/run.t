@@ -17,8 +17,8 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module AC</code></header>
   <pre class="src">
-  <span class="keyword">module</span> AC<a href="clones.proof.html#AC" title="2 parameters, 2 hypotheses, 1 ground instance" class="icon small valid icofont-star"></a><a href="clones.proof.html#AC" title="Valid (no goals)" class="icon remark icofont-check"></a>
-    <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 parameters" class="icon small remark icofont-star"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
+  <span class="keyword">module</span> AC<a href="clones.proof.html#AC" title="2 logic parameters, 2 hypotheses, 1 ground instance" class="icon small valid icofont-star"></a><a href="clones.proof.html#AC" title="Valid (no goals)" class="icon remark icofont-check"></a>
+    <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 logic parameters" class="icon small remark icofont-star"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span> = {<a class="attribute" title="clones.Monoid.t" href="clones.Monoid.html#t">def.</a>}
         <span class="keyword">function</span> <a id="op">op</a><span title="Parameter" class="icon small remark icofont-star"></span> <a title="clones.AC.t" href="clones.AC.html#t">t</a> <a title="clones.AC.t" href="clones.AC.html#t">t</a> : <a title="clones.AC.t" href="clones.AC.html#t">t</a> {<a class="attribute" title="clones.Monoid.op" href="clones.Monoid.html#op">def.</a>}
@@ -49,8 +49,8 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module Associative</code></header>
   <pre class="src">
-  <span class="keyword">module</span> Associative<a href="clones.proof.html#Associative" title="2 parameters, 1 hypothesis, 3 ground instances" class="icon small valid icofont-star"></a><a href="clones.proof.html#Associative" title="Valid (no goals)" class="icon remark icofont-check"></a>
-    <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 parameters" class="icon small remark icofont-star"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
+  <span class="keyword">module</span> Associative<a href="clones.proof.html#Associative" title="2 logic parameters, 1 hypothesis, 3 ground instances" class="icon small valid icofont-star"></a><a href="clones.proof.html#Associative" title="Valid (no goals)" class="icon remark icofont-check"></a>
+    <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 logic parameters" class="icon small remark icofont-star"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span> = {<a class="attribute" title="clones.Monoid.t" href="clones.Monoid.html#t">def.</a>}
         <span class="keyword">function</span> <a id="op">op</a><span title="Parameter" class="icon small remark icofont-star"></span> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> : <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> {<a class="attribute" title="clones.Monoid.op" href="clones.Monoid.html#op">def.</a>}
@@ -72,8 +72,8 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module Commutative</code></header>
   <pre class="src">
-  <span class="keyword">module</span> Commutative<a href="clones.proof.html#Commutative" title="2 parameters, 1 hypothesis, 4 ground instances" class="icon small valid icofont-star"></a><a href="clones.proof.html#Commutative" title="Valid (no goals)" class="icon remark icofont-check"></a>
-    <span class="keyword">clone</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 parameters" class="icon small remark icofont-star"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
+  <span class="keyword">module</span> Commutative<a href="clones.proof.html#Commutative" title="2 logic parameters, 1 hypothesis, 4 ground instances" class="icon small valid icofont-star"></a><a href="clones.proof.html#Commutative" title="Valid (no goals)" class="icon remark icofont-check"></a>
+    <span class="keyword">clone</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 logic parameters" class="icon small remark icofont-star"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">type</span> <a id="M.t">M.t</a><span title="Parameter" class="icon small remark icofont-star"></span> = {<a class="attribute" title="clones.Monoid.t" href="clones.Monoid.html#t">def.</a>}
         <span class="keyword">function</span> <a id="M.op">M.op</a><span title="Parameter" class="icon small remark icofont-star"></span> <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a> <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a> : <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a> {<a class="attribute" title="clones.Monoid.op" href="clones.Monoid.html#op">def.</a>}
@@ -167,7 +167,7 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module Monoid</code></header>
   <pre class="src">
-  <span class="keyword">module</span> Monoid<a href="clones.proof.html#Monoid" title="2 parameters" class="icon small remark icofont-star"></a><a href="clones.proof.html#Monoid" title="Valid (no goals)" class="icon remark icofont-check"></a>
+  <span class="keyword">module</span> Monoid<a href="clones.proof.html#Monoid" title="2 logic parameters" class="icon small remark icofont-star"></a><a href="clones.proof.html#Monoid" title="Valid (no goals)" class="icon remark icofont-check"></a>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span>
     <span class="keyword">function</span> <a id="op">op</a><span title="Parameter" class="icon small remark icofont-star"></span> <a title="clones.Monoid.t" href="#t">t</a> <a title="clones.Monoid.t" href="#t">t</a> : <a title="clones.Monoid.t" href="#t">t</a>
   <span class="keyword">end</span>
@@ -185,8 +185,8 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module Neutral</code></header>
   <pre class="src">
-  <span class="keyword">module</span> Neutral<a href="clones.proof.html#Neutral" title="3 parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></a><a href="clones.proof.html#Neutral" title="Valid (no goals)" class="icon remark icofont-check"></a>
-    <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 parameters" class="icon small remark icofont-star"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
+  <span class="keyword">module</span> Neutral<a href="clones.proof.html#Neutral" title="3 logic parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></a><a href="clones.proof.html#Neutral" title="Valid (no goals)" class="icon remark icofont-check"></a>
+    <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 logic parameters" class="icon small remark icofont-star"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span> = {<a class="attribute" title="clones.Monoid.t" href="clones.Monoid.html#t">def.</a>}
         <span class="keyword">function</span> <a id="op">op</a><span title="Parameter" class="icon small remark icofont-star"></span> <a title="clones.Neutral.t" href="clones.Neutral.html#t">t</a> <a title="clones.Neutral.t" href="clones.Neutral.html#t">t</a> : <a title="clones.Neutral.t" href="clones.Neutral.html#t">t</a> {<a class="attribute" title="clones.Monoid.op" href="clones.Monoid.html#op">def.</a>}
@@ -208,11 +208,11 @@
   </head>
   <body>
   <header><a href="index.html">index</a> — <code>library clones</code></header>
-  <pre class="src"><span class="keyword">module</span> <a title="clones.Monoid" href="clones.Monoid.html">Monoid</a><a href="clones.proof.html#Monoid" title="2 parameters" class="icon small remark icofont-star"></a><a href="clones.proof.html#Monoid" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
-  <pre class="src"><span class="keyword">module</span> <a title="clones.Neutral" href="clones.Neutral.html">Neutral</a><a href="clones.proof.html#Neutral" title="3 parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></a><a href="clones.proof.html#Neutral" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
-  <pre class="src"><span class="keyword">module</span> <a title="clones.Commutative" href="clones.Commutative.html">Commutative</a><a href="clones.proof.html#Commutative" title="2 parameters, 1 hypothesis, 4 ground instances" class="icon small valid icofont-star"></a><a href="clones.proof.html#Commutative" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
-  <pre class="src"><span class="keyword">module</span> <a title="clones.Associative" href="clones.Associative.html">Associative</a><a href="clones.proof.html#Associative" title="2 parameters, 1 hypothesis, 3 ground instances" class="icon small valid icofont-star"></a><a href="clones.proof.html#Associative" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
-  <pre class="src"><span class="keyword">module</span> <a title="clones.AC" href="clones.AC.html">AC</a><a href="clones.proof.html#AC" title="2 parameters, 2 hypotheses, 1 ground instance" class="icon small valid icofont-star"></a><a href="clones.proof.html#AC" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="clones.Monoid" href="clones.Monoid.html">Monoid</a><a href="clones.proof.html#Monoid" title="2 logic parameters" class="icon small remark icofont-star"></a><a href="clones.proof.html#Monoid" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="clones.Neutral" href="clones.Neutral.html">Neutral</a><a href="clones.proof.html#Neutral" title="3 logic parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></a><a href="clones.proof.html#Neutral" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="clones.Commutative" href="clones.Commutative.html">Commutative</a><a href="clones.proof.html#Commutative" title="2 logic parameters, 1 hypothesis, 4 ground instances" class="icon small valid icofont-star"></a><a href="clones.proof.html#Commutative" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="clones.Associative" href="clones.Associative.html">Associative</a><a href="clones.proof.html#Associative" title="2 logic parameters, 1 hypothesis, 3 ground instances" class="icon small valid icofont-star"></a><a href="clones.proof.html#Associative" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="clones.AC" href="clones.AC.html">AC</a><a href="clones.proof.html#AC" title="2 logic parameters, 2 hypotheses, 1 ground instance" class="icon small valid icofont-star"></a><a href="clones.proof.html#AC" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
   <pre class="src"><span class="keyword">module</span> <a title="clones.IntC" href="clones.IntC.html">IntC</a><a href="clones.proof.html#IntC" title="Failed (no proof)" class="icon failed icofont-warning"></a></pre>
   <pre class="src"><span class="keyword">module</span> <a title="clones.IntA" href="clones.IntA.html">IntA</a><a href="clones.proof.html#IntA" title="Failed (no proof)" class="icon failed icofont-warning"></a></pre>
   <pre class="src"><span class="keyword">module</span> <a title="clones.IntAC" href="clones.IntAC.html">IntAC</a><a href="clones.proof.html#IntAC" title="Failed (no proof)" class="icon failed icofont-warning"></a></pre>
@@ -232,12 +232,12 @@
   <pre class="src">
   </pre>
   <h1>Proofs</h1>
-  <pre class="src"><span class="keyword">module</span> <a id="Monoid" href="clones.Monoid.html">clones.Monoid</a><span title="2 parameters" class="icon small remark icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
-  <pre class="src"><span class="keyword">module</span> <a id="Neutral" href="clones.Neutral.html">clones.Neutral</a><span title="3 parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="Monoid" href="clones.Monoid.html">clones.Monoid</a><span title="2 logic parameters" class="icon small remark icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="Neutral" href="clones.Neutral.html">clones.Neutral</a><span title="3 logic parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
   <pre class="src">
     <span class="keyword">axiom</span> <a id="Neutral.neutral" href="clones.Neutral.html#neutral">neutral</a><span title="uncloned hypothesis" class="icon small warning icofont-star"></span>
   </pre>
-  <pre class="src"><span class="keyword">module</span> <a id="Commutative" href="clones.Commutative.html">clones.Commutative</a><span title="2 parameters, 1 hypothesis, 4 ground instances" class="icon small valid icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="Commutative" href="clones.Commutative.html">clones.Commutative</a><span title="2 logic parameters, 1 hypothesis, 4 ground instances" class="icon small valid icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
   <pre class="src">
     <span class="keyword">axiom</span> <a id="Commutative.commutative" href="clones.Commutative.html#commutative">commutative</a><span title="witnessed hypothesis" class="icon small valid icofont-star"></span>
     <span class="keyword">clone</span> <a href="clones.AC.html#clone-3">clones.AC</a><span title="sound instance" class="icon small valid icofont-star"></span>
@@ -245,14 +245,14 @@
     <span class="keyword">clone</span> <a href="clones.IntC.html#clone-2">clones.IntC</a><span title="sound instance" class="icon small valid icofont-star"></span>
     <span class="keyword">clone</span> <a href="clones.IntC.html#clone-4">clones.IntC</a><span title="sound instance" class="icon small valid icofont-star"></span>
   </pre>
-  <pre class="src"><span class="keyword">module</span> <a id="Associative" href="clones.Associative.html">clones.Associative</a><span title="2 parameters, 1 hypothesis, 3 ground instances" class="icon small valid icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="Associative" href="clones.Associative.html">clones.Associative</a><span title="2 logic parameters, 1 hypothesis, 3 ground instances" class="icon small valid icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
   <pre class="src">
     <span class="keyword">axiom</span> <a id="Associative.associative" href="clones.Associative.html#associative">associative</a><span title="witnessed hypothesis" class="icon small valid icofont-star"></span>
     <span class="keyword">clone</span> <a href="clones.AC.html#clone-5">clones.AC</a><span title="sound instance" class="icon small valid icofont-star"></span>
     <span class="keyword">clone</span> <a href="clones.IntA.html#clone-2">clones.IntA</a><span title="sound instance" class="icon small valid icofont-star"></span>
     <span class="keyword">clone</span> <a href="clones.IntAC.html#clone-5">clones.IntAC</a><span title="sound instance" class="icon small valid icofont-star"></span>
   </pre>
-  <pre class="src"><span class="keyword">module</span> <a id="AC" href="clones.AC.html">clones.AC</a><span title="2 parameters, 2 hypotheses, 1 ground instance" class="icon small valid icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="AC" href="clones.AC.html">clones.AC</a><span title="2 logic parameters, 2 hypotheses, 1 ground instance" class="icon small valid icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
   <pre class="src">
     <span class="keyword">axiom</span> <a id="AC.commutative" href="clones.AC.html#commutative">commutative</a><span title="witnessed hypothesis" class="icon small valid icofont-star"></span>
     <span class="keyword">axiom</span> <a id="AC.associative" href="clones.AC.html#associative">associative</a><span title="witnessed hypothesis" class="icon small valid icofont-star"></span>

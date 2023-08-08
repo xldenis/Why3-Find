@@ -434,8 +434,8 @@ let pp_axioms_link ?href fmt { prm ; hyp ; pvs ; unsafe ; sound } =
       let plural k single msg =
         if k = 0 then [] else if k = 1 then [single] else [msg k] in
       String.concat ", " @@ List.concat [
-        plural pvs "1 value" @@ Printf.sprintf "%d values" ;
-        plural prm "1 parameter" @@ Printf.sprintf "%d parameters" ;
+        plural pvs "1 value parameter" @@ Printf.sprintf "%d value parameters" ;
+        plural prm "1 logic parameter" @@ Printf.sprintf "%d logic parameters" ;
         plural hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
         match sound with
         | Soundness.Unsound ->
