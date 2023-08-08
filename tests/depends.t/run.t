@@ -16,10 +16,10 @@
   <h1>Development</h1>
   <div class="doc">
   <ul>
-  <li><a href="a.index.html">Library a</a></li>
-  <li><a href="b.index.html">Library b</a></li>
-  <li><a href="c.index.html">Library c</a></li>
-  <li><a href="d.index.html">Library d</a></li>
+  <li><a href="a.index.html">Library a</a><span title="Valid (no goals)" class="icon remark icofont-check"></span></li>
+  <li><a href="b.index.html">Library b</a><span title="Valid (no goals)" class="icon remark icofont-check"></span></li>
+  <li><a href="c.index.html">Library c</a><span title="Valid (no goals)" class="icon remark icofont-check"></span></li>
+  <li><a href="d.index.html">Library d</a><span title="Valid (no goals)" class="icon remark icofont-check"></span></li>
   </ul>
   </div>
   <script type="text/javascript" src="script.js"></script>

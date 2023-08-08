@@ -35,7 +35,7 @@
   <h1>Development</h1>
   <div class="doc">
   <ul>
-  <li><a href="p.a.index.html">Library p.a</a></li>
+  <li><a href="p.a.index.html">Library p.a</a><span title="Valid (no goals)" class="icon remark icofont-check"></span></li>
   </ul>
   </div>
   <script type="text/javascript" src="script.js"></script>

@@ -1152,13 +1152,27 @@ let process_source ~wenv ~cenv ~henv ~senv ~out:dir file (src : Docref.source) =
 (* --- Generating Index                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
+let process_chapter_proofs out (src : Docref.source) =
+  let (stuck,proved) =
+    Docref.Mstr.fold
+      (fun _ (thy : Docref.theory) acc ->
+         Docref.Mstr.fold
+           (fun _ (crc : Crc.crc) (stuck,proved) ->
+              stuck + Crc.get_stuck crc,
+              proved + Crc.get_proved crc
+           ) thy.proofs acc
+      ) src.theories (0,0)
+  in Pdoc.pp out pp_verdict (Crc.nverdict ~stuck ~proved)
+
 let pp_chapters out ~title cs =
   if cs <> [] then
     begin
       Pdoc.printf out "<h1>%s</h1>@\n<div class=\"doc\">@\n<ul>@\n" title ;
       List.iter
         (fun c ->
-           Pdoc.printf out "<li><a href=\"%s\">%s</a></li>@\n" c.href c.title
+           Pdoc.printf out "<li><a href=\"%s\">%s</a>" c.href c.title ;
+           Option.iter (process_chapter_proofs out) c.src ;
+           Pdoc.printf out "</li>@\n" ;
         ) cs ;
       Pdoc.printf out "</ul>@\n</div>@." ;
     end
