@@ -35,6 +35,7 @@ type soundness =
 
 val clone : soundness
 val unknown : soundness
+val merge : soundness -> soundness -> soundness
 
 val is_clone : soundness -> bool
 val is_sound : soundness -> bool

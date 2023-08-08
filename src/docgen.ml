@@ -1164,20 +1164,32 @@ let process_chapter_proofs out (src : Docref.source) =
       ) src.theories (0,0)
   in Pdoc.pp out pp_verdict (Crc.nverdict ~stuck ~proved)
 
-let pp_chapters out ~title cs =
+let process_chapter_axioms out (senv : Soundness.env) (src : Docref.source) =
+  let hs =
+    Docref.Mstr.fold
+      (fun _ (thy : Docref.theory) hs ->
+         let hs =
+           List.fold_left add_axiom hs @@ Axioms.parameters thy.signature in
+         let sound = Soundness.compute senv thy in
+         { hs with sound = Soundness.merge hs.sound sound }
+      ) src.theories free
+  in Pdoc.pp out pp_axioms hs
+
+let pp_chapters out ~senv ~title cs =
   if cs <> [] then
     begin
       Pdoc.printf out "<h1>%s</h1>@\n<div class=\"doc\">@\n<ul>@\n" title ;
       List.iter
         (fun c ->
            Pdoc.printf out "<li><a href=\"%s\">%s</a>" c.href c.title ;
+           Option.iter (process_chapter_axioms out senv) c.src ;
            Option.iter (process_chapter_proofs out) c.src ;
            Pdoc.printf out "</li>@\n" ;
         ) cs ;
       Pdoc.printf out "</ul>@\n</div>@." ;
     end
 
-let index ~out:dir ~title =
+let index ~out:dir ~senv ~title =
   let href = "index.html" in
   if List.for_all (fun c -> c.href <> href) !chapters then
     begin
@@ -1185,8 +1197,8 @@ let index ~out:dir ~title =
       let out = Pdoc.output ~file:ofile ~title in
       Pdoc.printf out
         "<header>index — %s</header>@." title ;
-      pp_chapters out ~title:"Documentation" @@ documentation () ;
-      pp_chapters out ~title:"Development" @@ package () ;
+      pp_chapters out ~senv ~title:"Documentation" @@ documentation () ;
+      pp_chapters out ~senv ~title:"Development" @@ package () ;
       Pdoc.flush out ;
       Pdoc.close_all out ;
     end
@@ -1238,7 +1250,7 @@ let generate ~out ~title ~files ~url =
     (* Doc generation *)
     List.iter (process ~wenv ~cenv ~henv ~senv ~title ~out) ;
     (* Indexing *)
-    index ~out ~title ;
+    index ~out ~senv ~title ;
     (* Final output *)
     Utils.log "Generated %s%s/index.html@."
       (if url then "file://" else "") (Utils.absolute out) ;
