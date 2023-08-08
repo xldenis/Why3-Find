@@ -144,7 +144,7 @@ let pp_title fmt r =
 
 let charset_uri =
   let m = Array.make 256 true in
-  let r = " !#$%&'()*+,/:;=?@[]" in
+  let r = " !#$%&'()*+,/:;=?@[]<>" in
   String.iter (fun c -> m.(Char.code c) <- false) r ; m
 
 let charset_why3 =

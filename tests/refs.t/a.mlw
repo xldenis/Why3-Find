@@ -18,7 +18,14 @@ end
 module B
   type t
   val binop t t : t
-
   (** B reference {t} *)
   (** A reference {A.op} *)
+end
+
+module C
+  use int.Int
+  type t
+  function value t : int
+  predicate (<<) (x y : t) = value x < value y
+  predicate (!=) (x y : t) = x << y \/ y << x
 end
