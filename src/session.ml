@@ -35,7 +35,8 @@ type session =
 let create ~session ~dir ~file ~format ths =
   if session then
     let s = S.empty_session dir in
-    let f = S.add_file_section s file ~file_is_detached:false ths format in
+    let f = Why3.Sysutil.relativize_filename dir file in
+    let f = S.add_file_section s f ~file_is_detached:false ths format in
     Sfile (f,s)
   else
     Ths ths
