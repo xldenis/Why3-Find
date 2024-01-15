@@ -3,6 +3,7 @@
 --------------------------------------------------------------------------
   $ why3 prove refine.mlw
   theory Interface
+    
     (* use why3.BuiltIn.BuiltIn *)
     
     (* use why3.Bool.Bool *)
@@ -54,9 +55,11 @@
     function fZ int : int
     
     axiom fZ'def : forall x:int. not fZ x = x
+    
   end
   
   theory Instance
+    
     (* use why3.BuiltIn.BuiltIn *)
     
     (* use why3.Bool.Bool *)
@@ -105,6 +108,7 @@
       constant cE = cE1, constant cD = cD1, constant cC = cC1,
       constant cB = cB1, constant cA = cA1, constant vA = vA1, prop qA = qA1,
       prop pA = pA1,  *)
+    
   end
   
 --------------------------------------------------------------------------
