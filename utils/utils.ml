@@ -26,18 +26,19 @@
 let tty = Unix.isatty Unix.stdout
 
 let progress msg =
-  let buffer = Buffer.create 78 in
   let width = Option.value (Terminal_size.get_columns ()) ~default:80 in
+  let buffer = Buffer.create (max 80 width) in
   Format.kfprintf
     (fun fmt ->
        Format.pp_print_flush fmt () ;
        if tty then
          let msg = Buffer.contents buffer in
          let len = String.length msg in
-         if 2 + len <= width then
+         if 3 + len <= width then
            Format.printf "> %s\027[K\r@?" msg
          else
-           Format.printf "> %s…\027[K\r@?" (String.sub msg 0 (width - 4))
+           Format.printf "> %s…\027[K\r@?" @@
+           String.sub msg 0 (max 0 (width - 3))
     ) (Format.formatter_of_buffer buffer) msg
 
 let flush () =
@@ -200,16 +201,18 @@ let pa_time s =
   if String.ends_with ~suffix:"min" s then
     60.0 *. (float @@ int_of_string @@ String.sub s 0 (n-3))
   else
-    match s.[n-1] with
-    | 'h' -> 3600.0 *. (float @@ int_of_string @@ String.sub s 0 (n-1))
-    | 's' ->
-      begin
-        match s.[n-2] with
-        | 'm' -> 1.e-3 *. (float @@ int_of_string @@ String.sub s 0 (n-2))
-        | 'n' -> 1.e-6 *. (float @@ int_of_string @@ String.sub s 0 (n-2))
-        | _ -> float @@ int_of_string @@ String.sub s 0 (n-1)
-      end
-    | _ -> float_of_string s
+    if n > 1 then
+      match s.[n-1] with
+      | 'h' -> 3600.0 *. (float @@ int_of_string @@ String.sub s 0 (n-1))
+      | 's' ->
+        begin
+          match s.[n-2] with
+          | 'm' -> 1.e-3 *. (float @@ int_of_string @@ String.sub s 0 (n-2))
+          | 'n' -> 1.e-6 *. (float @@ int_of_string @@ String.sub s 0 (n-2))
+          | _ -> float @@ int_of_string @@ String.sub s 0 (n-1)
+        end
+      | _ -> float_of_string s
+    else float_of_string s
 
 (* -------------------------------------------------------------------------- *)
 (* --- Pretty Printing                                                    --- *)

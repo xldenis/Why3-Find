@@ -302,9 +302,9 @@ let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
     let dir = Filename.chop_extension file in
     let lib = String.split_on_char '/' @@
       if Filename.is_relative file then dir else Filename.basename dir in
-    let fp = Filename.concat dir "proof.json" in
     let theories, format = load_theories env file in
     let session = Session.create ~session ~dir ~file ~format theories in
+    let fp = Filename.concat dir "proof.json" in
     let profile, strategy = load_proofs fp in
     let* proofs =
       Fibers.all @@ List.map
