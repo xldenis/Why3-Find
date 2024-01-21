@@ -105,21 +105,18 @@ let to_infix s =
   if n > 2 && s.[0] = '(' && s.[n-1] = ')' then
     if String.index_opt s '[' <> None
     then "mixfix " ^ String.sub s 1 (n-2) else
-    if s.[n-2] = '_'
+    if n > 3 && s.[n-2] = '_'
     then "prefix " ^ String.sub s 1 (n-3)
     else "infix " ^ String.sub s 1 (n-2)
   else s
-
-let unwrap ~prefix s =
-  let n = String.length s in
-  let p = String.length prefix in
-  Printf.sprintf "(%s)" @@ String.sub s p (n-p)
 
 let rec unwrap_any s = function
   | [] -> s
   | prefix::others ->
     if String.starts_with ~prefix s then
-      unwrap ~prefix s
+      let n = String.length s in
+      let p = String.length prefix in
+      Printf.sprintf "(%s)" @@ String.sub s p (n-p)
     else unwrap_any s others
 
 let of_infix s =
