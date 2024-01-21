@@ -78,6 +78,7 @@ rule source = parse
 
 and comment level buffer = parse
  | eof { () }
+ | "(*)" { add buffer "(*)" ; comment level buffer lexbuf }
  | "(*" { add buffer "(*" ; comment (succ level) buffer lexbuf }
  | "*)" { add buffer "*)" ; if level > 0 then comment (pred level) buffer lexbuf }
  | '\n' { add buffer "\n" ; newline lexbuf ; comment level buffer lexbuf }
@@ -91,6 +92,7 @@ and document = parse
  | eof { Eof }
  | '\n' { newline lexbuf ; Newline }
  | space+ { Space }
+ | "(*)" as s { Text s }
  | '*'+ ')' { CloseDoc }
  | ('#'+ as head) space* { Style(Head,head) }
  | ['0'-'9']+ '.' { style Ordered lexbuf }
