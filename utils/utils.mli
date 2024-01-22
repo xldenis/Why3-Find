@@ -40,6 +40,7 @@ val iterpath :
   ?enter:(string -> unit) ->
   ?file:(string -> unit) ->
   ?leave:(string -> unit) ->
+  ?ignored:(string -> bool) ->
   string -> unit
 
 val pp_hex : Format.formatter -> string -> unit

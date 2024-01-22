@@ -245,6 +245,11 @@ let argv files = load () ; List.map arg1 files
 
 let filter ~exts p = List.mem (Filename.extension p) exts
 
+let ignored p =
+  match String.get (Filename.basename p) 0 with
+  | 'a'..'z' | 'A'..'Z' | '0'..'9' -> false
+  | _ -> true
+
 let allfiles ~exts f path =
   if not (Sys.file_exists path) then
     Utils.failwith "Unknown file or directory %S" path ;
@@ -252,6 +257,7 @@ let allfiles ~exts f path =
     Utils.failwith "File %S is neither a Why3 file nor a directory" path ;
   Utils.iterpath
     ~file:(fun p -> if filter ~exts p then f p)
+    ~ignored:(fun p -> ignored p && p <> path)
     path
 
 let argfiles ~exts files = load () ;

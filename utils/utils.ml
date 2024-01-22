@@ -86,21 +86,23 @@ let readdir f p =
   Array.sort String.compare ds ;
   Array.iter f ds
 
-let rec iterpath ?(enter=ignore) ?(file=ignore) ?(leave=ignore) p =
-  if Sys.file_exists p then
-    if Sys.is_directory p then
-      begin
-        enter p ;
-        readdir
-          (fun d ->
-             let pd =
-               if p = Filename.current_dir_name then d else
-                 Filename.concat p d
-             in iterpath ~enter ~file ~leave pd ;
-          ) p ;
-        leave p ;
-      end
-    else file p
+let rec iterpath ?(enter=ignore) ?(file=ignore) ?(leave=ignore)
+          ?(ignored=Fun.const false) p =
+  if not (ignored p) then
+    if Sys.file_exists p then
+      if Sys.is_directory p then
+        begin
+          enter p ;
+          readdir
+            (fun d ->
+              let pd =
+                if p = Filename.current_dir_name then d else
+                  Filename.concat p d
+              in iterpath ~enter ~file ~leave ~ignored pd ;
+            ) p ;
+          leave p ;
+        end
+      else file p
 
 let rmpath p = iterpath ~file:Sys.remove ~leave:Sys.rmdir p
 
