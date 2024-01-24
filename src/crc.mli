@@ -23,7 +23,7 @@
 (* --- Proof Certificates                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-type crc = private
+type state = private
   | Stuck
   | Prover of string * float
   | Tactic of {
@@ -33,9 +33,14 @@ type crc = private
       proved : int ;
     }
 
-val stuck : crc
-val prover : string -> float -> crc
-val tactic : string -> crc list -> crc
+and crc = private {
+   goal : Session.goal option ;
+   state : state ;
+  }
+
+val stuck : Session.goal option -> crc
+val prover : Session.goal option -> string -> float -> crc
+val tactic : Session.goal option -> string -> crc list -> crc
 
 type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
 val verdict : crc -> verdict

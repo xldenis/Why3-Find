@@ -93,11 +93,11 @@ let prove_theory mode profile strategy theory =
     Fibers.all @@ List.map
       (fun task ->
          let goal = Session.goal_name task in
-         let hint = M.find_def Crc.stuck goal hints in
+         let hint = M.find_def (Crc.stuck None) goal hints in
          let+ crc =
            match mode with
            | `Force ->
-             Hammer.schedule profile ~replay:false ~depth:0 task Crc.stuck
+             Hammer.schedule profile ~replay:false ~depth:0 task (Crc.stuck None)
            | `Replay ->
              Hammer.schedule profile ~replay:true ~depth:0 task hint
            | `Update | `Minimize ->
@@ -114,7 +114,15 @@ let prove_theory mode profile strategy theory =
                  Format.printf "%a: proof failed@." Why3.Loc.pp_position loc
                | None -> ()
              end ;
-             Format.printf "Goal @{<red>%s@}: %a@." goal Crc.pretty crc
+             Format.printf "@[<v2>Goal @{<red>%s@}: %a" goal Crc.pretty crc;
+             let rec failed c = match c.Crc.state, c.goal with
+               | Stuck, Some g -> [ g ]
+               | Stuck, None | Prover _, _ -> []
+               | Tactic { children }, _ -> List.concat_map failed children in
+             let failed = failed crc in
+             Format.printf "@,%a"
+               (Format.pp_print_list Session.pp_goal) failed;
+             Format.printf "@."
            end ;
          goal, crc
       ) tasks

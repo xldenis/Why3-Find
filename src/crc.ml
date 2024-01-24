@@ -23,7 +23,7 @@
 (* --- Proof Certificates                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-type crc =
+type state =
   | Stuck
   | Prover of string * float
   | Tactic of {
@@ -33,40 +33,47 @@ type crc =
       proved : int ;
     }
 
-let stuck = Stuck
-let prover p f = Prover(p,f)
+and crc = {
+    goal : Session.goal option ;
+    state : state ;
+  }
 
-let get_stuck = function
+let stuck goal = { goal ; state = Stuck }
+let prover goal p f = { goal ; state = Prover(p,f) }
+
+let get_stuck { state } = match state with
   | Stuck -> 1
   | Prover _ -> 0
   | Tactic { stuck } -> stuck
 
-let get_proved = function
+let get_proved { state } = match state with
   | Stuck -> 0
   | Prover _ -> 1
   | Tactic { proved } -> proved
 
-let size = function
+let size { state } = match state with
   | Stuck | Prover _ -> 1
   | Tactic { stuck ; proved } -> stuck + proved
 
-let is_stuck = function Stuck -> true | Prover _ | Tactic _ -> false
+let is_stuck { state } = match state with
+  | Stuck -> true
+  | Prover _ | Tactic _ -> false
 
-let is_complete = function
+let is_complete { state } = match state with
   | Stuck -> false
   | Prover _ -> true
   | Tactic { stuck } -> stuck = 0
 
-let is_unknown = function
+let is_unknown { state } = match state with
   | Stuck -> true
   | Prover _ -> false
   | Tactic { stuck ; proved } -> stuck > 0 && proved = 0
 
-let tactic id children =
+let tactic goal id children =
   let stuck = List.fold_left (fun n c -> n + get_stuck c) 0 children in
   let proved = List.fold_left (fun n c -> n + get_proved c) 0 children in
-  if stuck > 0 && proved = 0 then Stuck else
-    Tactic { id ; children ; stuck ; proved }
+  if stuck > 0 && proved = 0 then { goal ; state = Stuck } else
+    { goal; state = Tactic { id ; children ; stuck ; proved } }
 
 type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
 
@@ -96,7 +103,7 @@ let pretty fmt crc =
 (* --- JSON                                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
-let rec to_json (a : crc) : Json.t = match a with
+let rec to_json (a : crc) : Json.t = match a.state with
   | Stuck -> `Null
   | Prover(p,t) ->
     `Assoc [ "prover", `String p ; "time", `Float t]
@@ -112,18 +119,18 @@ let rec of_json (js : Json.t) : crc =
     | `Assoc fds when List.mem_assoc "prover" fds ->
       let p = List.assoc "prover" fds |> Json.jstring in
       let t = List.assoc "time" fds |> Json.jfloat in
-      Prover(p,t)
+      prover None p t
     | `Assoc fds when List.mem_assoc "tactic" fds ->
       let f = List.assoc "tactic" fds |> Json.jstring in
       let xs = List.assoc "children" fds |> Json.jlist in
-      tactic f (List.map of_json xs)
+      tactic None f (List.map of_json xs)
     | `Assoc fds when List.mem_assoc "transf" fds ->
       (* Deprecated *)
       let f = List.assoc "transf" fds |> Json.jstring in
       let xs = List.assoc "children" fds |> Json.jlist in
-      tactic f (List.map of_json xs)
-    | _ -> Stuck
-  with _ -> Stuck
+      tactic None f (List.map of_json xs)
+    | _ -> stuck None
+  with _ -> stuck None
 
 (* -------------------------------------------------------------------------- *)
 (* --- Merging                                                            --- *)
@@ -135,12 +142,13 @@ let window t0 t1 =
   w0 *. 0.5 < w1 && w1 < w0 *.2.0
 
 let rec merge a b =
-  match a, b with
+  let goal = a.goal in (* ?? *)
+  match a.state, b.state with
   | Prover(p0,t0), Prover(p1,t1) when p0 = p1 && window t0 t1 -> a
   | Tactic { id = f ; children = xs } ,
     Tactic { id = g ; children = ys }
     when f = g && List.length xs = List.length ys ->
-    tactic f (List.map2 merge xs ys)
+    tactic goal f (List.map2 merge xs ys)
   | _ -> b
 
 let fixed = ref 0
@@ -155,7 +163,7 @@ let (+=) r n = r := !r + n
 
 let rec stats a b =
   begin
-    match a, b with
+    match a.state, b.state with
 
     | Stuck, Stuck ->
       incr unchanged ;
@@ -233,7 +241,7 @@ let shortname p =
     let s = String.lowercase_ascii @@ List.hd @@ String.split_on_char ',' p in
     Hashtbl.add pname p s ; s
 
-let rec dump fmt = function
+let rec dump fmt { state } = match state with
   | Stuck -> Format.fprintf fmt "@{<red>Unknown@}"
   | Prover(p,t) -> Format.fprintf fmt "%s (%a)" (shortname p) Utils.pp_time t
   | Tactic { id ; children } ->
