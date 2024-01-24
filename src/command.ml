@@ -499,7 +499,8 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
          \n  Prove all why3 files and directories accessible from PATH.\n\n\
          OPTIONS:\n" ;
       let session = !session || !ide in
-      let files = Wenv.argfiles ~exts:[".mlw"] @@ List.rev !files in
+      let files = if !files = [] then ["."] else !files in
+      let files = Wenv.argfiles ~exts:[".mlw"] @@ List.rev files in
       let result = Prove.prove_files
           ~mode:!mode ~session ~log:!log ~axioms:!axioms ~files in
       let n = List.length result.unfixed in
