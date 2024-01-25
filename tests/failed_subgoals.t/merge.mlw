@@ -1,0 +1,27 @@
+module Merge
+
+  use int.Int
+  use list.List
+  use list.NumOcc
+  use list.SortedInt
+
+  let shuffle (xs : list int) : list int
+    ensures { forall x. num_occ x result = num_occ x xs }
+  = xs
+
+  let rec merge (xs ys : list int) : list int
+    requires { sorted xs /\ sorted ys }
+    variant { xs, ys }
+    ensures { forall x. num_occ x result = num_occ x xs + num_occ x ys }
+    ensures { sorted result }
+  =
+    match xs, ys with
+    | Nil, _ -> ys
+    | _, Nil -> ys (* xs *)
+    | Cons x xs', Cons y ys' ->
+      if x <= y
+      then Cons x (merge (shuffle xs') ys) (* merge xs' ys *)
+      else Cons y (merge xs ys')
+    end
+
+end
