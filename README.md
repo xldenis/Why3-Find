@@ -101,8 +101,9 @@ The common options are given below:
 Package, prover, tactic and driver options can be used for adding, removing
 or re-ordering multiple items at a time. Multiple items must be separated by
 coma (`,`) and each item can be prefixed with: `+` to add the item (default),
-`-` to remove the item or `!` to remove all existing items. Using `n:a` will
-move or move item `a` at position `n` in the list (starting from `0`).
+`-` to remove the item or `!` to remove all preceding items before adding this
+one. Using `n:a` will move or move item `a` at position `n` in the list
+(starting from `0`).
 If no prefix is specified, `+` is assumed (add).
 
 For instance, specifying `--prover -cvc5,+alt-ergo,2:z3` will remove `cvc5` from
