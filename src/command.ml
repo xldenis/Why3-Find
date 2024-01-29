@@ -386,6 +386,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
           List.iter (Format.printf " - %s@.") pkgs ;
         end ;
       (* --- Provers ----- *)
+      let time = Wenv.time () in
       let pconfig = Wenv.provers () in
       let patterns = if !relax then List.map Wenv.relax pconfig else pconfig in
       let provers = Runner.select env ~patterns in
@@ -404,6 +405,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       if provers = [] then
         Format.eprintf "Warning: no provers, use -P or why3 config detect@." ;
       (* --- Transformations ----- *)
+      let depth = Wenv.depth () in
       let tactics = Wenv.tactics () in
       (* --- Drivers ----- *)
       let drivers = Wenv.drivers () in
@@ -435,6 +437,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             Runner.save_config env ;
           if Wenv.is_modified () || !strict || !relax then
             begin
+              Wenv.set_time time ;
+              Wenv.set_depth depth ;
               Wenv.set_configs cfgs ;
               Wenv.set_packages pkgs ;
               Wenv.set_provers prvs ;
