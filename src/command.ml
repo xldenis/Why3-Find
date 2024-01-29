@@ -553,7 +553,8 @@ let () = register ~name:"doc" ~args:"[OPTIONS] PATH..."
          \n\
          OPTIONS:\n" ;
       let title = !title in
-      let files = Wenv.argfiles ~exts:[".md";".mlw"] @@ List.rev !files in
+      let files = if !files = [] then ["."] else !files in
+      let files = Wenv.argfiles ~exts:[".md";".mlw"] @@ List.rev files in
       let out = if !out = "" then "html" else Wenv.arg1 !out in
       Docgen.generate ~out ~title ~files ~url:!url
     end
