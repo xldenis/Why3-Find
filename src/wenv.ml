@@ -82,7 +82,7 @@ let parse_item s =
   let n = String.length s in
   if n > 1 then
     match s.[0] with
-    | '!' -> Set (String.sub s 1 (n-1))
+    | '=' -> Set (String.sub s 1 (n-1))
     | '+' -> Add (String.sub s 1 (n-1))
     | '-' -> Sub (String.sub s 1 (n-1))
     | _ ->

@@ -98,17 +98,16 @@ The common options are given below:
     -T|--tactic TAC       # Tactics to be used
     -D|--driver DRV       # Extraction driver to be used for OCaml
 
-Package, prover, tactic and driver options can be used for adding, removing
-or re-ordering multiple items at a time. Multiple items must be separated by
-coma (`,`) and each item can be prefixed with: `+` to add the item (default),
-`-` to remove the item or `!` to remove all preceding items before adding this
-one. Using `n:a` will move or move item `a` at position `n` in the list
-(starting from `0`).
-If no prefix is specified, `+` is assumed (add).
+Package, prover, tactic and driver options can be used for adding, removing or
+re-ordering multiple items at a time. Multiple items must be separated by coma
+(`,`) and each item can be prefixed with: `+a` to add item `a` (default), `-a`
+to remove item `a` from the list or `=a` to replace all preceding items with
+`a`. Using `n:a` will move or move item `a` at position `n` in the list
+(starting from `0`). If no prefix is specified, `+a` is assumed (add `a`).
 
-For instance, specifying `--prover -cvc5,+alt-ergo,2:z3` will remove `cvc5` from
-the current configuration then add `alt-ergo` and finally insert or move `z3` to
-position 2.
+For instance, specifying `--prover -cvc5,+alt-ergo,2:z3` will first remove `cvc5` from
+the current configuration, then add `alt-ergo` and finally insert or move `z3` to
+position 2 in the list.
 
 Provers can be pinned to precise versions, using `prover@version`.  Prover names
 are case-insensitive and may also refer to prover shortcuts from Why3
