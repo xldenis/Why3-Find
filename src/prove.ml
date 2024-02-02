@@ -93,11 +93,11 @@ let prove_theory mode profile strategy theory =
     Fibers.all @@ List.map
       (fun task ->
          let goal = Session.goal_name task in
-         let hint = M.find_def (Crc.stuck None) goal hints in
+         let hint = M.find_def (Crc.stuck ()) goal hints in
          let+ crc =
            match mode with
            | `Force ->
-             Hammer.schedule profile ~replay:false ~depth:0 task (Crc.stuck None)
+             Hammer.schedule profile ~replay:false ~depth:0 task (Crc.stuck ())
            | `Replay ->
              Hammer.schedule profile ~replay:true ~depth:0 task hint
            | `Update | `Minimize ->

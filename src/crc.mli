@@ -38,9 +38,9 @@ and crc = private {
    state : state ;
   }
 
-val stuck : Session.goal option -> crc
-val prover : Session.goal option -> string -> float -> crc
-val tactic : Session.goal option -> string -> crc list -> crc
+val stuck : ?goal:Session.goal -> unit -> crc
+val prover : ?goal:Session.goal -> string -> float -> crc
+val tactic : ?goal:Session.goal -> string -> crc list -> crc
 
 type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
 val verdict : crc -> verdict

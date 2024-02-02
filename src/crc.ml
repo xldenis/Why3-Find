@@ -34,12 +34,12 @@ type state =
     }
 
 and crc = {
-    goal : Session.goal option ;
+    goal : Session.goal option ; (* not saved in JSON *)
     state : state ;
   }
 
-let stuck goal = { goal ; state = Stuck }
-let prover goal p f = { goal ; state = Prover(p,f) }
+let stuck ?goal () = { goal ; state = Stuck }
+let prover ?goal p f = { goal ; state = Prover(p,f) }
 
 let get_stuck { state } = match state with
   | Stuck -> 1
@@ -69,7 +69,7 @@ let is_unknown { state } = match state with
   | Prover _ -> false
   | Tactic { stuck ; proved } -> stuck > 0 && proved = 0
 
-let tactic goal id children =
+let tactic ?goal id children =
   let stuck = List.fold_left (fun n c -> n + get_stuck c) 0 children in
   let proved = List.fold_left (fun n c -> n + get_proved c) 0 children in
   if stuck > 0 && proved = 0 then { goal ; state = Stuck } else
@@ -119,18 +119,18 @@ let rec of_json (js : Json.t) : crc =
     | `Assoc fds when List.mem_assoc "prover" fds ->
       let p = List.assoc "prover" fds |> Json.jstring in
       let t = List.assoc "time" fds |> Json.jfloat in
-      prover None p t
+      prover p t
     | `Assoc fds when List.mem_assoc "tactic" fds ->
       let f = List.assoc "tactic" fds |> Json.jstring in
       let xs = List.assoc "children" fds |> Json.jlist in
-      tactic None f (List.map of_json xs)
+      tactic f (List.map of_json xs)
     | `Assoc fds when List.mem_assoc "transf" fds ->
       (* Deprecated *)
       let f = List.assoc "transf" fds |> Json.jstring in
       let xs = List.assoc "children" fds |> Json.jlist in
-      tactic None f (List.map of_json xs)
-    | _ -> stuck None
-  with _ -> stuck None
+      tactic f (List.map of_json xs)
+    | _ -> stuck ()
+  with _ -> stuck ()
 
 (* -------------------------------------------------------------------------- *)
 (* --- Merging                                                            --- *)
@@ -142,13 +142,13 @@ let window t0 t1 =
   w0 *. 0.5 < w1 && w1 < w0 *.2.0
 
 let rec merge a b =
-  let goal = a.goal in (* ?? *)
+  let goal = match a.goal with None -> b.goal | g -> g in
   match a.state, b.state with
   | Prover(p0,t0), Prover(p1,t1) when p0 = p1 && window t0 t1 -> a
   | Tactic { id = f ; children = xs } ,
     Tactic { id = g ; children = ys }
     when f = g && List.length xs = List.length ys ->
-    tactic goal f (List.map2 merge xs ys)
+    tactic ?goal f (List.map2 merge xs ys)
   | _ -> b
 
 let fixed = ref 0

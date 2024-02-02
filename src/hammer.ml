@@ -64,7 +64,7 @@ let pop () =
   try Some (Queue.pop q2) with Queue.Empty ->
     None
 
-let stuck n = Fibers.return (stuck (Some n.goal))
+let stuck n = Fibers.return (stuck ~goal:n.goal ())
 
 type strategy = node -> crc Fibers.t
 let fail : strategy = fun n -> stuck n
@@ -117,8 +117,8 @@ let prove env ?client ?cancel prover timeout : strategy = fun n ->
           | None -> ()
         in Fibers.monitor ~signal ~handler runner
   in match verdict with
-  | Valid t -> Crc.prover (Some n.goal) (Runner.name prover) (Utils.round t)
-  | _ -> Crc.stuck (Some n.goal)
+  | Valid t -> Crc.prover ~goal:n.goal (Runner.name prover) (Utils.round t)
+  | _ -> Crc.stuck ~goal:n.goal ()
 
 (* -------------------------------------------------------------------------- *)
 (* --- Try Transformation on Node                                         --- *)
@@ -128,7 +128,7 @@ let rec subgoals ({ profile ; replay ; depth } as n) goals hints =
   match goals, hints with
   | [], _ -> []
   | g::gs, [] ->
-    let h = Crc.stuck None in
+    let h = Crc.stuck () in
     schedule profile ~replay ~depth:(succ depth) g h :: subgoals n gs []
   | g::gs, h::hs ->
     schedule profile ~replay ~depth:(succ depth) g h :: subgoals n gs hs
@@ -137,7 +137,7 @@ let apply env depth tr hs : strategy = fun n ->
   if n.depth > depth then stuck n else
     match Session.apply env.Wenv.wenv tr n.goal with
     | None -> stuck n
-    | Some gs -> Crc.tactic (Some n.goal) tr @+ Fibers.all @@ subgoals n gs hs
+    | Some gs -> Crc.tactic ~goal:n.goal tr @+ Fibers.all @@ subgoals n gs hs
 
 (* -------------------------------------------------------------------------- *)
 (* --- Hammer Strategy                                                    --- *)
@@ -155,7 +155,7 @@ let hammer13 h time : strategy = fun n ->
       (fun prv -> watch @+ prove h.env ?client:h.client ~cancel prv time n)
       h.provers in
   try List.find (fun r -> not @@ Crc.is_stuck r) results
-  with Not_found -> Crc.stuck (Some n.goal)
+  with Not_found -> Crc.stuck ~goal:n.goal ()
 
 let hammer1 h = hammer13 h h.time
 let hammer3 h = hammer13 h (2.0 *. h.time)
