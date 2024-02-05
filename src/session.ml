@@ -85,9 +85,19 @@ let proof_name =
       in names := Mid.add id name !names ; name
 
 let task_name t = proof_name (T.task_goal t).pr_name
+let task_expl t =
+  let (_, expl, _) = Why3.Termcode.goal_expl_task ~root:false t in
+  expl
 let goal_task = function Task t | Snode(_,_,t) -> t
 let goal_loc g = (T.task_goal (goal_task g)).pr_name.id_loc
 let goal_name g = task_name @@ goal_task g
+let goal_expl g = task_expl @@ goal_task g
+
+let pp_goal fmt g =
+  let expl = goal_expl g in
+  if expl = ""
+  then Format.fprintf fmt "%s" (goal_name g)
+  else Format.fprintf fmt "%s [%s]" (goal_name g) expl
 
 let silent : S.notifier = fun _ -> ()
 

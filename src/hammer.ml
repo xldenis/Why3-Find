@@ -64,13 +64,13 @@ let pop () =
   try Some (Queue.pop q2) with Queue.Empty ->
     None
 
-let stuck = Fibers.return stuck
+let stuck n = Fibers.return (stuck ~goal:n.goal ())
 
 type strategy = node -> crc Fibers.t
-let fail : strategy = fun _ -> stuck
+let fail : strategy = fun n -> stuck n
 
 let (@>) (h : strategy) (n : node) : crc Fibers.t =
-  try h n with Not_found -> stuck
+  try h n with Not_found -> stuck n
 
 let (>>>) (h1 : strategy) (h2 : strategy) : strategy = fun n ->
   let* r = h1 @> n in
@@ -117,8 +117,8 @@ let prove env ?client ?cancel prover timeout : strategy = fun n ->
           | None -> ()
         in Fibers.monitor ~signal ~handler runner
   in match verdict with
-  | Valid t -> Crc.prover (Runner.name prover) (Utils.round t)
-  | _ -> Crc.stuck
+  | Valid t -> Crc.prover ~goal:n.goal (Runner.name prover) (Utils.round t)
+  | _ -> Crc.stuck ~goal:n.goal ()
 
 (* -------------------------------------------------------------------------- *)
 (* --- Try Transformation on Node                                         --- *)
@@ -128,16 +128,16 @@ let rec subgoals ({ profile ; replay ; depth } as n) goals hints =
   match goals, hints with
   | [], _ -> []
   | g::gs, [] ->
-    let h = Crc.stuck in
+    let h = Crc.stuck () in
     schedule profile ~replay ~depth:(succ depth) g h :: subgoals n gs []
   | g::gs, h::hs ->
     schedule profile ~replay ~depth:(succ depth) g h :: subgoals n gs hs
 
 let apply env depth tr hs : strategy = fun n ->
-  if n.depth > depth then stuck else
+  if n.depth > depth then stuck n else
     match Session.apply env.Wenv.wenv tr n.goal with
-    | None -> stuck
-    | Some gs -> Crc.tactic tr @+ Fibers.all @@ subgoals n gs hs
+    | None -> stuck n
+    | Some gs -> Crc.tactic ~goal:n.goal tr @+ Fibers.all @@ subgoals n gs hs
 
 (* -------------------------------------------------------------------------- *)
 (* --- Hammer Strategy                                                    --- *)
@@ -155,7 +155,7 @@ let hammer13 h time : strategy = fun n ->
       (fun prv -> watch @+ prove h.env ?client:h.client ~cancel prv time n)
       h.provers in
   try List.find (fun r -> not @@ Crc.is_stuck r) results
-  with Not_found -> Crc.stuck
+  with Not_found -> Crc.stuck ~goal:n.goal ()
 
 let hammer1 h = hammer13 h h.time
 let hammer3 h = hammer13 h (2.0 *. h.time)
@@ -201,8 +201,8 @@ let reduce h id cs =
 
 let process h : strategy = fun n ->
   try
-    match n.hint with
-    | Stuck -> if n.replay then stuck else hammer h n
+    match n.hint.state with
+    | Stuck -> if n.replay then stuck n else hammer h n
     | Prover(p,t) ->
       if n.replay then
         replay h p t n
@@ -217,7 +217,7 @@ let process h : strategy = fun n ->
         tactic h id children n
   with exn ->
     Utils.log "Process Error (%s)" @@ Printexc.to_string exn ;
-    stuck
+    stuck n
 
 (* -------------------------------------------------------------------------- *)
 (* --- Main Loop                                                          --- *)
