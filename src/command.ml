@@ -57,10 +57,7 @@ let generate file gen =
 
 let var = Str.regexp "%{\\([a-zA-Z]+\\)}"
 
-let template ~subst ~src ~tgt =
-  Utils.mkdirs (Filename.dirname tgt) ;
-  let inc = open_in src in
-  let out = open_out tgt in
+let template ~subst ~inc ~out =
   let apply subst text =
     try List.assoc (Str.matched_group 1 text) subst
     with Not_found -> Str.matched_group 0 text
@@ -73,10 +70,24 @@ let template ~subst ~src ~tgt =
       Stdlib.output_string out line' ;
       Stdlib.output_string out "\n" ;
       walk ()
-  in walk () ;
-  close_in inc ;
-  close_out out ;
-  Format.printf "Generated %s@." (Utils.absolute tgt)
+  in walk ()
+
+let template ~subst ~src ~tgt =
+  Utils.mkdirs (Filename.dirname tgt) ;
+  let inc = open_in src in
+  if Sys.file_exists tgt then
+    begin
+       Format.printf "Suggested %s:@." (Filename.basename tgt);
+       template ~subst ~inc ~out:stdout
+    end
+  else
+    begin
+      let out = open_out tgt in
+      template ~subst ~inc ~out ;
+      close_out out ;
+      Format.printf "Generated %s@." (Utils.absolute tgt)
+    end ;
+  close_in inc
 
 (* -------------------------------------------------------------------------- *)
 (* --- Wrapper Command                                                    --- *)
@@ -232,11 +243,11 @@ let () = register ~name:"init"
       let subst = ["pkg",pkg] in
       template
         ~subst
-        ~src:(Meta.shared "git.template")
+        ~src:(Meta.shared "gitignore.template")
         ~tgt:(Filename.concat dir ".gitignore") ;
       template
         ~subst
-        ~src:(Meta.shared "dune.template")
+        ~src:(Meta.shared "dune-project.template")
         ~tgt:(Filename.concat dir "dune-project") ;
     end
 
