@@ -299,6 +299,12 @@ type mode = [ `Force | `Update | `Minimize | `Replay ]
 type log0 = [ `Modules | `Theories | `Goals | `Proofs ]
 type log = [ `Default | log0 ]
 
+let rec normalize = function
+  | [] -> []
+  | "."::path -> normalize path
+  | _::".."::path -> normalize path
+  | p :: path -> p :: normalize path
+
 let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
   Fibers.background @@
   begin
@@ -308,7 +314,8 @@ let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
         exit 2
       end ;
     let dir = Filename.chop_extension file in
-    let lib = String.split_on_char '/' @@
+    let lib =
+      normalize @@ String.split_on_char '/' @@
       if Filename.is_relative file then dir else Filename.basename dir in
     let theories, format = load_theories env file in
     let session = Session.create ~session ~dir ~file ~format theories in
