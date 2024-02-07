@@ -89,6 +89,12 @@ let template ~subst ~src ~tgt =
   generate_or_suggest tgt (fun out -> template ~subst ~inc ~out) ;
   close_in inc
 
+let contains ~pattern ~text =
+  let regexp = Str.regexp_string pattern in
+  match Str.search_forward regexp text 0 with
+  | exception Not_found -> false
+  | _ -> true
+
 (* -------------------------------------------------------------------------- *)
 (* --- Wrapper Command                                                    --- *)
 (* -------------------------------------------------------------------------- *)
@@ -860,8 +866,15 @@ let () = register ~name:"install" ~args:"PKG PATH..."
               Format.fprintf out "    ))@." ;
             end ;
           Format.printf "Generated %s@." (Utils.absolute "dune.why3find");
-          generate_or_suggest "dune"
-            (fun out -> output_string out "(include dune.why3find)\n");
+          let include_stanza = "(include dune.why3find)" in
+          let already_included =
+            try
+              let dune = Utils.readfile ~file:"dune" in
+              contains ~pattern:include_stanza ~text:dune
+            with Sys_error _ -> false in
+          if not already_included then
+            generate_or_suggest "dune"
+              (fun out -> output_string out (include_stanza ^ "\n"));
         end
       else
         begin
