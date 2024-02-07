@@ -58,8 +58,9 @@ let generate_format file gen =
 let generate_or_suggest file gen =
   match open_out_gen [Open_wronly; Open_creat; Open_excl] 0o666 file with
   | exception Sys_error _ ->
-     Format.printf "  Suggested %s:@." (Filename.basename file) ;
-     gen stdout
+     Format.printf "#### Suggested %s:@." (Filename.basename file) ;
+     gen stdout ;
+     Format.printf "####@."
   | out ->
      gen out ;
      close_out out ;
