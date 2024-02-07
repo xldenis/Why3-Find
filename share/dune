@@ -3,8 +3,8 @@
   (section (site (why3find resources)))
   (files
     hammer.cfg
-    git.template
-    dune.template
+    gitignore.template
+    dune-project.template
     style.css
     script.js
     icofont.min.css
