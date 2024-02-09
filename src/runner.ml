@@ -164,8 +164,7 @@ let default env =
   find_default env "cvc5"
 
 let select env ~patterns =
-  if patterns = [] then default env
-  else List.filter_map (fun pattern -> find env ~pattern) patterns
+  List.filter_map (fun pattern -> find env ~pattern) patterns
 
 let all (env : Wenv.env) =
   List.sort compare_prover @@

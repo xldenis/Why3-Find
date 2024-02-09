@@ -346,9 +346,10 @@ let rec configuration configs provers =
   | [] , ps -> List.map Runner.infoname ps
   | cs , [] -> List.map (Printf.sprintf "(?%s)") cs
   | c::cs , p::ps ->
-    let cn = Wenv.relax c in
+    let cn = Wenv.name c in
     let pn = Runner.name p in
-    if cn <> pn then Printf.sprintf "(?%s)" c :: configuration cs provers else
+    if cn <> pn then Printf.sprintf "(?%s)" c :: configuration cs provers
+    else
       let q = Runner.fullname p in
       if c = q then q :: configuration cs ps else
         Runner.infoname p :: configuration cs ps
@@ -357,8 +358,6 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
       let list = ref true in
       let save = ref true in
-      let strict = ref false in
-      let relax = ref false in
       let calibrate = ref false in
       let velocity = ref false in
       let detect = ref false in
@@ -371,8 +370,6 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             "-v", Arg.Set velocity, "evaluate prover velocity (local)";
             "--quiet", Arg.Clear list, "do not list final configuration";
             "--dry", Arg.Clear save, "do not save final configuration";
-            "--relax", Arg.Set relax, "relax prover version constraints";
-            "--strict", Arg.Set strict, "save strict prover versions";
             "--detect", Arg.Set detect, "detect and update why3 config";
           ]
         end
@@ -404,30 +401,21 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
         end ;
       (* --- Provers ----- *)
       let time = Wenv.time () in
-      let pconfig = Wenv.provers () in
-      let patterns = if !relax then List.map Wenv.relax pconfig else pconfig in
+      let patterns = Wenv.provers () in
       let provers = Runner.select env ~patterns in
-      let pnames =
-        if !strict then List.map Runner.fullname provers else
-        if !relax then List.map Runner.infoname provers else
-          configuration patterns provers
-      in
-      let prvs =
-        if !strict then List.map Runner.fullname provers else patterns in
+      let pnames = configuration patterns provers in
       if !calibrate then
         Calibration.calibrate_provers ~saved:!save env provers
       else
       if !velocity then
         Calibration.velocity_provers env provers ;
-      if provers = [] then
-        Format.eprintf "Warning: no provers, use -P or why3 config detect@." ;
       (* --- Transformations ----- *)
       let depth = Wenv.depth () in
       let tactics = Wenv.tactics () in
       (* --- Drivers ----- *)
       let drivers = Wenv.drivers () in
       (* --- Printing -------------- *)
-      if !list || !relax || !strict then
+      if !list then
         begin
           let jobs = Runner.maxjobs env in
           let time = Wenv.time () in
@@ -435,12 +423,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
           Format.printf " - runner: %d jobs, %a@."
             jobs Utils.pp_time time ;
           if provers <> [] then
-            Format.printf " - @[<hov 2>provers: %a%t@]@."
-              pp_list pnames
-              (fun fmt ->
-                 if patterns = [] && not !strict then
-                   Format.fprintf fmt " (default)"
-              ) ;
+            Format.printf " - @[<hov 2>provers: %a@]@." pp_list pnames ;
         end ;
       if !list && tactics <> [] then
         Format.printf " - @[<hov 2>tactics: %a@ (depth %d)@]@."
@@ -448,27 +431,27 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       if !list && drivers <> [] then
         Format.printf " - @[<hov 2>drivers: %a@]@." pp_list drivers ;
       (* --- Updating -------------- *)
-      if !save || !strict || !relax then
+      if !save then
         begin
           if Runner.is_modified () then
             Runner.save_config env ;
-          if Wenv.is_modified () || !strict || !relax then
+          if Wenv.is_modified () then
             begin
               Wenv.set_time time ;
               Wenv.set_depth depth ;
               Wenv.set_configs cfgs ;
               Wenv.set_packages pkgs ;
-              Wenv.set_provers prvs ;
+              Wenv.set_provers patterns ;
               Wenv.set_tactics tactics ;
               Wenv.set_drivers drivers ;
               Wenv.save () ;
             end ;
         end
       else
-        let project = !strict || !relax || Wenv.is_modified () in
+        let config = Wenv.is_modified () in
         let local = Runner.is_modified () in
         let target =
-          match project, local with
+          match config, local with
           | false,false -> None
           | true,false -> Some "project configuration"
           | false,true -> Some "local configuration"

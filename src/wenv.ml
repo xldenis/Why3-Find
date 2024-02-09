@@ -69,22 +69,22 @@ let prvs = ref []
 let tacs = ref []
 
 (* -------------------------------------------------------------------------- *)
-(* --- Argument Processing                                                --- *)
+(* --- Variable Argument Processing                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-type item =
-  | Set of string
-  | Add of string
-  | Sub of string
-  | Insert of int * string
+type mode =
+  | Set
+  | Add
+  | Sub
+  | Move of int
 
-let parse_item s =
+let parse_arg ~mode s =
   let n = String.length s in
   if n > 1 then
     match s.[0] with
-    | '=' -> Set (String.sub s 1 (n-1))
-    | '+' -> Add (String.sub s 1 (n-1))
-    | '-' -> Sub (String.sub s 1 (n-1))
+    | '=' -> Set, String.sub s 1 (n-1)
+    | '+' -> Add, String.sub s 1 (n-1)
+    | '-' -> Sub, String.sub s 1 (n-1)
     | _ ->
       let rec digits k =
         if k < n then
@@ -96,50 +96,67 @@ let parse_item s =
       let d = digits 0 in
       if d > 0 then
         let at = int_of_string (String.sub s 0 d) in
-        Insert(at,String.sub s (d+1) (n-d-1))
-      else Add s
-  else Add s
+        Move at, String.sub s (d+1) (n-d-1)
+      else mode, s
+  else mode, s
 
-let parse opt =
-  List.map parse_item @@ List.concat @@ List.map (String.split_on_char ',') opt
+(* principal prover name (without '@version') *)
+let name p =
+  String.lowercase_ascii @@ List.hd @@ String.split_on_char '@' p
 
-let relax name =
-  String.lowercase_ascii @@ List.hd @@ String.split_on_char '@' name
+(* equal by principal name *)
+let eq_name p q = name p = name q
 
-let relaxed p = (relax p = p)
+(* has an '@version' qualifier *)
+let precise p = String.contains p '@'
 
-let prefixeq p q = relax p = relax q
+(* append or update an item *)
+let rec add a = function
+  | [] -> [a]
+  | p::ps -> if eq_name a p then a :: ps else p :: add a ps
 
-let test ~prefix x y =
-  if prefix then prefixeq x y else x = y
+(* remove an item *)
+let rec sub a = function
+  | [] -> []
+  | p::ps -> if eq_name a p then ps else p :: sub a ps
 
-let diff ~prefix e y = not @@ test ~prefix e y
+(* current version of the name, if any *)
+let rec current a = function
+  | [] -> a
+  | p::ps -> if eq_name a p then p else current a ps
 
-let rec update ~prefix e = function
-  | [] -> [e]
-  | x::xs ->
-    if test ~prefix e x
-    then e :: xs
-    else x :: update ~prefix e xs
-
-(* invariant pos <= at *)
-let rec insert ~prefix ~at e pos = function
-  | [] -> [e]
-  | x::xs ->
-    if test ~prefix e x then
-      if pos < at
-      then insert ~prefix ~at e (succ pos) xs
-      else e :: List.filter (diff ~prefix e) xs
+(* insert at position, starting at 1 *)
+let rec insert ~at a = function
+  | [] -> [a]
+  | p::ps ->
+    if eq_name a p then
+      if at <= 1 then a :: ps
+      else insert ~at:(pred at) a ps
     else
-    if pos < at
-    then x :: insert ~prefix ~at e (succ pos) xs
-    else e :: x :: List.filter (diff ~prefix e) xs
+    if at <= 1 then a :: p :: sub a ps
+    else p :: insert ~at:(pred at) a ps
 
-let process ~prefix cfg = function
-  | Set e -> [e]
-  | Add e -> update ~prefix e cfg
-  | Sub e -> List.filter (diff ~prefix e) cfg
-  | Insert(at,e) -> insert ~prefix ~at e 0 cfg
+let move ~at a ps =
+  insert ~at (if precise a then a else current a ps) ps
+
+let rec process config mode = function
+  | [] -> config
+  | arg :: args ->
+    modified := true ;
+    let m, a = parse_arg ~mode arg in
+    if a = "none" then
+      match m with
+      | Set -> process [] Add args
+      | Add | Sub | Move _ -> process config mode args
+    else
+      match m with
+      | Set -> process [ a ] Add args
+      | Add -> process (add a config) Add args
+      | Sub -> process (sub a config) Sub args
+      | Move at -> process (move ~at a config) (Move (succ at)) args
+
+let process_args config args =
+  process config Set @@ String.split_on_char ',' args
 
 (* -------------------------------------------------------------------------- *)
 (* --- Command Line Arguments                                             --- *)
@@ -162,13 +179,12 @@ let add r a =
   modified := true ;
   r := a :: !r
 
-let gets fd ?(prefix=false) ?(default=[]) ropt =
+let gets fd ?(default=[]) ropt =
   load () ;
-  let cfg =
+  let config =
     try get fd ~of_json:(Json.(jmap jstring))
     with Not_found -> default
-  in
-  List.fold_left (process ~prefix) cfg (parse !ropt)
+  in List.fold_left process_args config !ropt
 
 let sets fd xs =
   set fd ~to_json:Fun.id (`List (List.map (fun x -> `String x) xs))
@@ -225,8 +241,8 @@ let time () = getv "time" ~of_json:Json.jfloat ~default:1.0 time
 let depth () = getv "depth" ~of_json:Json.jint ~default:4 depth
 let configs () = gets "configs" cfgs
 let packages () = gets "packages" pkgs
-let provers () = gets "provers" ~prefix:true prvs
-let tactics () = gets "tactics" ~default:["split_vc";"inline_goal" ] tacs
+let provers () = gets "provers" prvs
+let tactics () = gets "tactics" ~default:["split_vc"] tacs
 let drivers () = gets "drivers" drvs
 
 let set_time = set "time" ~to_json:(fun v -> `Float v)
