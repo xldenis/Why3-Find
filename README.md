@@ -98,28 +98,27 @@ The common options are given below:
     -T|--tactic TAC       # Tactics to be used
     -D|--driver DRV       # Extraction driver to be used for OCaml
 
-Package, prover, tactic and driver options can be used for adding, removing or
-re-ordering multiple items at a time. Multiple items must be separated by coma
-(`,`) and each item can be prefixed with: `+a` to add item `a` (default), `-a`
-to remove item `a` from the list or `=a` to replace all preceding items with
-`a`. Using `n:a` will move or move item `a` at position `n` in the list
-(starting from `0`). If no prefix is specified, `+a` is assumed (add `a`).
+Package, prover, tactic and driver options can be used to specify multiple items
+at a time. Finer management is possible using modifier flags. Flag `+` adds
+items, flag `-` remove items, flag `=` replace items, flag `n:` move or insert
+items starting at position `n`. Moreover, option `none` remove all items from
+configuration. For instance:
 
-For instance, specifying `--prover -cvc5,+alt-ergo,2:z3` will first remove `cvc5` from
-the current configuration, then add `alt-ergo` and finally insert or move `z3` to
-position 2 in the list.
+    --prover none         # Remove all provers
+    --prover a,b,c        # Use provers a, b and c only
+    --prover +a,b         # Add provers a and b to package config
+    --prover -a,b         # Remove provers a and b from package config
+    --prover 2:a,b        # Move or insert provers a and b at position 2 and 3
+    --prover +a,-b,1:c    # Add prover a, remove b, move or insert c at position 1
 
-Provers can be pinned to precise versions, using `prover@version`.  Prover names
+Provers can be pinned to precise versions, using `prover@version`. Prover names
 are case-insensitive and may also refer to prover shortcuts from Why3
-configuration.  Using `--relax` will remove all prover versions and `--strict`
-will pin all configured provers to their current version.
+configuration.
 
 The command `why3find config` can be used to manage the package configuration.
 Typical examples are:
 
     why3find config                  # Show current config
-    why3find config --detect         # Update Why3 prover configuration
-    why3find config --reset          # Restore default config (and save)
     why3find config […]              # Manage packages, provers, etc. (and save)
 
 ## Package Proving

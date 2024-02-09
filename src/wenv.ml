@@ -27,7 +27,6 @@ let config = "why3find.json"
 let prefix = ref ""
 let sections = Hashtbl.create 0
 let loaded = ref false
-let loadcfg = ref true
 let modified = ref false
 let chdir = ref ""
 
@@ -44,7 +43,7 @@ let load () =
           | Some(dir,path) -> Utils.chdir dir ; prefix := path
           | None -> ()
         end ;
-      if !loadcfg && Sys.file_exists config then
+      if Sys.file_exists config then
         Json.of_file config |> Json.jiter (Hashtbl.add sections)
     end
 
@@ -210,7 +209,6 @@ let alloptions : (opt * string * Arg.spec * string) list = [
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
   `Prover,  "--tactic", Arg.String (add tacs), "TAC add proof tactic";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
-  `Config, "--reset", Arg.Clear loadcfg, "reset configuration";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
   `Prover,  "-t", Arg.String settime, " same as --time";
   `Prover,  "-d", Arg.Int (setv depth), " same as --depth";
@@ -287,7 +285,7 @@ let argfiles ~exts files = load () ;
 (* --- Saving Project Config                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-let is_modified () = not !loadcfg || !modified
+let is_modified () = !modified
 let set_modified () = modified := true
 
 let save () =
