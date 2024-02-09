@@ -24,9 +24,11 @@
 (* -------------------------------------------------------------------------- *)
 
 let config = "why3find.json"
+let backup = "why3find.json.bak"
 let prefix = ref ""
 let sections = Hashtbl.create 0
 let loaded = ref false
+let reset = ref false
 let modified = ref false
 let chdir = ref ""
 
@@ -43,7 +45,7 @@ let load () =
           | Some(dir,path) -> Utils.chdir dir ; prefix := path
           | None -> ()
         end ;
-      if Sys.file_exists config then
+      if not !reset && Sys.file_exists config then
         Json.of_file config |> Json.jiter (Hashtbl.add sections)
     end
 
@@ -209,6 +211,7 @@ let alloptions : (opt * string * Arg.spec * string) list = [
   `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
   `Prover,  "--tactic", Arg.String (add tacs), "TAC add proof tactic";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
+  `Config,  "--reset", Arg.Set reset, "Reset configuration to defaults";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
   `Prover,  "-t", Arg.String settime, " same as --time";
   `Prover,  "-d", Arg.Int (setv depth), " same as --depth";
@@ -291,15 +294,21 @@ let set_modified () = modified := true
 let save () =
   if !modified then
     begin
+      let path = Filename.concat (Sys.getcwd ()) config in
+      let backup =
+        (not @@ Sys.file_exists backup) &&
+        (Sys.file_exists config) &&
+        (Utils.copy ~src:config ~tgt:backup ; true)
+      in
       let sections =
         List.sort (fun a b -> String.compare (fst a) (fst b)) @@
         Hashtbl.fold
           (fun fd js fds -> (fd,js) :: fds)
           sections []
       in Json.to_file config (`Assoc sections) ;
-      Format.printf "Why3find config saved to %s@."
-        (Filename.concat (Sys.getcwd ()) config) ;
-      loaded := false ;
+      Format.printf "Why3find config saved to %s%s@." path
+        (if backup then " (backup created)" else "") ;
+      modified := false ;
     end
 
 (* -------------------------------------------------------------------------- *)
