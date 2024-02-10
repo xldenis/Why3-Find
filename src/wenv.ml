@@ -29,6 +29,8 @@ let prefix = ref ""
 let sections = Hashtbl.create 0
 let loaded = ref false
 let reset = ref false
+let revert = ref false
+let commit = ref false
 let modified = ref false
 let chdir = ref ""
 
@@ -45,6 +47,8 @@ let load () =
           | Some(dir,path) -> Utils.chdir dir ; prefix := path
           | None -> ()
         end ;
+      if !revert && Sys.file_exists backup then
+        Utils.copy ~src:backup ~tgt:config ;
       if not !reset && Sys.file_exists config then
         Json.of_file config |> Json.jiter (Hashtbl.add sections)
     end
@@ -212,6 +216,8 @@ let alloptions : (opt * string * Arg.spec * string) list = [
   `Prover,  "--tactic", Arg.String (add tacs), "TAC add proof tactic";
   `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
   `Config,  "--reset", Arg.Set reset, "Reset configuration to defaults";
+  `Config,  "--revert", Arg.Set revert, "Revert configuration (restore backup)";
+  `Config,  "--commit", Arg.Set commit, "Commit configuration (clear backup)";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
   `Prover,  "-t", Arg.String settime, " same as --time";
   `Prover,  "-d", Arg.Int (setv depth), " same as --depth";
@@ -296,9 +302,14 @@ let save () =
     begin
       let path = Filename.concat (Sys.getcwd ()) config in
       let backup =
-        (not @@ Sys.file_exists backup) &&
-        (Sys.file_exists config) &&
-        (Utils.copy ~src:config ~tgt:backup ; true)
+        if Sys.file_exists backup then
+          if !revert then (Sys.remove backup ; " (backup reverted)") else
+          if !commit then (Sys.remove backup ; " (commited changes)") else
+            " (backup pending)"
+        else
+        if Sys.file_exists config && not !revert && not !commit then
+          (Utils.copy ~src:config ~tgt:backup ; " (backup created)")
+        else ""
       in
       let sections =
         List.sort (fun a b -> String.compare (fst a) (fst b)) @@
@@ -306,10 +317,24 @@ let save () =
           (fun fd js fds -> (fd,js) :: fds)
           sections []
       in Json.to_file config (`Assoc sections) ;
-      Format.printf "Why3find config saved to %s%s@." path
-        (if backup then " (backup created)" else "") ;
+      Format.printf "Why3find config saved to %s%s@." path backup ;
       modified := false ;
     end
+  else
+  if Sys.file_exists backup then
+    if !revert then
+      begin
+        Sys.remove backup ;
+        Format.printf "Reverted configuration (backup restored)@."
+      end
+    else
+    if !commit then
+      begin
+        Sys.remove backup ;
+        Format.printf "Commited configuration (backup cleared)@."
+      end
+    else
+      Format.printf "Unchanged configuration (backup pending)@."
 
 (* -------------------------------------------------------------------------- *)
 (* --- Why3 Environment                                                   --- *)

@@ -444,8 +444,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
               Wenv.set_provers patterns ;
               Wenv.set_tactics tactics ;
               Wenv.set_drivers drivers ;
-              Wenv.save () ;
             end ;
+          Wenv.save () ;
         end
       else
         let config = Wenv.is_modified () in
