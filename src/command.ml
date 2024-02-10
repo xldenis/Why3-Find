@@ -357,7 +357,6 @@ let rec configuration configs provers =
 let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
       let list = ref true in
-      let save = ref true in
       let calibrate = ref false in
       let velocity = ref false in
       let detect = ref false in
@@ -369,7 +368,6 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             "-m", Arg.Set calibrate, "calibrate provers (master)";
             "-v", Arg.Set velocity, "evaluate prover velocity (local)";
             "--quiet", Arg.Clear list, "do not list final configuration";
-            "--dry", Arg.Clear save, "do not save final configuration";
             "--detect", Arg.Set detect, "detect and update why3 config";
           ]
         end
@@ -405,7 +403,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let provers = Runner.select env ~patterns in
       let pnames = configuration patterns provers in
       if !calibrate then
-        Calibration.calibrate_provers ~saved:!save env provers
+        Calibration.calibrate_provers ~saved:true env provers
       else
       if !velocity then
         Calibration.velocity_provers env provers ;
@@ -431,32 +429,19 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       if !list && drivers <> [] then
         Format.printf " - @[<hov 2>drivers: %a@]@." pp_list drivers ;
       (* --- Updating -------------- *)
-      if !save then
+      if Runner.is_modified () then
+        Runner.save_config env ;
+      if Wenv.is_modified () then
         begin
-          if Runner.is_modified () then
-            Runner.save_config env ;
-          if Wenv.is_modified () then
-            begin
-              Wenv.set_time time ;
-              Wenv.set_depth depth ;
-              Wenv.set_configs cfgs ;
-              Wenv.set_packages pkgs ;
-              Wenv.set_provers patterns ;
-              Wenv.set_tactics tactics ;
-              Wenv.set_drivers drivers ;
-            end ;
-          Wenv.save () ;
-        end
-      else
-        let config = Wenv.is_modified () in
-        let local = Runner.is_modified () in
-        let target =
-          match config, local with
-          | false,false -> None
-          | true,false -> Some "project configuration"
-          | false,true -> Some "local configuration"
-          | true,true -> Some "project and local configurations"
-        in Option.iter (Format.printf "Would update %s@.") target
+          Wenv.set_time time ;
+          Wenv.set_depth depth ;
+          Wenv.set_configs cfgs ;
+          Wenv.set_packages pkgs ;
+          Wenv.set_provers patterns ;
+          Wenv.set_tactics tactics ;
+          Wenv.set_drivers drivers ;
+        end ;
+      Wenv.save () ;
     end
 
 (* -------------------------------------------------------------------------- *)

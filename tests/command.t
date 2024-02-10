@@ -188,7 +188,9 @@
     --prover PRV add automated prover
     --tactic TAC add proof tactic
     --driver DRV add extraction driver
-    --reset reset configuration
+    --reset Reset configuration to defaults
+    --revert Revert configuration (restore backup)
+    --commit Commit configuration (clear backup)
     -p  same as --package
     -t  same as --time
     -d  same as --depth
@@ -200,9 +202,6 @@
     -m calibrate provers (master)
     -v evaluate prover velocity (local)
     --quiet do not list final configuration
-    --dry do not save final configuration
-    --relax relax prover version constraints
-    --strict save strict prover versions
     --detect detect and update why3 config
     -help  Display this list of options
     --help  Display this list of options
@@ -229,7 +228,9 @@
     --prover PRV add automated prover
     --tactic TAC add proof tactic
     --driver DRV add extraction driver
-    --reset reset configuration
+    --reset Reset configuration to defaults
+    --revert Revert configuration (restore backup)
+    --commit Commit configuration (clear backup)
     -p  same as --package
     -t  same as --time
     -d  same as --depth
