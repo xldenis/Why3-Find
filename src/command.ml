@@ -368,7 +368,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             "-m", Arg.Set calibrate, "calibrate provers (master)";
             "-v", Arg.Set velocity, "evaluate prover velocity (local)";
             "--quiet", Arg.Clear list, "do not list final configuration";
-            "--detect", Arg.Set detect, "detect and update why3 config";
+            "--detect", Arg.Set detect,
+            "detect and import known provers (if not configured yet)";
           ]
         end
         noargv
@@ -401,6 +402,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let time = Wenv.time () in
       let patterns = Wenv.provers () in
       let provers = Runner.select env ~patterns in
+      let provers =
+        if provers = [] && !detect then Runner.default env else provers in
       let pnames = configuration patterns provers in
       if !calibrate then
         Calibration.calibrate_provers ~saved:true env provers
