@@ -202,7 +202,7 @@
     -m calibrate provers (master)
     -v evaluate prover velocity (local)
     --quiet do not list final configuration
-    --detect detect and update why3 config
+    --detect detect and import known provers (if not configured yet)
     -help  Display this list of options
     --help  Display this list of options
   

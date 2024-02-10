@@ -402,8 +402,12 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let time = Wenv.time () in
       let patterns = Wenv.provers () in
       let provers = Runner.select env ~patterns in
-      let provers =
-        if provers = [] && !detect then Runner.default env else provers in
+      let patterns, provers =
+        if provers = [] && !detect then
+          let provers = Runner.default env in
+          let patterns = List.map Runner.name provers in
+          Wenv.set_modified () ; patterns, provers
+        else patterns, provers in
       let pnames = configuration patterns provers in
       if !calibrate then
         Calibration.calibrate_provers ~saved:true env provers
