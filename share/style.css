@@ -62,6 +62,10 @@ pre.src {
     color: purple;
 }
 
+.admitted {
+    color: #DA2525;
+}
+
 .attribute {
     color: green;
 }

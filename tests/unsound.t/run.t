@@ -23,7 +23,7 @@
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
   
     <span class="keyword">let</span> <a id="admit1">admit1</a><span title="Unsound Definition" class="icon small failed icofont-warning"></span><a href="unsound.proof.html#Dummy.admit1" title="Failed (no proof)" class="icon failed icofont-error"></a> () : unit
-      <span class="keyword">ensures</span> { <span class="keyword">false</span> } = <span class="keyword">assume</span> { <span class="keyword">false</span> }
+      <span class="keyword">ensures</span> { <span class="keyword">false</span> } = <span class="admitted">assume</span> { <span class="keyword">false</span> }
   
     <span class="keyword">let</span> <a id="admit2">admit2</a><span title="Unsound Definition" class="icon small failed icofont-warning"></span><a href="unsound.proof.html#Dummy.admit2" title="Failed (no proof)" class="icon failed icofont-error"></a> () : unit
       <span class="keyword">ensures</span> { <span class="keyword">false</span> } = <span class="keyword">val</span> foo () : unit <span class="keyword">ensures</span> { <span class="keyword">false</span> } <span class="keyword">in</span> foo ()

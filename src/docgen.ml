@@ -849,6 +849,8 @@ let process_ident env s =
     begin match s with
       | "module" | "theory" -> process_open_module env s
       | "end" when env.opened = 0 -> process_close_module env s
+      | "assume" ->
+        Pdoc.pp env.out Pdoc.pp_admitted s
       | _ ->
         if is_opening s then env.opened <- succ env.opened ;
         if is_closing s then env.opened <- pred env.opened ;
