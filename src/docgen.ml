@@ -311,18 +311,17 @@ let process_axioms env (id : Id.id) =
     | Some { param ; builtin ; extern } ->
       match builtin, extern with
       | [],None ->
-        let icon_sound () =
+        let cloned_param () =
           match Soundness.compute env.senv theory with
-          | Unsound -> icon_unsafe_param
           | Sound _ -> icon_sound_param
-          | Unknown _ -> icon_unsound_param
+          | Unknown _ | Unsound -> icon_unsound_param
         in
         let cla,title =
           match param with
           | Type _ | Logic _ | Param _ -> icon_parameter, "Parameter"
-          | Value _ -> icon_sound (), "Value Parameter"
-          | Axiom _ -> icon_sound (), "Hypothesis"
           | Unsafe _ -> icon_unsafe_param, "Unsound Definition"
+          | Value _ -> cloned_param (), "Value Parameter"
+          | Axiom _ -> cloned_param (), "Hypothesis"
         in
         Pdoc.ppt env.out (pp_mark ~cla ~title)
       | [], Some ext ->
