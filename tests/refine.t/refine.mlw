@@ -1,0 +1,49 @@
+module Interface
+  use int.Int
+
+  (** All these are defined values, they can not be refined *)
+
+  constant vA : int = 42
+  val zB : int
+  let vC : int = any int
+
+  (** Standard refinable constants with assumption *)
+
+  constant cA : int
+  axiom pA : cA > 0
+  axiom qA : cA < 66
+
+  (** All these can be instanciated by constants or functions *)
+
+  val constant cB : int
+  let constant cC : int = any int
+  let constant cD : int = any int ensures { result > 0 }
+  let function cE : int = any int ensures { result > 0 }
+
+  (** All these are refinable functions *)
+
+  val fX (x : int) : int ensures { result > x }
+  val function fY (x : int) : int ensures { result < x }
+
+  (** This function can _not_ be refined *)
+  let function fZ (x : int) : int = any int ensures { result <> x }
+
+end
+
+module Instance
+  use int.Int
+
+  constant cA : int = 42
+  let constant cB : int = 42
+  let constant cC : int = 42
+  let function cD : int = 42
+  let constant cE : int = 42
+  let fX (x : int) = x+1
+  let function fY (y : int) = y-1
+
+  clone Interface with
+    function cA, axiom qA,
+    val cB, val cC, val cD, val cE,
+    val fX, val fY
+
+end
