@@ -35,7 +35,7 @@
   <h1>Development</h1>
   <div class="doc">
   <ul>
-  <li><a href="p.a.index.html">Library p.a</a><span title="1 value parameter, 0 instance found" class="icon small warning icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></li>
+  <li><a href="p.a.index.html">Library p.a</a><span title="1 value parameter, 0 instance found" class="icon small warning icofont-warning-alt"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></li>
   </ul>
   </div>
   <script type="text/javascript" src="script.js"></script>
@@ -61,7 +61,7 @@
   <div class="doc">
   <p>Before B</p>
   </div>
-  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><a href="p.a.proof.html#B" title="1 value parameter, 0 instance found" class="icon small warning icofont-star"></a><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
+  <pre class="src"><span class="keyword">module</span> <a title="p.a.B" href="p.a.B.html">B</a><a href="p.a.proof.html#B" title="1 value parameter, 0 instance found" class="icon small warning icofont-warning-alt"></a><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
   <div class="doc">
   <p>After B</p>
   </div>
@@ -121,11 +121,11 @@
   <p>Introducing B</p>
   </div>
   <pre class="src">
-  <span class="keyword">module</span> B<a href="p.a.proof.html#B" title="1 value parameter, 0 instance found" class="icon small warning icofont-star"></a><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon remark icofont-check"></a>
+  <span class="keyword">module</span> B<a href="p.a.proof.html#B" title="1 value parameter, 0 instance found" class="icon small warning icofont-warning-alt"></a><a href="p.a.proof.html#B" title="Valid (no goals)" class="icon remark icofont-check"></a>
   
     <span class="keyword">exception</span> <a id="Error">Error</a>
   
-    <span class="keyword">val</span> <a id="wrong">wrong</a><span title="Value Parameter" class="icon small warning icofont-star"></span> () : unit
+    <span class="keyword">val</span> <a id="wrong">wrong</a><span title="Value Parameter" class="icon small warning icofont-warning-alt"></span> () : unit
       <span class="keyword">raises</span> { <a title="p.a.B.Error" href="#Error">Error</a> }
   </pre>
   <div class="doc">

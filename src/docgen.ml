@@ -212,12 +212,12 @@ let rec close ?(parblock=false) env =
 
 let icon_nogoal = "icon remark icofont-check"
 let icon_valid = "icon valid icofont-check"
-let icon_partial = "icon warning icofont-warning"
-let icon_failed = "icon failed icofont-warning"
-let icon_parameter = "icon small remark icofont-star"
+let icon_partial = "icon warning icofont-error"
+let icon_failed = "icon failed icofont-error"
 let icon_sound_param = "icon small valid icofont-star"
-let icon_unsound_param = "icon small warning icofont-star"
-let icon_unsafe_param = "icon small failed icofont-star"
+let icon_parameter = "icon small remark icofont-question-circle"
+let icon_unsound_param = "icon small warning icofont-warning-alt"
+let icon_unsafe_param = "icon small failed icofont-warning"
 
 let pp_mark ?href ~title ~cla fmt =
   match href with

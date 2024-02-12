@@ -11,12 +11,12 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="a.index.html">a</a></code> — <code>module A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> A<a href="a.proof.html#A" title="3 logic parameters" class="icon small remark icofont-star"></a><a href="a.proof.html#A" title="Failed (no proof)" class="icon failed icofont-warning"></a>
+  <span class="keyword">module</span> A<a href="a.proof.html#A" title="3 logic parameters" class="icon small remark icofont-question-circle"></a><a href="a.proof.html#A" title="Failed (no proof)" class="icon failed icofont-error"></a>
     <span class="keyword">use</span> list.<a title="list.List" href="https://why3.lri.fr/stdlib/list.html#List_">List</a>
-    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-star"></span>
-    <span class="keyword">val</span> <span class="keyword">constant</span> <a id="neutral">neutral</a><span title="Parameter" class="icon small remark icofont-star"></span> : <a title="a.A.t" href="#t">t</a>
-    <span class="keyword">val</span> <a id="op">op</a><span title="Parameter" class="icon small remark icofont-star"></span> <a title="a.A.t" href="#t">t</a> <a title="a.A.t" href="#t">t</a> : <a title="a.A.t" href="#t">t</a>
-    <span class="keyword">let</span> <span class="keyword">rec</span> <a id="assoc">assoc</a><a href="a.proof.html#A.assoc" title="Failed (no proof)" class="icon failed icofont-warning"></a> (xs : <a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> <a title="a.A.t" href="#t">t</a>) : <a title="a.A.t" href="#t">t</a> =
+    <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-question-circle"></span>
+    <span class="keyword">val</span> <span class="keyword">constant</span> <a id="neutral">neutral</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> : <a title="a.A.t" href="#t">t</a>
+    <span class="keyword">val</span> <a id="op">op</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="a.A.t" href="#t">t</a> <a title="a.A.t" href="#t">t</a> : <a title="a.A.t" href="#t">t</a>
+    <span class="keyword">let</span> <span class="keyword">rec</span> <a id="assoc">assoc</a><a href="a.proof.html#A.assoc" title="Failed (no proof)" class="icon failed icofont-error"></a> (xs : <a title="list.List.list" href="https://why3.lri.fr/stdlib/list.html#list_8">list</a> <a title="a.A.t" href="#t">t</a>) : <a title="a.A.t" href="#t">t</a> =
       <span class="section level1"><span class="comment">{</span><span class="attribute section-toggle">proof</span><span class="comment section-text active">…</span><span class="comment">}</span><span class="section-text"> <span class="keyword">variant</span> { xs } <span class="comment">{</span><span class="attribute section-toggle">qed</span><span class="comment">}</span></span></span>
       <span class="section level1"><span class="comment">{</span><span class="attribute section-toggle">Code</span><span class="comment section-text">…</span><span class="comment">}</span><span class="section-text active">
       <span class="keyword">match</span> xs <span class="keyword">with</span>
