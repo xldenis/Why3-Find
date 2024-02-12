@@ -168,47 +168,72 @@ let is_var x (a : Term.term) =
   | Tvar y -> Term.vs_equal x y
   | _ -> false
 
-let rec cany (ce : Expr.cexp) =
-  match ce.c_node with
-  | Cany -> true
-  | Cfun { e_node = Eexec(ce,_) } -> cany ce
-  | _ -> false
-
 (* Detect (fun result -> result = a) s.t. check a *)
-let constrained_post unless (p : Ity.post) =
+let constrained_post ?unless (p : Ity.post) =
   match p.t_node with
   | Teps rp ->
     let r,post = Term.t_open_bound rp in
     begin
       match post.t_node with
-      | Ttrue -> false
       | Tapp(f,[a;b]) ->
         not Term.(ls_equal f ps_equ) ||
         not @@ is_var r a ||
-        not @@ unless b
+        (match unless with None -> true | Some fn -> not @@ fn b)
       | _ -> true
     end
   | _ -> true
 
+let constrained_cty ?unless (cty : Ity.cty) =
+  cty.cty_pre <> [] ||
+  not @@ Ity.Mxs.is_empty cty.cty_xpost ||
+  List.exists (constrained_post ?unless) cty.cty_post
+
 let constrained (rs : Expr.rsymbol) =
-  rs.rs_cty.cty_pre <> [] ||
-  not @@ Ity.Mxs.is_empty rs.rs_cty.cty_xpost ||
   match rs.rs_logic with
   | RLlemma -> true
-  | RLnone -> rs.rs_cty.cty_post <> []
+  | RLnone ->
+    constrained_cty rs.rs_cty
   | RLpv pv ->
     let unless = is_var pv.pv_vs in
-    List.exists (constrained_post unless) rs.rs_cty.cty_post
+    constrained_cty ~unless rs.rs_cty
   | RLls ls ->
-    rs.rs_cty.cty_post <> [] &&
-    let xs = List.map (fun pv -> pv.Ity.pv_vs) rs.rs_cty.cty_args in
-    let unless (a : Term.term) =
-      match a.t_node with
-      | Tapp(f,es) ->
-        (try Term.ls_equal f ls && List.for_all2 is_var xs es
-         with Invalid_argument _ -> false)
-      | _ -> false
-    in List.exists (constrained_post unless) rs.rs_cty.cty_post
+    if rs.rs_cty.cty_post <> [] then
+      let xs = List.map (fun pv -> pv.Ity.pv_vs) rs.rs_cty.cty_args in
+      let unless (a : Term.term) =
+        match a.t_node with
+        | Tapp(f,es) ->
+          (try Term.ls_equal f ls && List.for_all2 is_var xs es
+           with Invalid_argument _ -> false)
+         | _ -> false
+      in
+      constrained_cty ~unless rs.rs_cty
+    else
+      constrained_cty rs.rs_cty
+
+[@@@ warning "-32"]
+
+let rec print_cexp fmt (ce : Expr.cexp) =
+  match ce.c_node with
+  | Cany -> Format.fprintf fmt "Cany"
+  | Cfun({ e_node = Eexec(ce,cty) }) ->
+    Format.fprintf fmt "@[<hov 2>Exec(%a%a)@]" print_cexp ce print_cty cty
+  | Cfun _ -> Format.fprintf fmt "Cfun _"
+  | Capp _ -> Format.fprintf fmt "Capp _"
+  | Cpur _ -> Format.fprintf fmt "Cpur _"
+
+and print_cty fmt (cty : Ity.cty) =
+  begin
+    List.iter (fun p ->
+      Format.fprintf fmt "@ requires { @[<hov 2>%a@] }"
+        Pretty.print_term p
+      ) cty.cty_pre ;
+    List.iter (fun p ->
+        Format.fprintf fmt "@ ensures { @[<hov 2>%a@] }"
+          Pretty.print_term p
+      ) cty.cty_post ;
+  end
+
+[@@@ warning "+32"]
 
 (* -------------------------------------------------------------------------- *)
 (* --- Sound Expression Detection                                         --- *)
@@ -244,9 +269,7 @@ and safe_cexpr (ce : Expr.cexp) =
   match ce.c_node with
   | Cfun e -> safe_expr e
   | Capp _ | Cpur _ -> true
-  | Cany ->
-    (* don't understand why, but that why3 does *)
-    ce.c_cty.cty_args = []
+  | Cany -> ce.c_cty.cty_args = [] (* this is not a val *)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Module Declarations                                                --- *)
@@ -258,20 +281,24 @@ let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
     if nodef its.its_def then add henv hs (Type its.its_ts) else hs
   else hs
 
+let is_undefined (ce : Expr.cexp) =
+  match ce.c_node with
+  | Cany -> true
+  | Cfun { e_node = Eexec({ c_node = Cany },_) } -> true
+  | _ -> false
+
 let add_rsymbol henv hs (rs : Expr.rsymbol) (cexp : Expr.cexp) =
   if Id.lemma rs.rs_name then hs else
-    match cexp.c_node with
-    | Cfun e when not (safe_expr e) -> add henv hs (Unsafe rs.rs_name)
-    | _ ->
-      match rs.rs_logic with
-      | RLlemma -> hs
-      | RLnone | RLpv _ | RLls _ ->
-        if cany cexp then
-          if constrained rs then
-            add henv hs (Value rs)
-          else
-            add henv hs (Param rs)
-        else hs
+    match Expr.rs_kind rs with
+    | RKlemma -> hs
+    | RKfunc | RKpred | RKnone | RKlocal ->
+      if is_undefined cexp then
+        add henv hs (if constrained rs then Value rs else Param rs)
+      else
+      if not @@ safe_cexpr cexp then
+        add henv hs (Unsafe rs.rs_name)
+      else
+        hs
 
 let add_psymbol henv hs (pv : Ity.pvsymbol) (exp : Expr.expr) =
   if safe_expr exp then hs else add henv hs (Unsafe pv.pv_vs.vs_name)
