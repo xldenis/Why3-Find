@@ -87,7 +87,6 @@ let parse_arg ~mode s =
   let n = String.length s in
   if n > 1 then
     match s.[0] with
-    | '=' -> Set, String.sub s 1 (n-1)
     | '+' -> Add, String.sub s 1 (n-1)
     | '-' -> Sub, String.sub s 1 (n-1)
     | _ ->
@@ -209,12 +208,12 @@ let settime s =
 let alloptions : (opt * string * Arg.spec * string) list = [
   `All, "--root", Arg.Set_string chdir, "DIR change to directory";
   `All, "--extra-config", Arg.String (add cfgs), "CFG extra why3 config";
-  `Package, "--package", Arg.String (add pkgs), "PKG add package dependency";
+  `Package, "--package", Arg.String (add pkgs), "±PKG,… add package dependency";
   `Prover,  "--time", Arg.String settime, "TIME median proof time";
   `Prover,  "--depth", Arg.Int (setv depth), "DEPTH proof search limit";
-  `Prover,  "--prover", Arg.String (add prvs), "PRV add automated prover";
-  `Prover,  "--tactic", Arg.String (add tacs), "TAC add proof tactic";
-  `Driver,  "--driver", Arg.String (add drvs), "DRV add extraction driver";
+  `Prover,  "--prover", Arg.String (add prvs), "±PRV,… configure provers";
+  `Prover,  "--tactic", Arg.String (add tacs), "±TAC,… configure tactics";
+  `Driver,  "--driver", Arg.String (add drvs), "±DRV,… configure drivers";
   `Config,  "--reset", Arg.Set reset, "Reset configuration to defaults";
   `Config,  "--revert", Arg.Set revert, "Revert configuration (restore backup)";
   `Config,  "--commit", Arg.Set commit, "Commit configuration (clear backup)";

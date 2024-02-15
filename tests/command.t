@@ -154,8 +154,8 @@
   
     --root DIR change to directory
     --extra-config CFG extra why3 config
-    --package PKG add package dependency
-    --driver DRV add extraction driver
+    --package ±PKG,… add package dependency
+    --driver ±DRV,… configure drivers
     -p  same as --package
     -D  same as --driver
     --lib Generate PKG.lib library instead of PKG
@@ -182,12 +182,12 @@
   
     --root DIR change to directory
     --extra-config CFG extra why3 config
-    --package PKG add package dependency
+    --package ±PKG,… add package dependency
     --time TIME median proof time
     --depth DEPTH proof search limit
-    --prover PRV add automated prover
-    --tactic TAC add proof tactic
-    --driver DRV add extraction driver
+    --prover ±PRV,… configure provers
+    --tactic ±TAC,… configure tactics
+    --driver ±DRV,… configure drivers
     --reset Reset configuration to defaults
     --revert Revert configuration (restore backup)
     --commit Commit configuration (clear backup)
@@ -222,12 +222,12 @@
   
     --root DIR change to directory
     --extra-config CFG extra why3 config
-    --package PKG add package dependency
+    --package ±PKG,… add package dependency
     --time TIME median proof time
     --depth DEPTH proof search limit
-    --prover PRV add automated prover
-    --tactic TAC add proof tactic
-    --driver DRV add extraction driver
+    --prover ±PRV,… configure provers
+    --tactic ±TAC,… configure tactics
+    --driver ±DRV,… configure drivers
     --reset Reset configuration to defaults
     --revert Revert configuration (restore backup)
     --commit Commit configuration (clear backup)
@@ -281,8 +281,8 @@
   
     --root DIR change to directory
     --extra-config CFG extra why3 config
-    --package PKG add package dependency
-    --driver DRV add extraction driver
+    --package ±PKG,… add package dependency
+    --driver ±DRV,… configure drivers
     -p  same as --package
     -D  same as --driver
     -t TITLE document title (default none)

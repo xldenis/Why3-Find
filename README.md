@@ -101,13 +101,14 @@ The common options are given below:
 Package, prover, tactic and driver options can be used to specify multiple items
 at a time. Finer management is possible using modifier flags. Flag `+` adds
 items, flag `-` remove items, flag `=` replace items, flag `n:` move or insert
-items starting at position `n`. Moreover, option `none` remove all items from
-configuration. For instance:
+items starting at position `n`. A flag applies to all elements in the list,
+until a new flag is emitted. Moreover, option `none` can be used to remove all
+items from the configuration. For instance:
 
     --prover none         # Remove all provers
     --prover a,b,c        # Use provers a, b and c only
     --prover +a,b         # Add provers a and b to package config
-    --prover -a,b         # Remove provers a and b from package config
+    --prover -a,b,+c      # Remove provers a and b from package config, then add c
     --prover 2:a,b        # Move or insert provers a and b at position 2 and 3
     --prover +a,-b,1:c    # Add prover a, remove b, move or insert c at position 1
 
@@ -188,7 +189,7 @@ lookup. However, a tactic-node with all its sub-goals marked « stuck » would
 be removed.
 
 The median time is set to one second by default and can be modified with `-t
-TIME` or configured using `why3find config -t TIME -s`. A fraction of seconds or
+TIME` or configured using `why3find config -t TIME`. A fraction of seconds or
 suffix time units (`h`,`min`,`s`,`ms`) can be given, eg. `0.5`, `200ms`,
 `3min`. The median time is specified relatively to the *master* machine,
 Cf. prover calibration below.
@@ -211,7 +212,7 @@ however, it will still be updated for further use.
 
 *Parallel Proving* is used to run different provers parallel on the different
 cores of your machine. You can specify the number of parallel provers with
-option `-j N`.  Alternatively, you can also use `why3find config -j N -s` to
+option `-j N`.  Alternatively, you can also use `why3find config -j N` to
 configure it locally, in which case your _personal_ Why3 configuration
 `~/.why3.conf` is updated accordingly. Parallel proving is also performed among
 the different goals and proof obligations to be proved. However, priority is put
@@ -239,8 +240,8 @@ reference problem for some parameter `n` on both machines. This velocity is then
 used to convert local times into reference times _wrt_ to the master machine or
 _vice et versa_. The `why3find` commands related to prover calibration are :
 
-    $ why3find config -m -s     # Calibrate provers on the master machine
-    $ why3find config -v        # Evaluate velocity of provers on a local machine
+    $ why3find config -m     # Calibrate provers on the master machine
+    $ why3find config -v     # Evaluate velocity of provers on a local machine
 
 It is highly recommended to update all proofs on the *master* machine with
 `why3find prove -f` after modifying the proof calibration. Usually, you calibrate
