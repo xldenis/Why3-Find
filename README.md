@@ -242,6 +242,11 @@ It is highly recommended to update all proofs on the *master* machine with
 `why3find prove -f` after modifying the proof calibration. Usually, you calibrate
 provers once at the very beginning of the project.
 
+Prover calibration is known to work well with provers `at-ergo`, `z3`, `cvc4`
+and `cvc5`. It might also work out-of-the-box for other provers, provided they
+support quantified anonymous function theories from the SMTLIB. Please report us
+any calibration problem with your favorite provers, if any.
+
 *Proof Server* can be used in order to increase parallelism and stability in
 collaborative development. First, you need to launch a centralized `why3find
 server` that will serve as a centralized proxy and will manage the proof
