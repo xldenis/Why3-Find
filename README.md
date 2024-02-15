@@ -98,29 +98,35 @@ The common options are given below:
     -T|--tactic TAC       # Tactics to be used
     -D|--driver DRV       # Extraction driver to be used for OCaml
 
-Package, prover, tactic and driver options can be used for adding, removing or
-re-ordering multiple items at a time. Multiple items must be separated by coma
-(`,`) and each item can be prefixed with: `+a` to add item `a` (default), `-a`
-to remove item `a` from the list or `=a` to replace all preceding items with
-`a`. Using `n:a` will move or move item `a` at position `n` in the list
-(starting from `0`). If no prefix is specified, `+a` is assumed (add `a`).
+Package, prover, tactic and driver options can be used to specify multiple items
+at a time. Finer management is possible using modifier flags. Flag `+` adds
+items, flag `-` remove items, flag `=` replace items, flag `n:` move or insert
+items starting at position `n`. A flag applies to all elements in the list,
+until a new flag is emitted. Moreover, option `none` can be used to remove all
+items from the configuration. For instance:
 
-For instance, specifying `--prover -cvc5,+alt-ergo,2:z3` will first remove `cvc5` from
-the current configuration, then add `alt-ergo` and finally insert or move `z3` to
-position 2 in the list.
+    --prover none         # Remove all provers
+    --prover a,b,c        # Use provers a, b and c only
+    --prover +a,b         # Add provers a and b to package config
+    --prover -a,b,+c      # Remove provers a and b from package config, then add c
+    --prover 2:a,b        # Move or insert provers a and b at position 2 and 3
+    --prover +a,-b,1:c    # Add prover a, remove b, move or insert c at position 1
 
-Provers can be pinned to precise versions, using `prover@version`.  Prover names
+Provers can be pinned to precise versions, using `prover@version`. Prover names
 are case-insensitive and may also refer to prover shortcuts from Why3
-configuration.  Using `--relax` will remove all prover versions and `--strict`
-will pin all configured provers to their current version.
+configuration.
 
 The command `why3find config` can be used to manage the package configuration.
 Typical examples are:
 
-    why3find config                  # Show current config
-    why3find config --detect         # Update Why3 prover configuration
-    why3find config --reset          # Restore default config (and save)
-    why3find config […]              # Manage packages, provers, etc. (and save)
+    why3find config              # Show current config
+    why3find config […]          # Update packages, provers, etc.
+    why3find config --reset  […] # Configure from scratch (ignore current config)
+    why3find config --detect […] # Detect and use known provers
+
+When using `--detect` the why3 command `why3 config detect` is executed first.
+Then, why3find will select the highest installed versions of provers `alt-ergo`,
+`z3`, `cvc4` and `cvc5` (why3find is known to work well with those provers).
 
 ## Package Proving
 
@@ -178,7 +184,7 @@ lookup. However, a tactic-node with all its sub-goals marked « stuck » would
 be removed.
 
 The median time is set to one second by default and can be modified with `-t
-TIME` or configured using `why3find config -t TIME -s`. A fraction of seconds or
+TIME` or configured using `why3find config -t TIME`. A fraction of seconds or
 suffix time units (`h`,`min`,`s`,`ms`) can be given, eg. `0.5`, `200ms`,
 `3min`. The median time is specified relatively to the *master* machine,
 Cf. prover calibration below.
@@ -201,7 +207,7 @@ however, it will still be updated for further use.
 
 *Parallel Proving* is used to run different provers parallel on the different
 cores of your machine. You can specify the number of parallel provers with
-option `-j N`.  Alternatively, you can also use `why3find config -j N -s` to
+option `-j N`.  Alternatively, you can also use `why3find config -j N` to
 configure it locally, in which case your _personal_ Why3 configuration
 `~/.why3.conf` is updated accordingly. Parallel proving is also performed among
 the different goals and proof obligations to be proved. However, priority is put
@@ -229,12 +235,17 @@ reference problem for some parameter `n` on both machines. This velocity is then
 used to convert local times into reference times _wrt_ to the master machine or
 _vice et versa_. The `why3find` commands related to prover calibration are :
 
-    $ why3find config -m -s     # Calibrate provers on the master machine
-    $ why3find config -v        # Evaluate velocity of provers on a local machine
+    $ why3find config -m     # Calibrate provers on the master machine
+    $ why3find config -v     # Evaluate velocity of provers on a local machine
 
 It is highly recommended to update all proofs on the *master* machine with
 `why3find prove -f` after modifying the proof calibration. Usually, you calibrate
 provers once at the very beginning of the project.
+
+Prover calibration is known to work well with provers `at-ergo`, `z3`, `cvc4`
+and `cvc5`. It might also work out-of-the-box for other provers, provided they
+support quantified anonymous function theories from the SMTLIB. Please report us
+any calibration problem with your favorite provers, if any.
 
 *Proof Server* can be used in order to increase parallelism and stability in
 collaborative development. First, you need to launch a centralized `why3find

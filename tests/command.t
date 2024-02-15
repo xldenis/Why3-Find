@@ -154,8 +154,8 @@
   
     --root DIR change to directory
     --extra-config CFG extra why3 config
-    --package PKG add package dependency
-    --driver DRV add extraction driver
+    --package ±PKG,… add package dependency
+    --driver ±DRV,… configure drivers
     -p  same as --package
     -D  same as --driver
     --lib Generate PKG.lib library instead of PKG
@@ -182,13 +182,12 @@
   
     --root DIR change to directory
     --extra-config CFG extra why3 config
-    --package PKG add package dependency
+    --package ±PKG,… add package dependency
     --time TIME median proof time
     --depth DEPTH proof search limit
-    --prover PRV add automated prover
-    --tactic TAC add proof tactic
-    --driver DRV add extraction driver
-    --reset reset configuration
+    --prover ±PRV,… configure provers
+    --tactic ±TAC,… configure tactics
+    --driver ±DRV,… configure drivers
     -p  same as --package
     -t  same as --time
     -d  same as --depth
@@ -200,10 +199,8 @@
     -m calibrate provers (master)
     -v evaluate prover velocity (local)
     --quiet do not list final configuration
-    --dry do not save final configuration
-    --relax relax prover version constraints
-    --strict save strict prover versions
-    --detect detect and update why3 config
+    --reset configure from scratch
+    --detect detect and import local provers
     -help  Display this list of options
     --help  Display this list of options
   
@@ -223,13 +220,12 @@
   
     --root DIR change to directory
     --extra-config CFG extra why3 config
-    --package PKG add package dependency
+    --package ±PKG,… add package dependency
     --time TIME median proof time
     --depth DEPTH proof search limit
-    --prover PRV add automated prover
-    --tactic TAC add proof tactic
-    --driver DRV add extraction driver
-    --reset reset configuration
+    --prover ±PRV,… configure provers
+    --tactic ±TAC,… configure tactics
+    --driver ±DRV,… configure drivers
     -p  same as --package
     -t  same as --time
     -d  same as --depth
@@ -280,8 +276,8 @@
   
     --root DIR change to directory
     --extra-config CFG extra why3 config
-    --package PKG add package dependency
-    --driver DRV add extraction driver
+    --package ±PKG,… add package dependency
+    --driver ±DRV,… configure drivers
     -p  same as --package
     -D  same as --driver
     -t TITLE document title (default none)

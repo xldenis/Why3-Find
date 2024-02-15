@@ -23,15 +23,16 @@
 (* --- Why3 Environment                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
+(* Reset configuration *)
+val reset : bool ref
+
 val options :
   ?packages:bool ->
   ?provers:bool ->
   ?drivers:bool ->
   unit -> (string * Arg.spec * string) list
 
-val relax : string -> string
-val relaxed : string -> bool
-
+val name : string -> string (* strip '@version' *)
 val get : string -> of_json:(Json.t -> 'a) -> 'a
 val set : string -> to_json:('a -> Json.t) -> 'a -> unit
 val arg1 : string -> string
@@ -52,6 +53,8 @@ val packages : unit -> string list
 val provers : unit -> string list
 val tactics : unit -> string list
 val drivers : unit -> string list
+
+val ignore_provers: unit -> unit
 
 val set_time : float -> unit
 val set_depth : int -> unit
