@@ -122,7 +122,11 @@ Typical examples are:
     why3find config              # Show current config
     why3find config […]          # Update packages, provers, etc.
     why3find config --reset  […] # Configure from scratch (ignore current config)
-    why3find config --detect […] # Detect and use all local provers
+    why3find config --detect […] # Detect and use known provers
+
+When using `--detect` the why3 command `why3 config detect` is executed first.
+Then, why3find will select the highest installed versions of provers `alt-ergo`,
+`z3`, `cvc4` and `cvc5` (why3find is known to work well with those provers).
 
 ## Package Proving
 
