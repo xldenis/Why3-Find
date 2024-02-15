@@ -193,7 +193,6 @@ type opt = [
   | `Package
   | `Prover
   | `Driver
-  | `Config
 ]
 
 let settime s =
@@ -209,7 +208,6 @@ let alloptions : (opt * string * Arg.spec * string) list = [
   `Prover,  "--prover", Arg.String (add prvs), "±PRV,… configure provers";
   `Prover,  "--tactic", Arg.String (add tacs), "±TAC,… configure tactics";
   `Driver,  "--driver", Arg.String (add drvs), "±DRV,… configure drivers";
-  `Config,  "--reset", Arg.Set reset, "Reset configuration to defaults";
   `Package, "-p", Arg.String (add pkgs), " same as --package";
   `Prover,  "-t", Arg.String settime, " same as --time";
   `Prover,  "-d", Arg.Int (setv depth), " same as --depth";
@@ -228,7 +226,6 @@ let options ?(packages=false) ?(provers=false) ?(drivers=false) () =
           | `Package -> packages
           | `Prover -> provers
           | `Driver -> drivers
-          | `Config -> packages && provers && drivers
        then Some(name,spec,descr)
        else None
     ) alloptions

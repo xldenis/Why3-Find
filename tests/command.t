@@ -188,7 +188,6 @@
     --prover ±PRV,… configure provers
     --tactic ±TAC,… configure tactics
     --driver ±DRV,… configure drivers
-    --reset Reset configuration to defaults
     -p  same as --package
     -t  same as --time
     -d  same as --depth
@@ -200,6 +199,7 @@
     -m calibrate provers (master)
     -v evaluate prover velocity (local)
     --quiet do not list final configuration
+    --reset configure from scratch
     --detect detect and import local provers
     -help  Display this list of options
     --help  Display this list of options
@@ -226,7 +226,6 @@
     --prover ±PRV,… configure provers
     --tactic ±TAC,… configure tactics
     --driver ±DRV,… configure drivers
-    --reset Reset configuration to defaults
     -p  same as --package
     -t  same as --time
     -d  same as --depth

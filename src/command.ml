@@ -368,6 +368,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             "-m", Arg.Set calibrate, "calibrate provers (master)";
             "-v", Arg.Set velocity, "evaluate prover velocity (local)";
             "--quiet", Arg.Clear list, "do not list final configuration";
+            "--reset", Arg.Set Wenv.reset, "configure from scratch";
             "--detect", Arg.Set detect, "detect and import local provers";
           ]
         end

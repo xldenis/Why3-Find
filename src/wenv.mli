@@ -23,6 +23,9 @@
 (* --- Why3 Environment                                                   --- *)
 (* -------------------------------------------------------------------------- *)
 
+(* Reset configuration *)
+val reset : bool ref
+
 val options :
   ?packages:bool ->
   ?provers:bool ->
