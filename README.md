@@ -119,9 +119,10 @@ configuration.
 The command `why3find config` can be used to manage the package configuration.
 Typical examples are:
 
-    why3find config           # Show current config
-    why3find config […]       # Manage packages, provers, etc. (and save)
-    why3find config --reset   # Reset all fields to default values
+    why3find config              # Show current config
+    why3find config […]          # Update packages, provers, etc.
+    why3find config --reset  […] # Configure from scratch (ignore current config)
+    why3find config --detect […] # Detect and use all local provers
 
 ## Package Proving
 

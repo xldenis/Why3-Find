@@ -189,8 +189,6 @@
     --tactic ±TAC,… configure tactics
     --driver ±DRV,… configure drivers
     --reset Reset configuration to defaults
-    --revert Revert configuration (restore backup)
-    --commit Commit configuration (clear backup)
     -p  same as --package
     -t  same as --time
     -d  same as --depth
@@ -202,7 +200,7 @@
     -m calibrate provers (master)
     -v evaluate prover velocity (local)
     --quiet do not list final configuration
-    --detect detect and import known provers (if not configured yet)
+    --detect detect and import local provers
     -help  Display this list of options
     --help  Display this list of options
   
@@ -229,8 +227,6 @@
     --tactic ±TAC,… configure tactics
     --driver ±DRV,… configure drivers
     --reset Reset configuration to defaults
-    --revert Revert configuration (restore backup)
-    --commit Commit configuration (clear backup)
     -p  same as --package
     -t  same as --time
     -d  same as --depth

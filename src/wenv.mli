@@ -51,6 +51,8 @@ val provers : unit -> string list
 val tactics : unit -> string list
 val drivers : unit -> string list
 
+val ignore_provers: unit -> unit
+
 val set_time : float -> unit
 val set_depth : int -> unit
 val set_configs : string list -> unit
