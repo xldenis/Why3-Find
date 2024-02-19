@@ -308,7 +308,7 @@ let process_axioms env (id : Id.id) =
   | Some theory ->
     match Axioms.parameter theory.signature id.self with
     | None -> ()
-    | Some { param ; builtin ; extern } ->
+    | Some { kind ; builtin ; extern } ->
       match builtin, extern with
       | [],None ->
         let cloned_param () =
@@ -317,11 +317,11 @@ let process_axioms env (id : Id.id) =
           | Unknown _ | Unsound -> icon_unsound_param
         in
         let cla,title =
-          match param with
-          | Type _ | Logic _ | Param _ -> icon_parameter, "Parameter"
-          | Unsafe _ -> icon_unsafe_param, "Unsound Definition"
-          | Value _ -> cloned_param (), "Value Parameter"
-          | Axiom _ -> cloned_param (), "Hypothesis"
+          match kind with
+          | Type | Logic | Param -> icon_parameter, "Parameter"
+          | Unsafe -> icon_unsafe_param, "Unsound Definition"
+          | Value -> cloned_param (), "Value Parameter"
+          | Axiom -> cloned_param (), "Hypothesis"
         in
         Pdoc.ppt env.out (pp_mark ~cla ~title)
       | [], Some ext ->
@@ -337,20 +337,20 @@ let process_axioms env (id : Id.id) =
 
 let process_hypothesis env (s : Soundness.soundness) (p : Axioms.parameter) =
   try
-    let id = Id.resolve ~lib:env.src.lib @@ Axioms.ident p.param in
-    let key = match p.param with
-      | Type _ -> "type"
-      | Logic _ -> "logic"
-      | Param _ -> "param"
-      | Value _ -> "value"
-      | Axiom _ -> "axiom"
-      | Unsafe _ -> "unsound"
+    let id = Id.resolve ~lib:env.src.lib p.name in
+    let key = match p.kind with
+      | Type -> "type"
+      | Logic -> "logic"
+      | Param -> "param"
+      | Value -> "value"
+      | Axiom -> "axiom"
+      | Unsafe -> "unsound"
     in
     let qualif fmt =
       if Axioms.is_unsafe p then
         pp_mark ~cla:icon_unsafe_param ~title:"unsafe definition" fmt
       else
-      if Axioms.is_hypothesis p then
+      if not @@ Axioms.is_free p then
         if Soundness.is_sound s then
           pp_mark ~cla:icon_sound_param ~title:"witnessed hypothesis" fmt
         else
@@ -370,7 +370,7 @@ let process_instance env ~ok (s : Docref.instance) =
   Pdoc.ppt env.crc
     (if ok
      then pp_mark ~title:"sound instance" ~cla:icon_sound_param
-     else pp_mark ~title:"uncomplete instance" ~cla:icon_unsound_param)
+     else pp_mark ~title:"incomplete instance" ~cla:icon_unsound_param)
 
 let process_module_axioms env =
   match env.theory with
@@ -380,8 +380,8 @@ let process_module_axioms env =
     let sound = Soundness.compute env.senv thy in
     Axioms.iter env.henv ~self:true
       (fun (p : Axioms.parameter) ->
-         if Axioms.is_hypothesis p &&
-            not @@ Id.standard @@ Axioms.ident p.param then
+         if not @@ Axioms.is_free p &&
+            not @@ Id.standard p.name then
            begin
              Lazy.force pre ;
              process_hypothesis env sound p ;
@@ -412,11 +412,11 @@ let free = {
 let unknown =  { free with sound = Soundness.unknown }
 
 let add_axiom hs (p : Axioms.parameter) =
-  match p.param with
-  | Axiom _ -> { hs with hyp = succ hs.hyp }
-  | Value _ -> { hs with pvs = succ hs.pvs }
-  | Unsafe _ -> { hs with unsafe = succ hs.unsafe }
-  | Type _ | Logic _ | Param _ -> { hs with prm = succ hs.prm }
+  match p.kind with
+  | Axiom -> { hs with hyp = succ hs.hyp }
+  | Value -> { hs with pvs = succ hs.pvs }
+  | Unsafe -> { hs with unsafe = succ hs.unsafe }
+  | Type | Logic | Param -> { hs with prm = succ hs.prm }
 
 let pp_axioms_link ?href fmt { prm ; hyp ; pvs ; unsafe ; sound } =
   if prm+hyp+pvs+unsafe > 0 then
@@ -442,8 +442,8 @@ let pp_axioms_link ?href fmt { prm ; hyp ; pvs ; unsafe ; sound } =
           Printf.sprintf "%d unsafe definitions"
         | Soundness.Unknown [] -> ["0 instance found"]
         | Soundness.Unknown ns ->
-          plural (List.length ns) "1 uncomplete instance" @@
-          Printf.sprintf "%d uncomplete instances"
+          plural (List.length ns) "1 incomplete instance" @@
+          Printf.sprintf "%d incomplete instances"
         | Soundness.Sound ns ->
           plural (List.length ns) "1 ground instance" @@
           Printf.sprintf "%d ground instances"

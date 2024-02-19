@@ -11,7 +11,7 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module A</code></header>
   <pre class="src">
-  <span class="keyword">module</span> A<a href="clones.proof.html#A" title="3 logic parameters, 2 hypotheses, 1 uncomplete instance" class="icon small warning icofont-warning-alt"></a><a href="clones.proof.html#A" title="Valid (one goal)" class="icon valid icofont-check"></a>
+  <span class="keyword">module</span> A<a href="clones.proof.html#A" title="3 logic parameters, 2 hypotheses, 1 incomplete instance" class="icon small warning icofont-warning-alt"></a><a href="clones.proof.html#A" title="Valid (one goal)" class="icon valid icofont-check"></a>
   
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-question-circle"></span>
     <span class="keyword">constant</span> <a id="e">e</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> : <a title="clones.A.t" href="#t">t</a>
@@ -117,11 +117,11 @@
     alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)
   </pre>
   <h1>Proofs</h1>
-  <pre class="src"><span class="keyword">module</span> <a id="A" href="clones.A.html">clones.A</a><span title="3 logic parameters, 2 hypotheses, 1 uncomplete instance" class="icon small warning icofont-warning-alt"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
+  <pre class="src"><span class="keyword">module</span> <a id="A" href="clones.A.html">clones.A</a><span title="3 logic parameters, 2 hypotheses, 1 incomplete instance" class="icon small warning icofont-warning-alt"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
   <pre class="src">
     <span class="keyword">axiom</span> <a id="A.neutral" href="clones.A.html#neutral">neutral</a><span title="uncloned hypothesis" class="icon small warning icofont-warning-alt"></span>
     <span class="keyword">axiom</span> <a id="A.commutative" href="clones.A.html#commutative">commutative</a><span title="uncloned hypothesis" class="icon small warning icofont-warning-alt"></span>
-    <span class="keyword">clone</span> <a href="clones.B.html#clone-1">clones.B</a><span title="uncomplete instance" class="icon small warning icofont-warning-alt"></span>
+    <span class="keyword">clone</span> <a href="clones.B.html#clone-1">clones.B</a><span title="incomplete instance" class="icon small warning icofont-warning-alt"></span>
   </pre>
   <pre class="src">
     <span class="keyword">goal</span> <a id="A.neutral_com" href="clones.A.html#neutral_com">neutral_com</a><span title="Valid (one goal)" class="icon valid icofont-check"></span>

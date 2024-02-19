@@ -32,37 +32,32 @@ module Hid = Ident.Hid
 (* --- Theory & Module Assumed Symbols                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-type param =
-  | Type of Ty.tysymbol
-  | Logic of Term.lsymbol
-  | Param of Expr.rsymbol
-  | Value of Expr.rsymbol
-  | Axiom of Decl.prsymbol
-  | Unsafe of Ident.ident
-
-let ident = function
-  | Type ty -> ty.ts_name
-  | Logic ls -> ls.ls_name
-  | Param rs -> rs.rs_name
-  | Value rs -> rs.rs_name
-  | Axiom pr -> pr.pr_name
-  | Unsafe id -> id
+type kind =
+  | Type (* abstract type *)
+  | Logic (* constant, function of predicate *)
+  | Axiom (* hypothesis *)
+  | Param (* non-constrained val *)
+  | Value (* constrained val *)
+  | Unsafe
 
 type parameter = {
-  param : param ;
+  kind : kind ;
+  name : Ident.ident ;
   builtin : (Runner.prover * string) list ;
   extern : string option ;
 }
 
+let is_free_kind = function
+  | Type | Logic | Param -> true
+  | Unsafe | Axiom | Value -> false
+
+let is_unsafe_kind = function
+  | Unsafe -> true
+  | Type | Logic | Param | Value | Axiom -> false
+
+let is_free { kind } = is_free_kind kind
+let is_unsafe { kind } = is_unsafe_kind kind
 let is_external { builtin ; extern } = builtin <> [] || extern <> None
-
-let is_unsafe = function
-  | { param = (Unsafe _) } -> true
-  | { param = (Value _ | Axiom _ | Type _ | Param _ | Logic _) } -> false
-
-let is_hypothesis = function
-  | { param = (Value _ | Axiom _ | Unsafe _) } -> true
-  | { param = (Type _ | Param _ | Logic _) } -> false
 
 type signature = {
   locals : parameter Mid.t ;
@@ -117,12 +112,11 @@ let empty = {
   cloned_theories = [] ;
 }
 
-let add henv hs param =
-  let id = ident param in
-  let builtin = Mid.find_def [] id henv.builtins in
-  let extern = Mid.find_opt id henv.externals in
-  let prm = { param ; builtin ; extern } in
-  { hs with locals = Mid.add id prm hs.locals }
+let add henv hs name kind =
+  let builtin = Mid.find_def [] name henv.builtins in
+  let extern = Mid.find_opt name henv.externals in
+  let prm = { name ; kind ; builtin ; extern } in
+  { hs with locals = Mid.add name prm hs.locals }
 
 let add_used hs (thy : Theory.theory) =
   { hs with used_theories = thy :: hs.used_theories }
@@ -139,14 +133,14 @@ let nodef (td : _ Ty.type_def) = match td with
   | Alias _ | Range _ | Float _ -> false
 
 let add_type henv hs (ty : Ty.tysymbol) =
-  if nodef ty.ts_def then add henv hs (Type ty) else hs
+  if nodef ty.ts_def then add henv hs ty.ts_name Type else hs
 
 let add_decl henv (hs : signature) (d : Decl.decl) : signature =
   match d.d_node with
   | Dlogic _ | Dind _ | Ddata _ -> hs
   | Dtype ty -> add_type henv hs ty
-  | Dparam ls -> add henv hs (Logic ls)
-  | Dprop(Paxiom,pr,_) -> add henv hs (Axiom pr)
+  | Dparam ls -> add henv hs ls.ls_name Logic
+  | Dprop(Paxiom,pr,_) -> add henv hs pr.pr_name Axiom
   | Dprop((Plemma|Pgoal),_,_) -> hs
 
 let add_tdecl henv (hs : signature) (d : Theory.tdecl) : signature =
@@ -160,83 +154,61 @@ let theory_signature henv (thy : Theory.theory) =
   List.fold_left (add_tdecl henv) empty thy.th_decls
 
 (* -------------------------------------------------------------------------- *)
-(* --- Constant Detection                                                 --- *)
+(* --- Definition Kind                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let is_var x (a : Term.term) =
-  match a.t_node with
-  | Tvar y -> Term.vs_equal x y
-  | _ -> false
+type cany =
+  | Free (* no post *)
+  | Verified (* post with witness of existence *)
+  | Unverified (* post without witness of existence *)
 
-(* Detect (fun result -> result = a) s.t. check a *)
-let constrained_post ?unless (p : Ity.post) =
-  match p.t_node with
-  | Teps rp ->
-    let r,post = Term.t_open_bound rp in
-    begin
-      match post.t_node with
-      | Tapp(f,[a;b]) ->
-        not Term.(ls_equal f ps_equ) ||
-        not @@ is_var r a ||
-        (match unless with None -> true | Some fn -> not @@ fn b)
-      | _ -> true
-    end
-  | _ -> true
+(* Checks that contract of Cany is provable, ie. its pre-condition contains a
+   proof witnessing the existence of a result value that satisfy all
+   post-conditions. This is the only way to distinguish "val" from "let"
+   definitions. *)
 
-let constrained_cty ?unless (cty : Ity.cty) =
-  cty.cty_pre <> [] ||
-  not @@ Ity.Mxs.is_empty cty.cty_xpost ||
-  List.exists (constrained_post ?unless) cty.cty_post
-
-let constrained (rs : Expr.rsymbol) =
-  match rs.rs_logic with
-  | RLlemma -> true
-  | RLnone ->
-    constrained_cty rs.rs_cty
-  | RLpv pv ->
-    let unless = is_var pv.pv_vs in
-    constrained_cty ~unless rs.rs_cty
-  | RLls ls ->
-    if rs.rs_cty.cty_post <> [] then
-      let xs = List.map (fun pv -> pv.Ity.pv_vs) rs.rs_cty.cty_args in
-      let unless (a : Term.term) =
-        match a.t_node with
-        | Tapp(f,es) ->
-          (try Term.ls_equal f ls && List.for_all2 is_var xs es
-           with Invalid_argument _ -> false)
-         | _ -> false
-      in
-      constrained_cty ~unless rs.rs_cty
-    else
-      constrained_cty rs.rs_cty
-
-[@@@ warning "-32"]
-
-let rec print_cexp fmt (ce : Expr.cexp) =
-  match ce.c_node with
-  | Cany -> Format.fprintf fmt "Cany"
-  | Cfun({ e_node = Eexec(ce,cty) }) ->
-    Format.fprintf fmt "@[<hov 2>Exec(%a%a)@]" print_cexp ce print_cty cty
-  | Cfun _ -> Format.fprintf fmt "Cfun _"
-  | Capp _ -> Format.fprintf fmt "Capp _"
-  | Cpur _ -> Format.fprintf fmt "Cpur _"
-
-and print_cty fmt (cty : Ity.cty) =
+let verified ~pre ~post =
   begin
-    List.iter (fun p ->
-      Format.fprintf fmt "@ requires { @[<hov 2>%a@] }"
-        Pretty.print_term p
-      ) cty.cty_pre ;
-    List.iter (fun p ->
-        Format.fprintf fmt "@ ensures { @[<hov 2>%a@] }"
-          Pretty.print_term p
-      ) cty.cty_post ;
+    (* compare pre and post *)
+    let instance vr (q : Term.term) p =
+      let q = (* return variable alpha-conversion *)
+        match q.t_node with
+        | Tlet( { t_node = Tvar r },q) when Term.vs_equal r vr -> Term.t_eps q
+        | _ -> Term.t_eps_close vr q
+      in Term.t_equal p q in
+    (* compare pre-condition conjunctions wrt list of post-conditions *)
+    let rec postcond vr (q : Term.term) (ps : Term.term list) =
+      match q.t_node, ps with
+      | _ , [p] -> instance vr q p
+      | Tbinop(Tand,q,qs) , p::ps -> instance vr q p && postcond vr qs ps
+      | _ , _::_ -> false
+      | _ , [] -> true in
+    (* witness proof is the last pre-condition *)
+    let rec witness = function
+      | [] -> Term.t_true
+      | [pre] -> pre
+      | _::ps -> witness ps in
+    let w = witness pre in
+    (* unfold the witness existential *)
+    match w.t_node with
+    | Tquant(Texists,tq) ->
+      let vs,_trigger,pre = Term.t_open_quant tq in
+      begin
+        match vs with
+        | [vret] -> postcond vret pre post
+        | _ -> false
+      end
+    | _ -> false
   end
 
-[@@@ warning "+32"]
+let cany (cty: Ity.cty) : cany =
+  if cty.cty_post = [] && Ity.Mxs.is_empty cty.cty_xpost
+  then Free else
+  if verified ~pre:cty.cty_pre ~post:cty.cty_post
+  then Verified else Unverified
 
 (* -------------------------------------------------------------------------- *)
-(* --- Sound Expression Detection                                         --- *)
+(* --- Sound Expression Check                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
 let rec safe_let_defn (def : Expr.let_defn) =
@@ -265,11 +237,34 @@ and safe_expr (e : Expr.expr) =
 
 and safe_branch (_,e) = safe_expr e
 and safe_handler _ (_,e) = safe_expr e
+
 and safe_cexpr (ce : Expr.cexp) =
   match ce.c_node with
   | Cfun e -> safe_expr e
   | Capp _ | Cpur _ -> true
-  | Cany -> ce.c_cty.cty_args = [] (* this is not a val *)
+  | Cany ->
+    match cany ce.c_cty with
+    | Free | Verified -> true | Unverified -> false
+
+(* -------------------------------------------------------------------------- *)
+(* --- Value Definitions                                                  --- *)
+(* -------------------------------------------------------------------------- *)
+
+let rec add_def_expr henv hs (decl : Ident.ident) (e : Expr.expr) =
+  (* looking for top-level Cany definition *)
+  match e.e_node with
+  | Eexec(ce,_) -> add_def_cexp henv hs decl ce
+  | _ -> if safe_expr e then hs else add henv hs decl Unsafe
+
+and add_def_cexp henv hs (decl : Ident.ident) (ce : Expr.cexp) =
+  match ce.c_node with
+  | Cpur _ | Capp _ -> hs
+  | Cfun e -> add_def_expr henv hs decl e
+  | Cany ->
+    match cany ce.c_cty with
+    | Free -> add henv hs decl Param
+    | Unverified -> add henv hs decl Value
+    | Verified -> hs
 
 (* -------------------------------------------------------------------------- *)
 (* --- Module Declarations                                                --- *)
@@ -278,33 +273,17 @@ and safe_cexpr (ce : Expr.cexp) =
 let add_mtype henv (hs : signature) (it : Pdecl.its_defn) : signature =
   if it.itd_fields = [] && it.itd_constructors = [] then
     let its = it.itd_its in
-    if nodef its.its_def then add henv hs (Type its.its_ts) else hs
+    if nodef its.its_def then add henv hs its.its_ts.ts_name Type else hs
   else hs
 
-let is_undefined (ce : Expr.cexp) =
-  match ce.c_node with
-  | Cany -> true
-  | Cfun { e_node = Eexec({ c_node = Cany },_) } -> true
-  | _ -> false
+let add_rsymbol henv hs (rs : Expr.rsymbol) (ce : Expr.cexp) =
+  if Id.lemma rs.rs_name then hs else add_def_cexp henv hs rs.rs_name ce
 
-let add_rsymbol henv hs (rs : Expr.rsymbol) (cexp : Expr.cexp) =
-  if Id.lemma rs.rs_name then hs else
-    match Expr.rs_kind rs with
-    | RKlemma -> hs
-    | RKfunc | RKpred | RKnone | RKlocal ->
-      if is_undefined cexp then
-        add henv hs (if constrained rs then Value rs else Param rs)
-      else
-      if not @@ safe_cexpr cexp then
-        add henv hs (Unsafe rs.rs_name)
-      else
-        hs
-
-let add_psymbol henv hs (pv : Ity.pvsymbol) (exp : Expr.expr) =
-  if safe_expr exp then hs else add henv hs (Unsafe pv.pv_vs.vs_name)
+let add_psymbol henv hs (pv : Ity.pvsymbol) (expr : Expr.expr) =
+  add_def_expr henv hs pv.pv_vs.vs_name expr
 
 let add_rec_def henv hs (def : Expr.rec_defn) =
-  if safe_rec_defn def then hs else add henv hs (Unsafe def.rec_sym.rs_name)
+  add_def_cexp henv hs def.rec_sym.rs_name def.rec_fun
 
 let add_pdecl henv (hs : signature) (d : Pdecl.pdecl) : signature =
   match d.pd_node with

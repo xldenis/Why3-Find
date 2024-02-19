@@ -123,7 +123,7 @@
   <body>
   <header><a href="index.html">index</a> — <code>library <a href="refine.index.html">refine</a></code> — <code>module Interface</code></header>
   <pre class="src">
-  <span class="keyword">module</span> Interface<a href="refine.proof.html#Interface" title="2 value parameters, 6 logic parameters, 2 hypotheses, 1 uncomplete instance" class="icon small warning icofont-warning-alt"></a><a href="refine.proof.html#Interface" title="Failed (no proof)" class="icon failed icofont-error"></a>
+  <span class="keyword">module</span> Interface<a href="refine.proof.html#Interface" title="2 value parameters, 5 logic parameters, 2 hypotheses, 1 incomplete instance" class="icon small warning icofont-warning-alt"></a><a href="refine.proof.html#Interface" title="Failed (no proof)" class="icon failed icofont-error"></a>
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
   </pre>
   <div class="doc">
@@ -131,8 +131,8 @@
   </div>
   <pre class="src">
     <span class="keyword">constant</span> <a id="vA">vA</a> : int = 42
-    <span class="keyword">val</span> <a id="zB">zB</a> : int
-    <span class="keyword">let</span> <a id="vC">vC</a> : int = <span class="keyword">any</span> int
+    <span class="keyword">val</span> <a id="zB">zB</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> : int
+    <span class="keyword">let</span> <a id="vC">vC</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> : int = <span class="keyword">any</span> int
   </pre>
   <div class="doc">
   <p>Standard refinable constants with assumption</p>
@@ -148,8 +148,8 @@
   <pre class="src">
     <span class="keyword">val</span> <span class="keyword">constant</span> <a id="cB">cB</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> : int
     <span class="keyword">let</span> <span class="keyword">constant</span> <a id="cC">cC</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> : int = <span class="keyword">any</span> int
-    <span class="keyword">let</span> <span class="keyword">constant</span> <a id="cD">cD</a><span title="Parameter" class="icon small remark icofont-question-circle"></span><a href="refine.proof.html#Interface.cD" title="Failed (no proof)" class="icon failed icofont-error"></a> : int = <span class="keyword">any</span> int <span class="keyword">ensures</span> { result <a title="int.Int.(>)" href="https://why3.lri.fr/stdlib/int.html#infix%20%3E_24">&gt;</a> 0 }
-    <span class="keyword">let</span> <span class="keyword">function</span> <a id="cE">cE</a><span title="Parameter" class="icon small remark icofont-question-circle"></span><a href="refine.proof.html#Interface.cE" title="Failed (no proof)" class="icon failed icofont-error"></a> : int = <span class="keyword">any</span> int <span class="keyword">ensures</span> { result <a title="int.Int.(>)" href="https://why3.lri.fr/stdlib/int.html#infix%20%3E_24">&gt;</a> 0 }
+    <span class="keyword">let</span> <span class="keyword">constant</span> <a id="cD">cD</a><a href="refine.proof.html#Interface.cD" title="Failed (no proof)" class="icon failed icofont-error"></a> : int = <span class="keyword">any</span> int <span class="keyword">ensures</span> { result <a title="int.Int.(>)" href="https://why3.lri.fr/stdlib/int.html#infix%20%3E_24">&gt;</a> 0 }
+    <span class="keyword">let</span> <span class="keyword">function</span> <a id="cE">cE</a><a href="refine.proof.html#Interface.cE" title="Failed (no proof)" class="icon failed icofont-error"></a> : int = <span class="keyword">any</span> int <span class="keyword">ensures</span> { result <a title="int.Int.(>)" href="https://why3.lri.fr/stdlib/int.html#infix%20%3E_24">&gt;</a> 0 }
   </pre>
   <div class="doc">
   <p>All these are refinable functions</p>
@@ -162,7 +162,7 @@
   <p>This function can <em>not</em> be refined</p>
   </div>
   <pre class="src">
-    <span class="keyword">let</span> <span class="keyword">function</span> <a id="fZ">fZ</a><span title="Parameter" class="icon small remark icofont-question-circle"></span><a href="refine.proof.html#Interface.fZ" title="Failed (no proof)" class="icon failed icofont-error"></a> (x : int) : int = <span class="keyword">any</span> int <span class="keyword">ensures</span> { result &lt;&gt; x }
+    <span class="keyword">let</span> <span class="keyword">function</span> <a id="fZ">fZ</a><a href="refine.proof.html#Interface.fZ" title="Failed (no proof)" class="icon failed icofont-error"></a> (x : int) : int = <span class="keyword">any</span> int <span class="keyword">ensures</span> { result &lt;&gt; x }
   
   <span class="keyword">end</span>
   </pre>
