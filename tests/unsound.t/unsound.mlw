@@ -7,6 +7,9 @@ module Dummy
   let admit2 () : unit
     ensures { false } = val foo () : unit ensures { false } in foo ()
 
+  let ok_any () : unit
+    ensures { true } = any unit ensures { true }
+
   let ok_unit () : unit
     ensures { true } = let foo = any unit ensures { true } in ()
 

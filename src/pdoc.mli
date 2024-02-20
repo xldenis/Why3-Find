@@ -41,6 +41,9 @@ val to_html : string -> string
 (** Keyword (sanitized) class. *)
 val pp_keyword : string fmt
 
+(** Admitting keyword (assumes, inner val) *)
+val pp_admitted : string fmt
+
 (** Attribute (sanitized) class. *)
 val pp_attribute : string fmt
 

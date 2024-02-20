@@ -20,38 +20,27 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Compute Axioms                                                     --- *)
+(* --- Dump AST                                                           --- *)
 (* -------------------------------------------------------------------------- *)
 
-type henv
-val init : Wenv.env -> henv
-
 open Why3
+type 'a printer = Format.formatter -> 'a -> unit
 
-type signature
-val signature : henv -> Theory.theory -> signature
+val pp_id : Ident.ident printer
 
-type kind =
-  | Type (* abstract type *)
-  | Logic (* constant, function of predicate *)
-  | Axiom (* hypothesis *)
-  | Param (* non-constrained val *)
-  | Value (* constrained val *)
-  | Unsafe
+val pp_term : Term.term printer
 
-type parameter = {
-  kind : kind ;
-  name : Ident.ident ;
-  builtin : (Runner.prover * string) list ;
-  extern : string option ;
-}
+val pp_pvsymbol_use : Ity.pvsymbol printer
+val pp_pvsymbol_def : Ity.pvsymbol printer
 
-val is_free : parameter -> bool
-val is_unsafe : parameter -> bool
-val is_external : parameter -> bool
+val pp_ity : Ity.ity printer
+val pp_cty : Ity.cty printer
 
-val parameter : signature -> Ident.ident -> parameter option
-val parameters : signature -> parameter list
-val iter : henv -> ?self:bool -> (parameter -> unit) -> Theory.theory list -> unit
+val pp_rs_kind : Expr.rs_kind printer
+val pp_rsymbol_use : Expr.rsymbol printer
+val pp_rsymbol_def : Expr.rsymbol printer
+
+val pp_expr : Expr.expr printer
+val pp_cexp : Expr.cexp printer
 
 (* -------------------------------------------------------------------------- *)

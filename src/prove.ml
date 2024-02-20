@@ -179,7 +179,7 @@ let pp_print_red fmt = Format.fprintf fmt "@{<red>%s@}"
 
 let report_parameter ~lib ~signature (prm : Axioms.parameter) =
   try
-    let id = Axioms.ident prm.param in
+    let id = prm.name in
     let ident = Id.resolve ~lib id in
     let std = ident.id_pkg = `Stdlib in
     let builtin = prm.builtin <> [] in
@@ -189,13 +189,13 @@ let report_parameter ~lib ~signature (prm : Axioms.parameter) =
     then
       begin
         let pp, kind, param =
-          match prm.param with
-          | Type _ -> Format.pp_print_string,"type ", parameters
-          | Logic _ -> Format.pp_print_string,"logic", parameters
-          | Param _ -> Format.pp_print_string,"param", parameters
-          | Value _ -> Format.pp_print_string,"value", procedures
-          | Axiom _ -> Format.pp_print_string,"axiom", hypotheses
-          | Unsafe _ -> pp_print_red,"value", unsoundness
+          match prm.kind with
+          | Type -> Format.pp_print_string,"type ", parameters
+          | Logic -> Format.pp_print_string,"logic", parameters
+          | Param -> Format.pp_print_string,"param", parameters
+          | Value -> Format.pp_print_string,"value", procedures
+          | Axiom -> Format.pp_print_string,"axiom", hypotheses
+          | Unsafe -> pp_print_red,"value", unsoundness
         in
         let action, count =
           if builtin || extern then externalized else

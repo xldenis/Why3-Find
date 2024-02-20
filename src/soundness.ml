@@ -90,10 +90,7 @@ let rec compute (env : env) (th : Docref.theory) : soundness =
     let s =
       let ps = Axioms.parameters th.signature in
       if List.exists (fun p -> Axioms.is_unsafe p) ps then Unsound else
-        let ok = List.for_all
-            (fun p -> not (Axioms.is_hypothesis p))
-            ps
-        in
+        let ok = List.for_all (fun p -> Axioms.is_free p) ps in
         if ok then Sound [] else
           try
             let instances = Sinst.elements !(Hid.find env.instances key) in

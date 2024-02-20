@@ -8,7 +8,7 @@
     External   param int.Int.(-) (stdlib, builtin, extern)
     External   param int.Int.(+) (stdlib, builtin, extern)
     External   param int.Int.(*) (stdlib, builtin, extern)
-    External   value int.Int.(<) (stdlib, builtin, extern)
+    External   param int.Int.(<) (stdlib, builtin, extern)
   $ cat foo/proof.json
   {
     "profile": [ { "prover": "Alt-Ergo,2.2.0", "size": 16, "time": 0.1852 } ],

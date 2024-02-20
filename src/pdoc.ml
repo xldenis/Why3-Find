@@ -56,6 +56,9 @@ let to_html = Format.asprintf "%a" pp_html
 let pp_keyword fmt s =
   Format.fprintf fmt "<span class=\"keyword\">%s</span>" s
 
+let pp_admitted fmt s =
+  Format.fprintf fmt "<span class=\"admitted\">%s</span>" s
+
 let pp_attribute fmt s =
   Format.fprintf fmt "<span class=\"attribute\">%s</span>" s
 

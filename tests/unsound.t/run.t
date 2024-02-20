@@ -2,8 +2,9 @@
 --- Generating Documentation
 --------------------------------------------------------------------------
   $ why3find doc unsound.mlw
-  Warning, file "unsound.mlw", line 11, characters 33-58: unused variable result
-  Warning, file "unsound.mlw", line 11, characters 27-30: unused variable foo
+  Warning, file "unsound.mlw", line 11, characters 23-48: unused variable result
+  Warning, file "unsound.mlw", line 14, characters 33-58: unused variable result
+  Warning, file "unsound.mlw", line 14, characters 27-30: unused variable foo
   Generated $TESTCASE_ROOT/html/index.html
 --------------------------------------------------------------------------
 --- Generated Files
@@ -23,10 +24,13 @@
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
   
     <span class="keyword">let</span> <a id="admit1">admit1</a><span title="Unsound Definition" class="icon small failed icofont-warning"></span><a href="unsound.proof.html#Dummy.admit1" title="Failed (no proof)" class="icon failed icofont-error"></a> () : unit
-      <span class="keyword">ensures</span> { <span class="keyword">false</span> } = <span class="keyword">assume</span> { <span class="keyword">false</span> }
+      <span class="keyword">ensures</span> { <span class="keyword">false</span> } = <span class="admitted">assume</span> { <span class="keyword">false</span> }
   
     <span class="keyword">let</span> <a id="admit2">admit2</a><span title="Unsound Definition" class="icon small failed icofont-warning"></span><a href="unsound.proof.html#Dummy.admit2" title="Failed (no proof)" class="icon failed icofont-error"></a> () : unit
       <span class="keyword">ensures</span> { <span class="keyword">false</span> } = <span class="keyword">val</span> foo () : unit <span class="keyword">ensures</span> { <span class="keyword">false</span> } <span class="keyword">in</span> foo ()
+  
+    <span class="keyword">let</span> <a id="ok_any">ok_any</a><a href="unsound.proof.html#Dummy.ok_any" title="Failed (no proof)" class="icon failed icofont-error"></a> () : unit
+      <span class="keyword">ensures</span> { <span class="keyword">true</span> } = <span class="keyword">any</span> unit <span class="keyword">ensures</span> { <span class="keyword">true</span> }
   
     <span class="keyword">let</span> <a id="ok_unit">ok_unit</a><a href="unsound.proof.html#Dummy.ok_unit" title="Failed (no proof)" class="icon failed icofont-error"></a> () : unit
       <span class="keyword">ensures</span> { <span class="keyword">true</span> } = <span class="keyword">let</span> foo = <span class="keyword">any</span> unit <span class="keyword">ensures</span> { <span class="keyword">true</span> } <span class="keyword">in</span> ()
@@ -73,6 +77,7 @@
   <pre class="src">
     <span class="keyword">goal</span> <a id="Dummy.admit1" href="unsound.Dummy.html#admit1">admit1</a><span title="Failed (no proof)" class="icon failed icofont-error"></span></pre><pre class="src">
     <span class="keyword">goal</span> <a id="Dummy.admit2" href="unsound.Dummy.html#admit2">admit2</a><span title="Failed (no proof)" class="icon failed icofont-error"></span></pre><pre class="src">
+    <span class="keyword">goal</span> <a id="Dummy.ok_any" href="unsound.Dummy.html#ok_any">ok_any</a><span title="Failed (no proof)" class="icon failed icofont-error"></span></pre><pre class="src">
     <span class="keyword">goal</span> <a id="Dummy.ok_unit" href="unsound.Dummy.html#ok_unit">ok_unit</a><span title="Failed (no proof)" class="icon failed icofont-error"></span></pre><pre class="src">
     <span class="keyword">goal</span> <a id="Dummy.ok_some" href="unsound.Dummy.html#ok_some">ok_some</a><span title="Failed (no proof)" class="icon failed icofont-error"></span></pre><script type="text/javascript" src="script.js"></script>
   </body>
