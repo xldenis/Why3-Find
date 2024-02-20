@@ -24,14 +24,14 @@
         <span class="keyword">function</span> <a id="op">op</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="clones.AC.t" href="clones.AC.html#t">t</a> <a title="clones.AC.t" href="clones.AC.html#t">t</a> : <a title="clones.AC.t" href="clones.AC.html#t">t</a> {<a class="attribute" title="clones.Monoid.op" href="clones.Monoid.html#op">def.</a>}
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="comment">(* #0 *)</span>
-    <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-3" title="clones.Commutative" href="clones.Commutative.html#">Commutative</a><span title="1 hypothesis" class="icon small remark icofont-question-circle"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
+    <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-3" title="clones.Commutative" href="clones.Commutative.html#">Commutative</a><span title="1 hypothesis" class="icon small warning icofont-warning-alt"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">axiom</span> <a id="commutative">commutative</a><span title="Hypothesis" class="icon small valid icofont-star"></span> {<a class="attribute" title="clones.Commutative.commutative" href="clones.Commutative.html#commutative">def.</a>}
+        <span class="keyword">axiom</span> <a id="commutative">commutative</a><span title="Hypothesis with ground instance" class="icon small valid icofont-star"></span> {<a class="attribute" title="clones.Commutative.commutative" href="clones.Commutative.html#commutative">def.</a>}
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> M.<a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">t</a> = <a title="clones.AC.t" href="#t">t</a>, <span class="keyword">function</span> M.<a title="clones.Commutative.M.op" href="clones.Commutative.html#M.op">op</a> = <a title="clones.AC.op" href="#op">op</a>, <span class="keyword">axiom</span> .
-    <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-5" title="clones.Associative" href="clones.Associative.html#">Associative</a><span title="1 hypothesis" class="icon small remark icofont-question-circle"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
+    <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-5" title="clones.Associative" href="clones.Associative.html#">Associative</a><span title="1 hypothesis" class="icon small warning icofont-warning-alt"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">axiom</span> <a id="associative">associative</a><span title="Hypothesis" class="icon small valid icofont-star"></span> {<a class="attribute" title="clones.Associative.associative" href="clones.Associative.html#associative">def.</a>}
+        <span class="keyword">axiom</span> <a id="associative">associative</a><span title="Hypothesis with ground instance" class="icon small valid icofont-star"></span> {<a class="attribute" title="clones.Associative.associative" href="clones.Associative.html#associative">def.</a>}
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a>, <span class="keyword">function</span> <a title="clones.Associative.op" href="clones.Associative.html#op">op</a>, <span class="keyword">axiom</span> .
   <span class="keyword">end</span>
@@ -56,7 +56,7 @@
         <span class="keyword">function</span> <a id="op">op</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> : <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> {<a class="attribute" title="clones.Monoid.op" href="clones.Monoid.html#op">def.</a>}
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="comment">(* #0 *)</span>
-    <span class="keyword">axiom</span> <a id="associative">associative</a><span title="Hypothesis" class="icon small valid icofont-star"></span>: <span class="keyword">forall</span> x y z. <a title="clones.Associative.op" href="#op">op</a> x (<a title="clones.Associative.op" href="#op">op</a> y z) = <a title="clones.Associative.op" href="#op">op</a> (<a title="clones.Associative.op" href="#op">op</a> x y) z
+    <span class="keyword">axiom</span> <a id="associative">associative</a><span title="Hypothesis with ground instance" class="icon small valid icofont-star"></span>: <span class="keyword">forall</span> x y z. <a title="clones.Associative.op" href="#op">op</a> x (<a title="clones.Associative.op" href="#op">op</a> y z) = <a title="clones.Associative.op" href="#op">op</a> (<a title="clones.Associative.op" href="#op">op</a> x y) z
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
@@ -79,7 +79,7 @@
         <span class="keyword">function</span> <a id="M.op">M.op</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a> <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a> : <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a> {<a class="attribute" title="clones.Monoid.op" href="clones.Monoid.html#op">def.</a>}
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="keyword">as</span> M   <span class="comment">(* #0 *)</span>
-    <span class="keyword">axiom</span> <a id="commutative">commutative</a><span title="Hypothesis" class="icon small valid icofont-star"></span>: <span class="keyword">forall</span> x y. M.<a title="clones.Commutative.M.op" href="#M.op">op</a> x y = M.<a title="clones.Commutative.M.op" href="#M.op">op</a> y x
+    <span class="keyword">axiom</span> <a id="commutative">commutative</a><span title="Hypothesis with ground instance" class="icon small valid icofont-star"></span>: <span class="keyword">forall</span> x y. M.<a title="clones.Commutative.M.op" href="#M.op">op</a> x y = M.<a title="clones.Commutative.M.op" href="#M.op">op</a> y x
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
@@ -240,23 +240,23 @@
   <pre class="src"><span class="keyword">module</span> <a id="Commutative" href="clones.Commutative.html">clones.Commutative</a><span title="2 logic parameters, 1 hypothesis, 4 ground instances" class="icon small valid icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
   <pre class="src">
     <span class="keyword">axiom</span> <a id="Commutative.commutative" href="clones.Commutative.html#commutative">commutative</a><span title="witnessed hypothesis" class="icon small valid icofont-star"></span>
-    <span class="keyword">clone</span> <a href="clones.AC.html#clone-3">clones.AC</a><span title="sound instance" class="icon small valid icofont-star"></span>
-    <span class="keyword">clone</span> <a href="clones.IntAC.html#clone-3">clones.IntAC</a><span title="sound instance" class="icon small valid icofont-star"></span>
-    <span class="keyword">clone</span> <a href="clones.IntC.html#clone-2">clones.IntC</a><span title="sound instance" class="icon small valid icofont-star"></span>
-    <span class="keyword">clone</span> <a href="clones.IntC.html#clone-4">clones.IntC</a><span title="sound instance" class="icon small valid icofont-star"></span>
+    <span class="keyword">instance</span> <a href="clones.AC.html#clone-3">clones.AC</a><span title="sound instance" class="icon small valid icofont-star"></span>
+    <span class="keyword">instance</span> <a href="clones.IntAC.html#clone-3">clones.IntAC</a><span title="sound instance" class="icon small valid icofont-star"></span>
+    <span class="keyword">instance</span> <a href="clones.IntC.html#clone-2">clones.IntC</a><span title="sound instance" class="icon small valid icofont-star"></span>
+    <span class="keyword">instance</span> <a href="clones.IntC.html#clone-4">clones.IntC</a><span title="sound instance" class="icon small valid icofont-star"></span>
   </pre>
   <pre class="src"><span class="keyword">module</span> <a id="Associative" href="clones.Associative.html">clones.Associative</a><span title="2 logic parameters, 1 hypothesis, 3 ground instances" class="icon small valid icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
   <pre class="src">
     <span class="keyword">axiom</span> <a id="Associative.associative" href="clones.Associative.html#associative">associative</a><span title="witnessed hypothesis" class="icon small valid icofont-star"></span>
-    <span class="keyword">clone</span> <a href="clones.AC.html#clone-5">clones.AC</a><span title="sound instance" class="icon small valid icofont-star"></span>
-    <span class="keyword">clone</span> <a href="clones.IntA.html#clone-2">clones.IntA</a><span title="sound instance" class="icon small valid icofont-star"></span>
-    <span class="keyword">clone</span> <a href="clones.IntAC.html#clone-5">clones.IntAC</a><span title="sound instance" class="icon small valid icofont-star"></span>
+    <span class="keyword">instance</span> <a href="clones.AC.html#clone-5">clones.AC</a><span title="sound instance" class="icon small valid icofont-star"></span>
+    <span class="keyword">instance</span> <a href="clones.IntA.html#clone-2">clones.IntA</a><span title="sound instance" class="icon small valid icofont-star"></span>
+    <span class="keyword">instance</span> <a href="clones.IntAC.html#clone-5">clones.IntAC</a><span title="sound instance" class="icon small valid icofont-star"></span>
   </pre>
   <pre class="src"><span class="keyword">module</span> <a id="AC" href="clones.AC.html">clones.AC</a><span title="2 logic parameters, 2 hypotheses, 1 ground instance" class="icon small valid icofont-star"></span><span title="Valid (no goals)" class="icon remark icofont-check"></span></pre>
   <pre class="src">
     <span class="keyword">axiom</span> <a id="AC.commutative" href="clones.AC.html#commutative">commutative</a><span title="witnessed hypothesis" class="icon small valid icofont-star"></span>
     <span class="keyword">axiom</span> <a id="AC.associative" href="clones.AC.html#associative">associative</a><span title="witnessed hypothesis" class="icon small valid icofont-star"></span>
-    <span class="keyword">clone</span> <a href="clones.IntAC.html#clone-6">clones.IntAC</a><span title="sound instance" class="icon small valid icofont-star"></span>
+    <span class="keyword">instance</span> <a href="clones.IntAC.html#clone-6">clones.IntAC</a><span title="sound instance" class="icon small valid icofont-star"></span>
   </pre>
   <pre class="src"><span class="keyword">module</span> <a id="IntC" href="clones.IntC.html">clones.IntC</a><span title="Failed (no proof)" class="icon failed icofont-error"></span></pre>
   <pre class="src">

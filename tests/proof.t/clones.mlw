@@ -13,3 +13,9 @@ module B
   use int.Int
   clone A with type t = int, function op = (+), axiom neutral
 end
+
+module C
+  use int.Int
+  constant zero : int = 0
+  clone A with type t = int, function op = (+), constant e = zero
+end

@@ -39,6 +39,11 @@ type soundness =
   | Sound of Docref.instance list
   | Unknown of Docref.instance list
 
+let pretty fmt = function
+  | Unsound -> Format.pp_print_string fmt "Unsound"
+  | Sound ds -> Format.fprintf fmt "Sound (%d)" (List.length ds)
+  | Unknown ds -> Format.fprintf fmt "Unknown (%d)" (List.length ds)
+
 type env = {
   theories : (string,Docref.theory) Hashtbl.t ; (* indexed by path *)
   instances : Sinst.t ref Hid.t ;
@@ -94,13 +99,17 @@ let rec compute (env : env) (th : Docref.theory) : soundness =
         if ok then Sound [] else
           try
             let instances = Sinst.elements !(Hid.find env.instances key) in
-            let grounds = List.filter (ground_instance env) instances in
+            let grounds = List.filter (has_ground_instance env) instances in
             if grounds <> [] then Sound grounds else Unknown instances
           with Not_found -> Unknown []
     in Hid.replace env.soundness key s ; s
 
-and ground_instance env inst =
+and has_ground_instance env inst =
   try Hashtbl.find env.theories inst.inst_path |> compute env |> is_sound
   with Not_found -> false
+
+let instance env (inst : Docref.instance) =
+  try Hid.find env.soundness inst.inst_cloned.th_name
+  with Not_found -> free
 
 (* -------------------------------------------------------------------------- *)

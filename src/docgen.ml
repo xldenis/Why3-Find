@@ -214,10 +214,10 @@ let icon_nogoal = "icon remark icofont-check"
 let icon_valid = "icon valid icofont-check"
 let icon_partial = "icon warning icofont-error"
 let icon_failed = "icon failed icofont-error"
-let icon_sound_param = "icon small valid icofont-star"
+let icon_complete = "icon small valid icofont-star"
 let icon_parameter = "icon small remark icofont-question-circle"
-let icon_unsound_param = "icon small warning icofont-warning-alt"
-let icon_unsafe_param = "icon small failed icofont-warning"
+let icon_hypothesis = "icon small warning icofont-warning-alt"
+let icon_unsafe = "icon small failed icofont-warning"
 
 let pp_mark ?href ~title ~cla fmt =
   match href with
@@ -311,29 +311,29 @@ let process_axioms env (id : Id.id) =
     | Some { kind ; builtin ; extern } ->
       match builtin, extern with
       | [],None ->
-        let cloned_param () =
+        let cloned_param kind =
           match Soundness.compute env.senv theory with
-          | Sound _ -> icon_sound_param
-          | Unknown _ | Unsound -> icon_unsound_param
+          | Sound _ -> icon_complete, kind ^ " with ground instance"
+          | Unknown _ | Unsound -> icon_hypothesis, kind
         in
         let cla,title =
           match kind with
           | Type | Logic | Param -> icon_parameter, "Parameter"
-          | Unsafe -> icon_unsafe_param, "Unsound Definition"
-          | Value -> cloned_param (), "Value Parameter"
-          | Axiom -> cloned_param (), "Hypothesis"
+          | Unsafe -> icon_unsafe, "Unsound Definition"
+          | Value -> cloned_param "Value Parameter"
+          | Axiom -> cloned_param "Hypothesis"
         in
         Pdoc.ppt env.out (pp_mark ~cla ~title)
       | [], Some ext ->
         let title = Printf.sprintf "External OCaml symbol (%s)" ext in
-        Pdoc.ppt env.out (pp_mark ~cla:icon_unsound_param ~title)
+        Pdoc.ppt env.out (pp_mark ~cla:icon_hypothesis ~title)
       | ops, None ->
         let title = Printf.sprintf "Built-in symbol (%s)" (provers ops) in
-        Pdoc.ppt env.out (pp_mark ~cla:icon_unsound_param ~title)
+        Pdoc.ppt env.out (pp_mark ~cla:icon_hypothesis ~title)
       | ops, Some ext ->
         let title = Printf.sprintf
             "Built-in symbol (%s), extracted to OCaml (%s)" (provers ops) ext
-        in Pdoc.ppt env.out (pp_mark ~cla:icon_unsound_param ~title)
+        in Pdoc.ppt env.out (pp_mark ~cla:icon_hypothesis ~title)
 
 let process_hypothesis env (s : Soundness.soundness) (p : Axioms.parameter) =
   try
@@ -348,13 +348,13 @@ let process_hypothesis env (s : Soundness.soundness) (p : Axioms.parameter) =
     in
     let qualif fmt =
       if Axioms.is_unsafe p then
-        pp_mark ~cla:icon_unsafe_param ~title:"unsafe definition" fmt
+        pp_mark ~cla:icon_unsafe ~title:"unsafe definition" fmt
       else
       if not @@ Axioms.is_free p then
         if Soundness.is_sound s then
-          pp_mark ~cla:icon_sound_param ~title:"witnessed hypothesis" fmt
+          pp_mark ~cla:icon_complete ~title:"witnessed hypothesis" fmt
         else
-          pp_mark ~cla:icon_unsound_param ~title:"uncloned hypothesis" fmt
+          pp_mark ~cla:icon_hypothesis ~title:"uncloned hypothesis" fmt
     in
     Pdoc.printf env.crc
       "@\n  %a <a id=\"%a\" href=\"%a\">%a</a>%t"
@@ -366,11 +366,10 @@ let process_hypothesis env (s : Soundness.soundness) (p : Axioms.parameter) =
 
 let process_instance env ~ok (s : Docref.instance) =
   Pdoc.printf env.crc "@\n  %a <a href=\"%s.html#clone-%d\">%s</a>"
-    Pdoc.pp_keyword "clone" s.inst_path s.inst_order s.inst_path ;
-  Pdoc.ppt env.crc
-    (if ok
-     then pp_mark ~title:"sound instance" ~cla:icon_sound_param
-     else pp_mark ~title:"incomplete instance" ~cla:icon_unsound_param)
+    Pdoc.pp_keyword "instance" s.inst_path s.inst_order s.inst_path ;
+  let title = (if ok then "sound" else "incomplete") ^ " instance" in
+  let cla = if ok then icon_complete else icon_hypothesis in
+  Pdoc.ppt env.crc @@ pp_mark ~title ~cla
 
 let process_module_axioms env =
   match env.theory with
@@ -421,13 +420,14 @@ let add_axiom hs (p : Axioms.parameter) =
 let pp_axioms_link ?href fmt { prm ; hyp ; pvs ; unsafe ; sound } =
   if prm+hyp+pvs+unsafe > 0 then
     let cla =
-      if Soundness.is_free sound then icon_parameter else
-      if hyp + pvs + unsafe > 0 then
+      if unsafe > 0 then icon_unsafe else
+      if hyp + pvs > 0 then
         match sound with
-        | Unsound -> icon_unsafe_param
-        | Sound _ -> icon_sound_param
-        | Unknown _ -> icon_unsound_param
-      else if prm > 0 then icon_parameter else icon_unsound_param
+        | Unsound -> icon_unsafe
+        | Unknown _ | Sound [] -> icon_hypothesis
+        | Sound _ -> icon_complete
+      else
+      if prm > 0 then icon_parameter else icon_hypothesis
     in
     let title =
       let plural k single msg =
@@ -437,16 +437,17 @@ let pp_axioms_link ?href fmt { prm ; hyp ; pvs ; unsafe ; sound } =
         plural prm "1 logic parameter" @@ Printf.sprintf "%d logic parameters" ;
         plural hyp "1 hypothesis" @@ Printf.sprintf "%d hypotheses" ;
         match sound with
-        | Soundness.Unsound ->
-          plural unsafe "1 unsound definition" @@
-          Printf.sprintf "%d unsafe definitions"
-        | Soundness.Unknown [] -> ["0 instance found"]
-        | Soundness.Unknown ns ->
-          plural (List.length ns) "1 incomplete instance" @@
-          Printf.sprintf "%d incomplete instances"
-        | Soundness.Sound ns ->
+        | Sound [] -> []
+        | Sound ns ->
           plural (List.length ns) "1 ground instance" @@
           Printf.sprintf "%d ground instances"
+        | Unsound ->
+          plural unsafe "1 unsound definition" @@
+          Printf.sprintf "%d unsafe definitions"
+        | Unknown [] -> ["0 instance found"]
+        | Unknown ns ->
+          plural (List.length ns) "1 incomplete instance" @@
+          Printf.sprintf "%d incomplete instances"
       ]
     in pp_mark ~cla ~title ?href fmt
 
@@ -690,8 +691,8 @@ let process_clone_axioms env clones =
   | Some theory ->
     let signature = theory.signature in
     let hs = List.fold_left
-        (fun hs clone ->
-           match Axioms.parameter signature clone.Docref.id_target with
+        (fun hs (clone : Docref.clone) ->
+           match Axioms.parameter signature clone.id_target with
            | None -> hs
            | Some p -> add_axiom hs p
         ) free clones in
