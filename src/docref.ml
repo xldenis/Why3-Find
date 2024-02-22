@@ -156,6 +156,18 @@ let set_instance cenv id =
 let current_instance cenv s =
   s.inst_path = cenv.path && s.inst_order = cenv.order
 
+let is_ident a = function
+  | None -> true
+  | Some b -> Why3.Ident.id_equal a b
+
+let is_clone cenv ?source ?target c =
+  is_ident c.id_source source &&
+  is_ident c.id_target target &&
+  current_instance cenv c.id_instance
+
+let find_clone cenv ?source ?target thy =
+  List.find_opt (is_clone cenv ?source ?target) thy.clones
+
 (* -------------------------------------------------------------------------- *)
 (* --- Theory Iterators                                                   --- *)
 (* -------------------------------------------------------------------------- *)
