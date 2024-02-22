@@ -509,28 +509,20 @@ let process_href env (href : Docref.href) s =
 (* --- Printing Declarations                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-let pp_ident ~env ?attr ?name fmt id =
+let pp_ident ~env ?attr fmt id =
   try
     let id = Id.resolve ~lib:env.src.lib id in
-    let pp_name fmt =
-      match name with
-      | Some a -> Format.pp_print_string fmt a
-      | None -> Id.pp_local fmt id
-    in
     begin match attr with
       | None -> Format.fprintf fmt "<a"
       | Some a -> Format.fprintf fmt "<a class=\"%s\"" a
     end ;
-    Format.fprintf fmt " title=\"%a\" href=\"%a\">%t</a>"
+    Format.fprintf fmt " title=\"%a\" href=\"%a\">%a</a>"
       Id.pp_title id
       (Id.pp_ahref ~scope:None) id
-      pp_name
+      Id.pp_local id
   with Not_found ->
     (* Builtin *)
-    Format.pp_print_string fmt @@
-    match name with
-    | Some a -> a
-    | None -> id.id_string
+    Format.pp_print_string fmt id.id_string
 
 let rec pp_type ~env ~arg fmt (ty : Why3.Ty.ty) =
   if arg then Format.pp_print_char fmt ' ' ;
@@ -554,65 +546,61 @@ let attributes (rs : Why3.Expr.rsymbol) =
    | RKlemma -> ["lemma"])
 
 let defkind = function
-  | { Why3.Expr.c_node = Cany } -> "val"," "
-  | _ -> "let"," = "
+  | { Why3.Expr.c_node = Cany } -> "val"
+  | _ -> "let"
 
-let declare env n kwd ?(attr=[]) ?(valid=false) id =
+let declare env n kwd ?(attr=[]) ?(valid=false) ?def ?(more=false) id =
   begin
     let r = Id.resolve ~lib:env.src.lib id in
     Pdoc.printf env.out "%a%a" Pdoc.pp_spaces n Pdoc.pp_keyword kwd ;
     List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
-    Pdoc.printf env.out " <a id=\"%a\">%a</a>" Id.pp_aname r Id.pp_local r ;
+    Pdoc.printf env.out " <a id=\"%a\">%t</a>" Id.pp_aname r
+      begin fun fmt ->
+        match def with
+        | None -> Id.pp_local fmt r
+        | Some rdef -> pp_ident ~env fmt rdef
+      end ;
     process_axioms env r ;
     process_proof env r ~valid @@ Docref.find_proof r.self env.theory ;
+    if not more then Pdoc.printf env.out "@\n" ;
   end
 
-let definition env ?(op=" = ") def =
-  Pdoc.printf env.out "%s{%a}@\n" op
-    (pp_ident ~env ~attr:"attribute" ~name:"def.") def
-
-let symbol env n ?attr (ls : Why3.Term.lsymbol) ?op def =
+let symbol env n ?attr (ls : Why3.Term.lsymbol) ~def =
   match ls.ls_value with
   | None ->
-    declare env n "predicate" ?attr ls.ls_name ;
+    declare env n "predicate" ?attr ls.ls_name ~def ~more:true ;
     List.iter (Pdoc.pp env.out @@ pp_type ~env ~arg:true) ls.ls_args ;
-    definition env ?op def ;
+    Pdoc.printf env.out "@\n"
   | Some r ->
-    declare env n "function" ?attr ls.ls_name ;
+    declare env n "function" ?attr ls.ls_name ~def ~more:true ;
     List.iter (Pdoc.pp env.out @@ pp_type ~env ~arg:true) ls.ls_args ;
-    Pdoc.printf env.out " : %a" (pp_type ~env ~arg:false) r ;
-    definition env ?op def
+    Pdoc.printf env.out " : %a@\n" (pp_type ~env ~arg:false) r
 
 let decl env n id (d : Why3.Decl.decl) def =
   ignore def ;
   match d.d_node with
-  | Dtype { ts_def = NoDef } ->
-    declare env n "type" id ; definition env ~op:" " def
-  | Dtype _ | Ddata _ ->
-    declare env n "type" id ; definition env def
-  | Dparam ls ->
-    symbol env n ls ~op:" " def
+  | Dtype { ts_def = NoDef } -> declare env n "type" id ~def
+  | Dtype _ | Ddata _ -> declare env n "type" id ~def
+  | Dparam ls -> symbol env n ls ~def
   | Dlogic ds ->
     List.iter
       (fun (ls,_) ->
-         if ls.Why3.Term.ls_name = id then
-           symbol env n ls def
+         if ls.Why3.Term.ls_name = id then symbol env n ls ~def
       ) ds
-  | Dind _ ->
-    declare env n "inductive" id ; definition env def ;
-  | Dprop(Plemma,_,_) ->
-    declare env n "lemma" ~valid:true id ; definition env ~op:" " def
-  | Dprop(Paxiom,_,_) ->
-    declare env n "axiom" id ; definition env ~op:" " def
+  | Dind _ -> declare env n "inductive" ~def id
+  | Dprop(Plemma,_,_) -> declare env n "lemma" ~valid:true id ~def
+  | Dprop(Paxiom,_,_) -> declare env n "axiom" id ~def
   | Dprop(Pgoal,_,_) -> ()
 
-let signature env (rs : Why3.Expr.rsymbol) =
+let signature env n (rs : Why3.Expr.rsymbol) ~def df =
   begin
+    let kwd = defkind df in
+    declare env n kwd ~attr:(attributes rs) rs.rs_name ~def ~more:true ;
     List.iter
       (fun x ->
          Pdoc.pp env.out (pp_type ~env ~arg:true) Why3.Ity.(ty_of_ity x.pv_ity)
       ) rs.rs_cty.cty_args ;
-    Pdoc.printf env.out " : %a"
+    Pdoc.printf env.out " : %a@\n"
       (pp_type ~env ~arg:false)
       Why3.Ity.(ty_of_ity rs.rs_cty.cty_result) ;
   end
@@ -620,32 +608,23 @@ let signature env (rs : Why3.Expr.rsymbol) =
 let mdecl env n id (pd: Why3.Pdecl.pdecl) def =
   match pd.pd_node with
   | PDpure -> List.iter (fun d -> decl env n id d def) pd.pd_pure
-  | PDtype _ -> declare env n "type" id ; definition env def
-  | PDexn _ -> declare env n "exception" id ; definition env ~op:" " def
+  | PDtype _ -> declare env n "type" id ~def
+  | PDexn _ -> declare env n "exception" id ~def
   | PDlet dlet ->
     begin
       match dlet with
       | LDvar(pv,_) ->
-        declare env n "let" id ;
+        declare env n "let" id ~def ~more:true ;
         Pdoc.printf env.out " : %a"
           (pp_type ~env ~arg:false) pv.pv_vs.vs_ty ;
-        definition env def
-      | LDsym(rs,df) ->
-        let kwd,op = defkind df in
-        declare env n kwd ~attr:(attributes rs) id ;
-        signature env rs ;
-        definition env ~op def
+        Pdoc.printf env.out "@\n"
+      | LDsym(rs,df) -> signature env n rs ~def df
       | LDrec defs ->
         List.iter
           (fun (d : Why3.Expr.rec_defn) ->
              let rs = d.rec_sym in
              if Why3.Ident.id_equal id rs.rs_name then
-               begin
-                 let kwd,op = defkind d.rec_fun in
-                 declare env n kwd ~attr:(attributes rs) id ;
-                 signature env rs ;
-                 definition env ~op def ;
-               end
+               signature env n rs ~def d.rec_fun
           ) defs
     end
 
