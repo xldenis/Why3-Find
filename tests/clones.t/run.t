@@ -33,7 +33,7 @@
       <span class="comment section-toggle">begin</span>
         <span class="keyword">axiom</span> <a id="associative" title="clones.Associative.associative" href="clones.Associative.html#associative">associative</a><span title="Hypothesis with ground instance" class="icon small valid icofont-star"></span>
       <span class="comment section-toggle">end</span>
-    </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a>, <span class="keyword">function</span> <a title="clones.Associative.op" href="clones.Associative.html#op">op</a>, <span class="keyword">axiom</span> .
+    </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a><a href="#t" title="clones.AC.t" class="icon small remark icofont-question-circle"></a>, <span class="keyword">function</span> <a title="clones.Associative.op" href="clones.Associative.html#op">op</a><a href="#op" title="clones.AC.op" class="icon small remark icofont-question-circle"></a>, <span class="keyword">axiom</span> .
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>

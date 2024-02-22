@@ -64,6 +64,20 @@ let is_closing = function
   | _ -> false
 
 (* -------------------------------------------------------------------------- *)
+(* --- Cloning Substitution                                               --- *)
+(* -------------------------------------------------------------------------- *)
+
+type clone_with =
+  | NotCloning
+  | C_with                (* clone … with *)
+  | C_axiom               (* clone … with … axiom [….] *)
+  | C_decl                (* clone … with … kwd *)
+  | C_seq                 (* clone … with … kwd a = *)
+  | C_def                 (* clone … with … [kwd a = b | axiom a] *)
+  | C_src of Docref.ident * int
+                          (* clone … with … kwd a<nspace> *)
+
+(* -------------------------------------------------------------------------- *)
 (* --- Environment                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -89,6 +103,7 @@ type env = {
   mutable proof_href : int ; (* proof href *)
   mutable clone_decl : int ; (* clone decl indent (when > 0) *)
   mutable clone_inst : bool ; (* clone instance found *)
+  mutable clone_with : clone_with ; (* clone substitution *)
   mutable declared : Sid.t ; (* locally declared *)
   mutable scope : string option ; (* current module name *)
   mutable theory : Docref.theory option ; (* current module theory *)
@@ -463,6 +478,59 @@ let process_axioms_summary env id ~crc = function
     if crc then Pdoc.pp env.crc pp_axioms hs
 
 (* -------------------------------------------------------------------------- *)
+(* --- Clone Substitution                                                 --- *)
+(* -------------------------------------------------------------------------- *)
+
+type clone_token = [
+  | `id of Docref.ident
+  | `kwd of string
+  | `equal
+  | `coma
+  | `dot
+  | `comment
+  | `newline
+  | `builtin
+]
+
+let process_clone_spaces env n next =
+  Pdoc.pp env.out Pdoc.pp_spaces n ;
+  env.clone_with <- next
+
+let process_clone_target env id n next =
+  begin
+    match env.theory with
+    | None -> ()
+    | Some thy ->
+      match Docref.find_clone env.cenv ~source:id thy with
+      | None -> ()
+      | Some c ->
+        let tgt = Id.resolve ~lib:env.src.lib c.id_target in
+        let title = Format.asprintf "%a" Id.pp_title tgt in
+        let href fmt = Id.pp_ahref ~scope:env.scope fmt tgt in
+        Pdoc.ppt env.out (pp_mark ~href ~title ~cla:icon_parameter)
+  end ;
+  process_clone_spaces env n next
+
+let process_clone_token env (tok : clone_token) =
+  match env.clone_with , tok with
+  | NotCloning , _ -> ()
+  | C_with , `kwd "axiom" -> env.clone_with <- C_axiom
+  | C_with , `kwd _ -> env.clone_with <- C_decl
+  | C_axiom , `id _ -> env.clone_with <- C_def
+  | C_axiom , `dot -> ()
+  | C_axiom , `coma -> env.clone_with <- C_with
+  | C_decl , `dot -> ()
+  | C_decl , `id a -> env.clone_with <- C_src(a,0)
+  | C_src(_,n) , `equal -> process_clone_spaces env n C_seq
+  | C_src(id,n) , `coma -> process_clone_target env id n C_with
+  | C_src(id,n) , `comment -> process_clone_target env id n NotCloning
+  | C_src(id,_) , `newline -> process_clone_target env id 0 NotCloning
+  | C_seq , `dot -> ()
+  | C_seq , (`id _ | `builtin) -> env.clone_with <- C_def
+  | C_def , `coma -> env.clone_with <- C_with
+  | _ -> ()
+
+(* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
@@ -482,6 +550,7 @@ let process_href env (href : Docref.href) s =
 
   | Docref.Def(id,proof) ->
     env.declared <- Sid.add id.self env.declared ;
+    env.clone_with <- NotCloning ;
     if id.id_qid = [] then
       Pdoc.pp env.out Pdoc.pp_html s
     else
@@ -496,13 +565,21 @@ let process_href env (href : Docref.href) s =
         let order = Docref.set_instance env.cenv id.self in
         Pdoc.printf env.out " id=\"clone-%d\"" order ;
         env.clone_inst <- true ;
-      end ;
+      end
+    else
+      process_clone_token env (`id id.self) ;
     Pdoc.printf env.out " title=\"%a\" href=\"%a\">%a</a>"
       Id.pp_title id
       (Id.pp_ahref ~scope:env.scope) id
       Pdoc.pp_html s
 
   | Docref.NoRef ->
+    begin
+      match s with
+      | "=" -> process_clone_token env `equal
+      | "." -> process_clone_token env `dot
+      | _ -> process_clone_token env `builtin
+    end ;
     Pdoc.pp_html_s env.out s
 
 (* -------------------------------------------------------------------------- *)
@@ -715,6 +792,7 @@ let process_clones env =
       | Some th ->
         process_clone_section env th ;
         env.clone_inst <- false ;
+        env.clone_with <- C_with ;
         env.clone_decl <- 0 ;
   end
 
@@ -827,7 +905,9 @@ let process_close_module env key =
 
 let process_ident env s =
   if Docref.is_keyword s then
-    begin match s with
+    begin
+      process_clone_token env (`kwd s) ;
+      match s with
       | "module" | "theory" -> process_open_module env s
       | "end" when env.opened = 0 -> process_close_module env s
       | "assume" ->
@@ -843,7 +923,7 @@ let process_ident env s =
     begin
       text env ;
       let href = resolve env () in
-      process_href env href s
+      process_href env href s ;
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -900,9 +980,13 @@ let process_space env =
   | Par | Item _ | Head _ | Emph | Bold -> env.space <- true
   | Pre ->
     match env.indent with
-    | Code -> bsync env ; Pdoc.pp_print_char env.out ' '
     | Head n -> env.indent <- Head (succ n)
     | Lines(l,n) -> env.indent <- Lines(l,succ n)
+    | Code ->
+      bsync env ;
+      match env.clone_with with
+      | C_src(id,n) -> env.clone_with <- C_src(id,succ n)
+      | _ -> Pdoc.pp_print_char env.out ' '
 
 let process_newline env =
   match env.mode with
@@ -919,9 +1003,11 @@ let process_newline env =
     pop env
   | Pre ->
     match env.indent with
-    | Code -> env.indent <- Lines(1,0)
     | Lines(n,_) -> env.indent <- Lines(succ n,0)
     | Head _ -> env.indent <- Head 0
+    | Code ->
+      process_clone_token env `newline ;
+      env.indent <- Lines(1,0)
 
 (* -------------------------------------------------------------------------- *)
 (* --- References                                                         --- *)
@@ -951,11 +1037,19 @@ let parse env =
   while not (Token.eof env.input) do
     match Token.token env.input with
     | Eof -> close env ; bsync env
+    | Char ',' ->
+      text env ;
+      process_clone_token env `coma ;
+      Pdoc.pp_print_char out ','
     | Char c -> text env ; Pdoc.pp_html_c out c
     | Text s -> text env ; Pdoc.pp_html_s out s
     | Comment s ->
       if env.mode = Pre then
-        (text env ; Pdoc.pp_html_s out ~className:"comment" s)
+        begin
+          text env ;
+          process_clone_token env `comment ;
+          Pdoc.pp_html_s out ~className:"comment" s ;
+        end
     | Verb s ->
       text env ; Pdoc.printf out "<code class=\"src\">%a</code>" Pdoc.pp_html s
     | Ref s -> process_reference ~wenv ~env s
@@ -1066,6 +1160,7 @@ let process_markdown ~wenv ~cenv ~henv ~senv ~out:dir ~title file =
       scope = None ; theory = None ;
       clone_decl = 0 ;
       clone_inst = false ;
+      clone_with = NotCloning ;
       proof_href = 0 ;
       declared = Sid.empty ;
       opened = 0 ; section = 0 ;
@@ -1101,6 +1196,7 @@ let process_source ~wenv ~cenv ~henv ~senv ~out:dir file (src : Docref.source) =
     scope = None ; theory = None ;
     clone_decl = 0 ;
     clone_inst = false ;
+    clone_with = NotCloning ;
     proof_href = 0 ;
     declared = Sid.empty ;
     opened = 0 ; section = 0 ;

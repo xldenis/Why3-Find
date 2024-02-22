@@ -1,0 +1,30 @@
+module A
+  type a
+  predicate p a
+  predicate q a
+  predicate r a
+  axiom pq: forall x. p x -> q x
+  axiom qr: forall x. q x -> r x
+end
+
+module Q
+  use int.Int
+  type t = int
+  predicate q (x : int) = x >= 0
+end
+
+module B
+  use int.Int
+  use Q
+  type t = int
+  predicate p (x : int) = x > 0
+  clone A as A0 with type a = int, predicate q = Q.q, predicate p, axiom .
+  clone A as A1 with type a = int, predicate q = Q.q, predicate p, axiom pq
+  clone A as A2 with type a = int, predicate p, axiom pq, predicate q = Q.q
+  clone A as A3 with type a = int, axiom pq, predicate q = Q.q, predicate p
+  clone A as A4 with type a = int, axiom pq, predicate q = Q.q, predicate p (* spaced *)
+  clone A as A5 with predicate p, axiom pq, predicate q = Q.q, type a = int
+  clone A as A6 with predicate p, axiom ., predicate q = Q.q, type a = int
+  predicate r (x : int) = x < 0
+  lemma pr: forall x. p x <-> r (-x)
+end

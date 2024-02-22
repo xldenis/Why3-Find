@@ -61,6 +61,9 @@ val init : unit -> cenv
 val set_container : cenv -> path:string -> id:string -> unit
 val set_instance : cenv -> ident -> int
 val current_instance : cenv -> instance -> bool
+val find_clone : cenv ->
+  ?source:ident -> ?target:ident ->
+  theory -> clone option
 
 val parse : wenv:Why3.Env.env -> cenv:cenv -> henv:Axioms.henv -> string -> source
 val empty : unit -> source
