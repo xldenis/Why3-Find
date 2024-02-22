@@ -20,18 +20,18 @@
   <span class="keyword">module</span> AC<a href="clones.proof.html#AC" title="2 logic parameters, 2 hypotheses, 1 ground instance" class="icon small valid icofont-star"></a><a href="clones.proof.html#AC" title="Valid (no goals)" class="icon remark icofont-check"></a>
     <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 logic parameters" class="icon small remark icofont-question-circle"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">type</span> <a id="t"><a title="clones.Monoid.t" href="clones.Monoid.html#t">t</a></a><span title="Parameter" class="icon small remark icofont-question-circle"></span>
-        <span class="keyword">function</span> <a id="op"><a title="clones.Monoid.op" href="clones.Monoid.html#op">op</a></a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="clones.AC.t" href="clones.AC.html#t">t</a> <a title="clones.AC.t" href="clones.AC.html#t">t</a> : <a title="clones.AC.t" href="clones.AC.html#t">t</a>
+        <span class="keyword">type</span> <a id="t" title="clones.Monoid.t" href="clones.Monoid.html#t">t</a><span title="Parameter" class="icon small remark icofont-question-circle"></span>
+        <span class="keyword">function</span> <a id="op" title="clones.Monoid.op" href="clones.Monoid.html#op">op</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="clones.AC.t" href="clones.AC.html#t">t</a> <a title="clones.AC.t" href="clones.AC.html#t">t</a> : <a title="clones.AC.t" href="clones.AC.html#t">t</a>
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="comment">(* #0 *)</span>
     <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-3" title="clones.Commutative" href="clones.Commutative.html#">Commutative</a><span title="1 hypothesis" class="icon small warning icofont-warning-alt"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">axiom</span> <a id="commutative"><a title="clones.Commutative.commutative" href="clones.Commutative.html#commutative">commutative</a></a><span title="Hypothesis with ground instance" class="icon small valid icofont-star"></span>
+        <span class="keyword">axiom</span> <a id="commutative" title="clones.Commutative.commutative" href="clones.Commutative.html#commutative">commutative</a><span title="Hypothesis with ground instance" class="icon small valid icofont-star"></span>
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> M.<a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">t</a> = <a title="clones.AC.t" href="#t">t</a>, <span class="keyword">function</span> M.<a title="clones.Commutative.M.op" href="clones.Commutative.html#M.op">op</a> = <a title="clones.AC.op" href="#op">op</a>, <span class="keyword">axiom</span> .
     <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-5" title="clones.Associative" href="clones.Associative.html#">Associative</a><span title="1 hypothesis" class="icon small warning icofont-warning-alt"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">axiom</span> <a id="associative"><a title="clones.Associative.associative" href="clones.Associative.html#associative">associative</a></a><span title="Hypothesis with ground instance" class="icon small valid icofont-star"></span>
+        <span class="keyword">axiom</span> <a id="associative" title="clones.Associative.associative" href="clones.Associative.html#associative">associative</a><span title="Hypothesis with ground instance" class="icon small valid icofont-star"></span>
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a>, <span class="keyword">function</span> <a title="clones.Associative.op" href="clones.Associative.html#op">op</a>, <span class="keyword">axiom</span> .
   <span class="keyword">end</span>
@@ -52,8 +52,8 @@
   <span class="keyword">module</span> Associative<a href="clones.proof.html#Associative" title="2 logic parameters, 1 hypothesis, 3 ground instances" class="icon small valid icofont-star"></a><a href="clones.proof.html#Associative" title="Valid (no goals)" class="icon remark icofont-check"></a>
     <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 logic parameters" class="icon small remark icofont-question-circle"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">type</span> <a id="t"><a title="clones.Monoid.t" href="clones.Monoid.html#t">t</a></a><span title="Parameter" class="icon small remark icofont-question-circle"></span>
-        <span class="keyword">function</span> <a id="op"><a title="clones.Monoid.op" href="clones.Monoid.html#op">op</a></a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> : <a title="clones.Associative.t" href="clones.Associative.html#t">t</a>
+        <span class="keyword">type</span> <a id="t" title="clones.Monoid.t" href="clones.Monoid.html#t">t</a><span title="Parameter" class="icon small remark icofont-question-circle"></span>
+        <span class="keyword">function</span> <a id="op" title="clones.Monoid.op" href="clones.Monoid.html#op">op</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> : <a title="clones.Associative.t" href="clones.Associative.html#t">t</a>
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="comment">(* #0 *)</span>
     <span class="keyword">axiom</span> <a id="associative">associative</a><span title="Hypothesis with ground instance" class="icon small valid icofont-star"></span>: <span class="keyword">forall</span> x y z. <a title="clones.Associative.op" href="#op">op</a> x (<a title="clones.Associative.op" href="#op">op</a> y z) = <a title="clones.Associative.op" href="#op">op</a> (<a title="clones.Associative.op" href="#op">op</a> x y) z
@@ -75,8 +75,8 @@
   <span class="keyword">module</span> Commutative<a href="clones.proof.html#Commutative" title="2 logic parameters, 1 hypothesis, 4 ground instances" class="icon small valid icofont-star"></a><a href="clones.proof.html#Commutative" title="Valid (no goals)" class="icon remark icofont-check"></a>
     <span class="keyword">clone</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 logic parameters" class="icon small remark icofont-question-circle"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">type</span> <a id="M.t"><a title="clones.Monoid.t" href="clones.Monoid.html#t">t</a></a><span title="Parameter" class="icon small remark icofont-question-circle"></span>
-        <span class="keyword">function</span> <a id="M.op"><a title="clones.Monoid.op" href="clones.Monoid.html#op">op</a></a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a> <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a> : <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a>
+        <span class="keyword">type</span> <a id="M.t" title="clones.Monoid.t" href="clones.Monoid.html#t">t</a><span title="Parameter" class="icon small remark icofont-question-circle"></span>
+        <span class="keyword">function</span> <a id="M.op" title="clones.Monoid.op" href="clones.Monoid.html#op">op</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a> <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a> : <a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">M.t</a>
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="keyword">as</span> M   <span class="comment">(* #0 *)</span>
     <span class="keyword">axiom</span> <a id="commutative">commutative</a><span title="Hypothesis with ground instance" class="icon small valid icofont-star"></span>: <span class="keyword">forall</span> x y. M.<a title="clones.Commutative.M.op" href="#M.op">op</a> x y = M.<a title="clones.Commutative.M.op" href="#M.op">op</a> y x
@@ -99,7 +99,7 @@
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">clone</span> <a id="clone-2" title="clones.Associative" href="clones.Associative.html#">Associative</a><span title="Failed (no proof)" class="icon failed icofont-error"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">lemma</span> <a id="Associative.associative"><a title="clones.Associative.associative" href="clones.Associative.html#associative">associative</a></a><a href="clones.proof.html#IntA.Associative.associative" title="Failed (no proof)" class="icon failed icofont-error"></a>
+        <span class="keyword">lemma</span> <a id="Associative.associative" title="clones.Associative.associative" href="clones.Associative.html#associative">associative</a><a href="clones.proof.html#IntA.Associative.associative" title="Failed (no proof)" class="icon failed icofont-error"></a>
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.Associative.op" href="clones.Associative.html#op">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">+</a>)
   <span class="keyword">end</span>
@@ -121,8 +121,8 @@
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-6" title="clones.AC" href="clones.AC.html#">AC</a><span title="Failed (no proof)" class="icon failed icofont-error"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">lemma</span> <a id="commutative"><a title="clones.AC.commutative" href="clones.AC.html#commutative">commutative</a></a><a href="clones.proof.html#IntAC.commutative" title="Failed (no proof)" class="icon failed icofont-error"></a>
-        <span class="keyword">lemma</span> <a id="associative"><a title="clones.AC.associative" href="clones.AC.html#associative">associative</a></a><a href="clones.proof.html#IntAC.associative" title="Failed (no proof)" class="icon failed icofont-error"></a>
+        <span class="keyword">lemma</span> <a id="commutative" title="clones.AC.commutative" href="clones.AC.html#commutative">commutative</a><a href="clones.proof.html#IntAC.commutative" title="Failed (no proof)" class="icon failed icofont-error"></a>
+        <span class="keyword">lemma</span> <a id="associative" title="clones.AC.associative" href="clones.AC.html#associative">associative</a><a href="clones.proof.html#IntAC.associative" title="Failed (no proof)" class="icon failed icofont-error"></a>
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.AC.t" href="clones.AC.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.AC.op" href="clones.AC.html#op">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">+</a>)
   <span class="keyword">end</span>
@@ -144,12 +144,12 @@
     <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
     <span class="keyword">clone</span> <a id="clone-2" title="clones.Commutative" href="clones.Commutative.html#">Commutative</a><span title="Failed (no proof)" class="icon failed icofont-error"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">lemma</span> <a id="S.commutative"><a title="clones.Commutative.commutative" href="clones.Commutative.html#commutative">commutative</a></a><a href="clones.proof.html#IntC.S.commutative" title="Failed (no proof)" class="icon failed icofont-error"></a>
+        <span class="keyword">lemma</span> <a id="S.commutative" title="clones.Commutative.commutative" href="clones.Commutative.html#commutative">commutative</a><a href="clones.proof.html#IntC.S.commutative" title="Failed (no proof)" class="icon failed icofont-error"></a>
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="keyword">as</span> S <span class="keyword">with</span> <span class="keyword">type</span> M.<a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">t</a> = int, <span class="keyword">function</span> M.<a title="clones.Commutative.M.op" href="clones.Commutative.html#M.op">op</a> = ( <a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">+</a> )
     <span class="keyword">clone</span> <a id="clone-4" title="clones.Commutative" href="clones.Commutative.html#">Commutative</a><span title="Failed (no proof)" class="icon failed icofont-error"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">lemma</span> <a id="P.commutative"><a title="clones.Commutative.commutative" href="clones.Commutative.html#commutative">commutative</a></a><a href="clones.proof.html#IntC.P.commutative" title="Failed (no proof)" class="icon failed icofont-error"></a>
+        <span class="keyword">lemma</span> <a id="P.commutative" title="clones.Commutative.commutative" href="clones.Commutative.html#commutative">commutative</a><a href="clones.proof.html#IntC.P.commutative" title="Failed (no proof)" class="icon failed icofont-error"></a>
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="keyword">as</span> P <span class="keyword">with</span> <span class="keyword">type</span> M.<a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">t</a> = int, <span class="keyword">function</span> M.<a title="clones.Commutative.M.op" href="clones.Commutative.html#M.op">op</a> = ( <a title="int.Int.(*)" href="https://why3.lri.fr/stdlib/int.html#infix%20*_20">*</a> )
   <span class="keyword">end</span>
@@ -188,8 +188,8 @@
   <span class="keyword">module</span> Neutral<a href="clones.proof.html#Neutral" title="3 logic parameters, 1 hypothesis, 0 instance found" class="icon small warning icofont-warning-alt"></a><a href="clones.proof.html#Neutral" title="Valid (no goals)" class="icon remark icofont-check"></a>
     <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-1" title="clones.Monoid" href="clones.Monoid.html#">Monoid</a><span title="2 logic parameters" class="icon small remark icofont-question-circle"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
-        <span class="keyword">type</span> <a id="t"><a title="clones.Monoid.t" href="clones.Monoid.html#t">t</a></a><span title="Parameter" class="icon small remark icofont-question-circle"></span>
-        <span class="keyword">function</span> <a id="op"><a title="clones.Monoid.op" href="clones.Monoid.html#op">op</a></a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="clones.Neutral.t" href="clones.Neutral.html#t">t</a> <a title="clones.Neutral.t" href="clones.Neutral.html#t">t</a> : <a title="clones.Neutral.t" href="clones.Neutral.html#t">t</a>
+        <span class="keyword">type</span> <a id="t" title="clones.Monoid.t" href="clones.Monoid.html#t">t</a><span title="Parameter" class="icon small remark icofont-question-circle"></span>
+        <span class="keyword">function</span> <a id="op" title="clones.Monoid.op" href="clones.Monoid.html#op">op</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="clones.Neutral.t" href="clones.Neutral.html#t">t</a> <a title="clones.Neutral.t" href="clones.Neutral.html#t">t</a> : <a title="clones.Neutral.t" href="clones.Neutral.html#t">t</a>
       <span class="comment section-toggle">end</span>
     </span>}</span> <span class="comment">(* #0 *)</span>
     <span class="keyword">constant</span> <a id="e">e</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> : <a title="clones.Neutral.t" href="#t">t</a>

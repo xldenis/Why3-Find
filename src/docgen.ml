@@ -509,19 +509,18 @@ let process_href env (href : Docref.href) s =
 (* --- Printing Declarations                                              --- *)
 (* -------------------------------------------------------------------------- *)
 
-let pp_ident ~env ?attr fmt id =
-  try
-    let id = Id.resolve ~lib:env.src.lib id in
-    begin match attr with
-      | None -> Format.fprintf fmt "<a"
-      | Some a -> Format.fprintf fmt "<a class=\"%s\"" a
-    end ;
+let pp_ident ~env ?anchor ?attr fmt id =
+  match Id.resolve ~lib:env.src.lib id with
+  | id ->
+    Format.fprintf fmt "<a" ;
+    Option.iter (Format.fprintf fmt " id=\"%s\"") anchor ;
+    Option.iter (Format.fprintf fmt " class=\"%s\"") attr ;
     Format.fprintf fmt " title=\"%a\" href=\"%a\">%a</a>"
       Id.pp_title id
       (Id.pp_ahref ~scope:None) id
       Id.pp_local id
-  with Not_found ->
-    (* Builtin *)
+  | exception Not_found ->
+    (* builtin *)
     Format.pp_print_string fmt id.id_string
 
 let rec pp_type ~env ~arg fmt (ty : Why3.Ty.ty) =
@@ -552,13 +551,15 @@ let defkind = function
 let declare env n kwd ?(attr=[]) ?(valid=false) ?def ?(more=false) id =
   begin
     let r = Id.resolve ~lib:env.src.lib id in
-    Pdoc.printf env.out "%a%a" Pdoc.pp_spaces n Pdoc.pp_keyword kwd ;
-    List.iter (Pdoc.printf env.out " %a" Pdoc.pp_attribute) attr ;
-    Pdoc.printf env.out " <a id=\"%a\">%t</a>" Id.pp_aname r
+    Pdoc.printf env.out "%a%a " Pdoc.pp_spaces n Pdoc.pp_keyword kwd ;
+    List.iter (Pdoc.printf env.out "%a " Pdoc.pp_attribute) attr ;
+    Pdoc.ppt env.out
       begin fun fmt ->
+        let anchor = Format.asprintf "%a" Id.pp_aname r in
         match def with
-        | None -> Id.pp_local fmt r
-        | Some rdef -> pp_ident ~env fmt rdef
+        | Some rdef -> pp_ident ~env ~anchor fmt rdef
+        | None ->
+          Format.fprintf fmt "<a id=\"%s\">%a</a>" anchor Id.pp_local r
       end ;
     process_axioms env r ;
     process_proof env r ~valid @@ Docref.find_proof r.self env.theory ;

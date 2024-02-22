@@ -12,17 +12,14 @@ function toggle(elt) {
 function focus() {
   var h,elts,e,tk,i;
   h = window.location.hash;
-  elts = document.getElementsByName(h.substring(1));
-  for (i=0; i< elts.length; i++) {
-    e = elts[i];
-    while (e) {
-      tk = e.classList;
-      if (tk.contains("section-text") && !tk.contains("active")) {
-        toggle(e);
-        break;
-      }
-      e = e.parentElement;
+  e = document.getElementById(h.substring(1));
+  while (e) {
+    tk = e.classList;
+    if (tk.contains("section-text") && !tk.contains("active")) {
+      toggle(e);
+      break;
     }
+    e = e.parentElement;
   }
 }
 
@@ -50,6 +47,7 @@ function escape(evt) {
   }
 
   focus();
+  window.addEventListener('onload',focus);
   window.addEventListener('hashchange',focus);
   window.addEventListener('keypress',escape);
 
