@@ -10,8 +10,8 @@
   $ cat mypkg/.gitignore
   why3session.xml
   why3shapes.gz
-  .why3find
-  _dune
+  /.why3find
+  /_build
   /html
   /lib
 
@@ -33,8 +33,8 @@
   #### Suggested .gitignore:
   why3session.xml
   why3shapes.gz
-  .why3find
-  _dune
+  /.why3find
+  /_build
   /html
   /lib
   ####
