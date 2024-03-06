@@ -94,15 +94,11 @@ let prove_theory mode profile strategy theory =
       (fun task ->
          let goal = Session.goal_name task in
          let hint = M.find_def (Crc.stuck ()) goal hints in
+         let replay = (mode = `Replay) in
          let+ crc =
-           match mode with
-           | `Force ->
-             Hammer.schedule profile ~replay:false ~depth:0 task (Crc.stuck ())
-           | `Replay ->
-             Hammer.schedule profile ~replay:true ~depth:0 task hint
-           | `Update | `Minimize ->
-             Crc.merge hint @+
-             Hammer.schedule ~replay:false ~depth:0 profile task hint
+           Crc.merge hint @+
+           Hammer.schedule profile ~replay ~depth:0 task
+             (if mode = `Force then Crc.stuck () else hint)
          in
          if Utils.tty then Crc.stats hint crc ;
          if not (Crc.is_complete crc) then
@@ -310,7 +306,7 @@ let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
   begin
     if not @@ String.ends_with ~suffix:".mlw" file then
       begin
-        Format.eprintf "Error: nvalid file name: %S@." file ;
+        Format.eprintf "Error: invalid file name: %S@." file ;
         exit 2
       end ;
     let dir = Filename.chop_extension file in

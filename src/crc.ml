@@ -139,7 +139,7 @@ let rec of_json (js : Json.t) : crc =
 let window t0 t1 =
   let w0 = max t0 0.01 in
   let w1 = max t1 0.01 in
-  w0 *. 0.5 < w1 && w1 < w0 *.2.0
+  w0 *. 0.5 < w1 && w1 < w0 *. 2.0
 
 let rec merge a b =
   let goal = match a.goal with None -> b.goal | g -> g in
