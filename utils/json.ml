@@ -29,6 +29,7 @@ let of_file f : t = (Yojson.Basic.from_file f :> t)
 let to_file f js =
   let out = open_out f in
   Yojson.pretty_to_channel ~std:true out js ;
+  output_char out '\n';
   close_out out
 
 let jbool = function
