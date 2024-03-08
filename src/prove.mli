@@ -31,7 +31,7 @@ val externals : bool ref
 val builtins : bool ref
 
 type outcome = {
-  provers : Runner.prover list ;
+  provers : Prover.prover list ;
   tactics : string list ;
   time : int ;
   mem : int ;

@@ -315,7 +315,7 @@ let process_proof env id ?(valid=false) = function
 (* --- Axioms & Parameter                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let provers ops = String.concat "," (List.map (fun (p,_) -> Runner.name p) ops)
+let provers ops = String.concat "," (List.map (fun (p,_) -> Prover.name p) ops)
 
 let process_axioms env (id : Id.id) =
   match env.theory with

@@ -25,32 +25,14 @@
 
 open Wenv
 
-type prover = {
-  config : Why3.Whyconf.config_prover ;
-  driver : Why3.Driver.driver ;
-}
-
 type result =
   | NoResult | Failed | Unknown of float | Timeout of float | Valid of float
-
-val id : prover -> string
-val name : prover -> string
-val version : prover -> string
-val fullname : prover -> string
-val infoname : prover -> string
-
-val all : env -> prover list
-val find : env -> pattern:string -> prover option
-val prover : env -> id:string -> prover
-val select : env -> patterns:string list -> prover list
-val default : env -> prover list
 
 val map : (float -> float) -> result -> result
 val crop : timeout:float -> result -> result option
 val definitive : timeout:float -> result -> bool
 val merge : result -> result -> result
 
-val pp_prover : Format.formatter -> prover -> unit
 val pp_result : Format.formatter -> result -> unit
 
 val of_json : Json.t -> result
@@ -66,28 +48,28 @@ val prove : env ->
   ?name:string ->
   ?cancel:unit Fibers.signal ->
   ?callback:callback ->
-  prover -> Why3.Task.task -> float -> result Fibers.t
+  Prover.prover -> Why3.Task.task -> float -> result Fibers.t
 
 type prooftask
 
 val digest : prooftask -> string
-val data : prover -> prooftask -> string
+val data : Prover.prover -> prooftask -> string
 
-val prove_cached : prover -> Why3.Task.task -> float ->
+val prove_cached : Prover.prover -> Why3.Task.task -> float ->
   [ `Cached of result | `Prepared of prooftask ]
 
 val prove_prepared : env ->
   ?name:string ->
   ?cancel:unit Fibers.signal ->
   ?callback:callback ->
-  prover -> prooftask -> float -> result Fibers.t
+  Prover.prover -> prooftask -> float -> result Fibers.t
 
 val prove_buffer : env ->
   ?cancel:unit Fibers.signal ->
-  prover -> Buffer.t -> float -> result Fibers.t
+  Prover.prover -> Buffer.t -> float -> result Fibers.t
 
-val notify : env -> prover -> result -> callback -> unit
-val update : prover -> prooftask -> result -> unit
+val notify : env -> Prover.prover -> result -> callback -> unit
+val update : Prover.prover -> prooftask -> result -> unit
 
 val options : (string * Arg.spec * string) list
 val pending : unit -> int

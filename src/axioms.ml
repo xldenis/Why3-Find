@@ -43,7 +43,7 @@ type kind =
 type parameter = {
   kind : kind ;
   name : Ident.ident ;
-  builtin : (Runner.prover * string) list ;
+  builtin : (Prover.prover * string) list ;
   extern : string option ;
 }
 
@@ -66,7 +66,7 @@ type signature = {
 }
 
 type henv = {
-  builtins : (Runner.prover * string) list Mid.t ;
+  builtins : (Prover.prover * string) list Mid.t ;
   externals : string Mid.t ;
   signatures : signature Hid.t ;
 }
@@ -91,10 +91,10 @@ let add_builtins bmap p =
        | Some _, None -> a
        | None, Some (m,_) -> Some [p,m]
        | Some xs, Some (m,_) -> Some ((p,m) :: xs)
-    ) bmap @@ Driver.syntax_map p.Runner.driver
+    ) bmap @@ Driver.syntax_map p.Prover.driver
 
 let init (wenv : Wenv.env) =
-  let provers = Runner.select wenv ~patterns:(Wenv.provers ()) in
+  let provers = Prover.select wenv ~patterns:(Wenv.provers ()) in
   let builtins = List.fold_left add_builtins Mid.empty provers in
   let drivers = List.concat_map drivers wenv.pkgs @ Wenv.drivers () in
   let main = Whyconf.get_main wenv.wconfig in

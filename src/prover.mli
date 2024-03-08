@@ -19,39 +19,21 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(* -------------------------------------------------------------------------- *)
-(* --- Compute Axioms                                                     --- *)
-(* -------------------------------------------------------------------------- *)
-
-type henv
-val init : Wenv.env -> henv
-
-open Why3
-
-type signature
-val signature : henv -> Theory.theory -> signature
-
-type kind =
-  | Type (* abstract type *)
-  | Logic (* constant, function of predicate *)
-  | Axiom (* hypothesis *)
-  | Param (* non-constrained val *)
-  | Value (* constrained val *)
-  | Unsafe
-
-type parameter = {
-  kind : kind ;
-  name : Ident.ident ;
-  builtin : (Prover.prover * string) list ;
-  extern : string option ;
+type prover = {
+  config : Why3.Whyconf.config_prover ;
+  driver : Why3.Driver.driver ;
 }
 
-val is_free : parameter -> bool
-val is_unsafe : parameter -> bool
-val is_external : parameter -> bool
+val id : prover -> string
+val name : prover -> string
+val version : prover -> string
+val fullname : prover -> string
+val infoname : prover -> string
 
-val parameter : signature -> Ident.ident -> parameter option
-val parameters : signature -> parameter list
-val iter : henv -> ?self:bool -> (parameter -> unit) -> Theory.theory list -> unit
+val all : Wenv.env -> prover list
+val find : Wenv.env -> pattern:string -> prover option
+val prover : Wenv.env -> id:string -> prover
+val select : Wenv.env -> patterns:string list -> prover list
+val default : Wenv.env -> prover list
 
-(* -------------------------------------------------------------------------- *)
+val pp_prover : Format.formatter -> prover -> unit

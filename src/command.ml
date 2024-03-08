@@ -343,16 +343,16 @@ let pp_list =
 
 let rec configuration configs provers =
   match configs , provers with
-  | [] , ps -> List.map Runner.infoname ps
+  | [] , ps -> List.map Prover.infoname ps
   | cs , [] -> List.map (Printf.sprintf "(?%s)") cs
   | c::cs , p::ps ->
     let cn = Wenv.name c in
-    let pn = Runner.name p in
+    let pn = Prover.name p in
     if cn <> pn then Printf.sprintf "(?%s)" c :: configuration cs provers
     else
-      let q = Runner.fullname p in
+      let q = Prover.fullname p in
       if c = q then q :: configuration cs ps else
-        Runner.infoname p :: configuration cs ps
+        Prover.infoname p :: configuration cs ps
 
 let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
     begin fun argv ->
@@ -402,14 +402,14 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let time = Wenv.time () in
       let patterns, provers =
         if !detect then
-          let provers = Runner.default env in
-          let patterns = List.map Runner.name provers in
+          let provers = Prover.default env in
+          let patterns = List.map Prover.name provers in
           Wenv.ignore_provers () ;
           Wenv.set_modified () ;
           patterns, provers
         else
           let patterns = Wenv.provers () in
-          let provers = Runner.select env ~patterns in
+          let provers = Prover.select env ~patterns in
           patterns, provers
       in
       let pnames = configuration patterns provers in

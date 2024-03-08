@@ -76,6 +76,7 @@ let generate n =
 (* --- Velocity Lookup                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
+open Prover
 open Runner
 open Fibers.Monad
 
@@ -300,13 +301,13 @@ let profile env profile prv =
 let alpha env prv ~size ~time : float Fibers.t =
   let timeout = 5.0 *. (max 1.0 time) in
   let+ result = Runner.prove env
-      ~name:(Runner.name prv)
+      ~name:(Prover.name prv)
       prv (generate size) timeout in
   match result with
   | Valid t -> t /. time
   | _ ->
     Format.eprintf "Error: can not calibrate prover %a (N=%d, %a)@."
-      Runner.pp_prover prv size Runner.pp_result result ;
+      Prover.pp_prover prv size Runner.pp_result result ;
     exit 2
 
 let local = ref false

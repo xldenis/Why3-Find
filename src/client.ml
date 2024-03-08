@@ -44,7 +44,7 @@ let options = [
 type goal = { prover : string ; digest : string }
 type task = {
   goal : goal ;
-  prv : Runner.prover ;
+  prv : Prover.prover ;
   tsk : Runner.prooftask ;
   mutable timeout : float ;
   channel : Runner.result Fibers.signal ;
@@ -103,7 +103,7 @@ let recv client fn =
 
 let send_profile client prover (size,time) =
   send client
-    ["PROFILE";Runner.id prover;string_of_int size;string_of_float time]
+    ["PROFILE";Prover.id prover;string_of_int size;string_of_float time]
 
 let send_get client goal timeout =
   send client ["GET";goal.prover;goal.digest;string_of_float timeout]
@@ -120,7 +120,7 @@ let send_kill client goal =
 (* -------------------------------------------------------------------------- *)
 
 let get_task client prv tsk =
-  let goal = { prover = Runner.id prv ; digest = Runner.digest tsk } in
+  let goal = { prover = Prover.id prv ; digest = Runner.digest tsk } in
   try Hashtbl.find client.pending goal with Not_found ->
     let channel = Fibers.signal () in
     let task = { goal ; prv ; tsk ; timeout = 0.0 ; channel } in
@@ -134,7 +134,7 @@ let request client profile prover task timeout =
     begin
       (* project profile *)
       let* project = Calibration.profile env profile prover in
-      if Calibration.lock client.profile (Runner.id prover) then
+      if Calibration.lock client.profile (Prover.id prover) then
         send_profile client prover project ;
       (* server profile *)
       let* server = Calibration.profile env client.profile prover in

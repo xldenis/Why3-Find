@@ -38,15 +38,15 @@ val lock : profile -> string -> bool
 (** Returns [true] if the profile was not locked before. *)
 
 (** Returns 1.0 when not calibrated *)
-val observed : profile -> Runner.prover -> float
+val observed : profile -> Prover.prover -> float
 
 (** Local Time / Profile Time *)
-val velocity : Wenv.env -> profile -> Runner.prover -> float Fibers.t
+val velocity : Wenv.env -> profile -> Prover.prover -> float Fibers.t
 
-val profile : Wenv.env -> profile -> Runner.prover -> (int * float) Fibers.t
+val profile : Wenv.env -> profile -> Prover.prover -> (int * float) Fibers.t
 
-val calibrate_provers : saved:bool -> Wenv.env -> Runner.prover list -> unit
-val velocity_provers : Wenv.env -> Runner.prover list -> unit
+val calibrate_provers : saved:bool -> Wenv.env -> Prover.prover list -> unit
+val velocity_provers : Wenv.env -> Prover.prover list -> unit
 
 val options : (string * Arg.spec * string) list
 

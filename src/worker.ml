@@ -119,7 +119,7 @@ let do_prove worker goal timeout data =
   try
     let env = worker.env in
     let cancel = Fibers.signal () in
-    let prover = Runner.prover env ~id:goal.prover in
+    let prover = Prover.prover env ~id:goal.prover in
     let buffer = Buffer.create (String.length data) in
     Buffer.add_string buffer data ;
     Hashtbl.add worker.pending goal cancel ;
@@ -202,7 +202,7 @@ let flush worker handler =
 
 let connect ~server ~polling =
   let env = Wenv.init () in
-  let prvs = List.map Runner.id @@ Runner.all env in
+  let prvs = List.map Prover.id @@ Prover.all env in
   let jobs = Runner.maxjobs env in
   Utils.flush () ;
   List.iter (Format.printf "Prover %s@.") prvs ;
