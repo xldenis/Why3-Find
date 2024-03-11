@@ -284,7 +284,7 @@ let rec child n fmt crc =
   | Crc.Stuck ->
     Format.fprintf fmt "stuck<span class=\"%s\"></span>" icon_failed
   | Crc.Prover(p,t) ->
-    Format.fprintf fmt "%s %a" (Crc.shortname p) Utils.pp_time t
+    Format.fprintf fmt "%s %a" (Prover.desc_name p) Utils.pp_time t
   | Crc.Tactic { id ; children ; stuck ; proved } ->
     Format.fprintf fmt "%s%a" id pp_verdict (Crc.nverdict ~stuck ~proved) ;
     List.iter (child (n+2) fmt) children

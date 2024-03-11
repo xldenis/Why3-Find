@@ -121,7 +121,7 @@ let checkcache = lazy
 module Cache = Hashtbl.Make
     (struct
       type t = Task.task * Prover.prover
-      let hash (t,p) = Hashtbl.hash (Task.task_hash t , Prover.id p)
+      let hash (t,p) = Hashtbl.hash (Task.task_hash t , p.Prover.desc)
       let equal (t1,p1) (t2,p2) = (p1 == p2) && (Task.task_equal t1 t2)
     end)
 
@@ -138,7 +138,7 @@ let file (t,p) =
   Lazy.force checkcache ;
   let hash = digest t in
   let h2 = String.sub hash 0 2 in
-  Printf.sprintf ".why3find/%s/%s/%s.json" (Prover.id p) h2 hash
+  Printf.sprintf ".why3find/%s/%s/%s.json" Prover.(desc_to_string p.desc) h2 hash
 
 let read e =
   let f = file e in

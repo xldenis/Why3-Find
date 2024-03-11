@@ -19,7 +19,15 @@
 (*                                                                        *)
 (**************************************************************************)
 
-type prover = {
+type prover_desc
+
+val desc_to_string : prover_desc -> string
+val desc_of_string : string -> prover_desc
+
+val desc_name : prover_desc -> string
+
+type prover = private {
+  desc : prover_desc ;
   config : Why3.Whyconf.config_prover ;
   driver : Why3.Driver.driver ;
 }

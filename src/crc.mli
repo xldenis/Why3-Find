@@ -25,7 +25,7 @@
 
 type state = private
   | Stuck
-  | Prover of string * float
+  | Prover of Prover.prover_desc * float
   | Tactic of {
       id : string ;
       children : crc list ;
@@ -39,7 +39,7 @@ and crc = private {
   }
 
 val stuck : ?goal:Session.goal -> unit -> crc
-val prover : ?goal:Session.goal -> string -> float -> crc
+val prover : ?goal:Session.goal -> Prover.prover_desc -> float -> crc
 val tactic : ?goal:Session.goal -> string -> crc list -> crc
 
 type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]

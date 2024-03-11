@@ -25,7 +25,23 @@ open Why3
 (* --- Provers                                                            --- *)
 (* -------------------------------------------------------------------------- *)
 
+type prover_desc = {
+  name : string ;
+  version : string ;
+}
+
+let desc_to_string p =
+  Format.sprintf "%s@%s" p.name p.version
+
+let desc_of_string s =
+  match String.split_on_char '@' s with
+  | [ name; version ] -> { name = String.lowercase_ascii name ; version }
+  | _ -> invalid_arg "desc_of_string"
+
+let desc_name p = p.name
+
 type prover = {
+  desc : prover_desc ;
   config : Whyconf.config_prover ;
   driver : Driver.driver ;
 }
@@ -68,10 +84,18 @@ let fullname p = Format.sprintf "%s@%s" (name p) (version p)
 let infoname p = Format.sprintf "%s(%s)" (name p) (version p)
 let pp_prover fmt p = Format.fprintf fmt "%s@%s" (name p) (version p)
 
+let desc_of_config config = {
+  name = String.lowercase_ascii config.Whyconf.prover.prover_name ;
+  version = config.Whyconf.prover.prover_version ;
+}
+
 let load (env : Wenv.env) (config : Whyconf.config_prover) =
   try
-    let main = Whyconf.get_main env.wconfig in
-    { config ; driver = Driver.load_driver_for_prover main env.wenv config }
+    let main = Whyconf.get_main env.wconfig in {
+      desc = desc_of_config config ;
+      config ;
+      driver = Driver.load_driver_for_prover main env.wenv config ;
+    }
   with _ ->
     Format.eprintf "Error: failed to load driver for %s@."
       (Whyconf.prover_parseable_format config.prover) ;
