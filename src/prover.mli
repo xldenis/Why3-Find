@@ -36,7 +36,7 @@ type prover = private {
   driver : Why3.Driver.driver ;
 }
 
-val id : prover -> string
+val why3_desc : prover -> string
 val name : prover -> string
 val version : prover -> string
 val fullname : prover -> string

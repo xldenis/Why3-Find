@@ -424,7 +424,7 @@ let velocity_provers env provers =
            Format.printf " - %-16s n=%d %a (velocity %.1f)@."
              name n Utils.pp_time tl a
          | None ->
-           Format.printf " - %-16s no calibration (use -m)@." (id prv)
+           Format.printf " - %-16s no calibration (use -m)@." name
       ) results ;
     Fibers.return () ;
   end

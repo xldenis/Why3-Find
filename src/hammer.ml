@@ -272,7 +272,7 @@ let config ~tactics ~provers ~time ~mem =
     List.iter
       (fun p ->
          Format.fprintf fmt "c %s %d %d@\n"
-           (Prover.id p) time mem
+           (Prover.why3_desc p) time mem
       ) provers in
   let c_tactic ~goto fmt =
     List.iter

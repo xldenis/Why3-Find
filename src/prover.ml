@@ -84,7 +84,7 @@ let compare_config (p : Whyconf.config_prover) (q : Whyconf.config_prover) =
 let compare_prover (p : prover) (q : prover) =
   compare_config p.config q.config
 
-let id prv = Whyconf.prover_parseable_format prv.config.prover
+let why3_desc prv = Whyconf.prover_parseable_format prv.config.prover
 let name prv = prv.desc.name
 let version prv = prv.desc.version
 let fullname p = Format.sprintf "%s@%s" (name p) (version p)
