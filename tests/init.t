@@ -8,8 +8,8 @@
   mypkg/dune-project
 
   $ cat mypkg/.gitignore
-  why3session.xml
-  why3shapes.gz
+  why3session.xml*
+  why3shapes.gz*
   /.why3find
   /_build
   /html
@@ -31,8 +31,8 @@
 
   $ why3find init mypkg
   #### Suggested .gitignore:
-  why3session.xml
-  why3shapes.gz
+  why3session.xml*
+  why3shapes.gz*
   /.why3find
   /_build
   /html
