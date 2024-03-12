@@ -1218,8 +1218,8 @@ let process_source ~wenv ~cenv ~henv ~senv ~out:dir file (src : Docref.source) =
     Pdoc.printf crc "<h1>Provers</h1>@\n<pre class=\"src\">" ;
     Calibration.iter
       (fun p n t ->
-         Pdoc.printf crc "@\n  %-10s n=%d %a (%s)"
-           (Crc.shortname p) n Utils.pp_time t p
+         Pdoc.printf crc "@\n  %-10s n=%d %a (%a)"
+           (Prover.desc_name p) n Utils.pp_time t Prover.pp_desc p
       ) src.profile ;
     Pdoc.printf crc "@\n</pre>@." ;
     Pdoc.printf crc "<h1>Proofs</h1>@\n" ;

@@ -1,8 +1,8 @@
 {
   "profile": [
-    { "prover": "Alt-Ergo,2.2.0", "size": 16, "time": 0.1697 },
-    { "prover": "CVC4,1.8", "size": 42, "time": 0.55 },
-    { "prover": "Z3,4.8.6", "size": 33, "time": 0.57 }
+    { "prover": "alt-ergo@2.2.0", "size": 16, "time": 0.1697 },
+    { "prover": "cvc4@1.8", "size": 42, "time": 0.55 },
+    { "prover": "z3@4.8.6", "size": 33, "time": 0.57 }
   ],
   "proofs": {
     "S": {

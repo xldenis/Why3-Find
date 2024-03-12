@@ -30,11 +30,11 @@ val default : unit -> profile
 val of_json : ?default:profile -> Json.t -> profile
 val to_json : profile -> Json.t
 
-val mem : profile -> string -> bool
-val get : profile -> string -> (int * float) option
-val set : profile -> string -> int -> float -> unit
-val iter : (string -> int -> float -> unit) -> profile -> unit
-val lock : profile -> string -> bool
+val mem : profile -> Prover.prover_desc -> bool
+val get : profile -> Prover.prover_desc -> (int * float) option
+val set : profile -> Prover.prover_desc -> int -> float -> unit
+val iter : (Prover.prover_desc -> int -> float -> unit) -> profile -> unit
+val lock : profile -> Prover.prover_desc -> bool
 (** Returns [true] if the profile was not locked before. *)
 
 (** Returns 1.0 when not calibrated *)

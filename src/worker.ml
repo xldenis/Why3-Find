@@ -27,7 +27,7 @@
 (* --- Proof Task                                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-type goal = { prover : string ; digest : string }
+type goal = { prover : Prover.prover_desc ; digest : string }
 
 (* -------------------------------------------------------------------------- *)
 (* --- Worker State                                                       --- *)
@@ -42,7 +42,7 @@ type worker = {
   mutable socket : [ `Dealer ] Zmq.Socket.t ;
   mutable polling : Zmq.Poll.t ;
   maxjobs : int ;
-  provers : string list ;
+  provers : Prover.prover list ;
   profile : Calibration.profile ;
   pending : (goal,unit Fibers.signal) Hashtbl.t ;
 }
@@ -72,14 +72,16 @@ let recv worker fn =
 (* -------------------------------------------------------------------------- *)
 
 let send_ready worker =
-  send worker ("READY"::string_of_int worker.maxjobs::worker.provers)
+  let provers =
+    List.map (fun p -> Prover.desc_to_string p.Prover.desc) worker.provers in
+  send worker ("READY"::string_of_int worker.maxjobs::provers)
 
 (* -------------------------------------------------------------------------- *)
 (* --- CALIBRATION                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
 let send_profile worker prv =
-  send worker ["PROFILE";prv]
+  send worker ["PROFILE";Prover.desc_to_string prv]
 
 let recv_profile worker prv size time =
   Calibration.set worker.profile prv size time
@@ -107,8 +109,9 @@ let send_result worker goal (alpha,result) =
     | Runner.Unknown t -> "Unknown",t
     | Runner.Timeout t -> "Timeout",t
   in
+  let prover = Prover.desc_to_string goal.prover in
   send worker
-    ["RESULT";goal.prover;goal.digest;status;string_of_float @@ time /. alpha]
+    ["RESULT";prover;goal.digest;status;string_of_float @@ time /. alpha]
 
 (* -------------------------------------------------------------------------- *)
 (* --- PROVE                                                              --- *)
@@ -119,7 +122,7 @@ let do_prove worker goal timeout data =
   try
     let env = worker.env in
     let cancel = Fibers.signal () in
-    let prover = Prover.prover env ~id:goal.prover in
+    let prover = Prover.prover env goal.prover in
     let buffer = Buffer.create (String.length data) in
     Buffer.add_string buffer data ;
     Hashtbl.add worker.pending goal cancel ;
@@ -146,10 +149,13 @@ let handler worker msg =
     | ["RAISE"] ->
       send_ready worker
     | ["PROFILE";prv;size;time] ->
+      let prv = Prover.desc_of_string prv in
       recv_profile worker prv (int_of_string size) (float_of_string time)
     | ["KILL";prover;digest] ->
+      let prover = Prover.desc_of_string prover in
       do_kill worker { prover ; digest }
     | ["PROVE";prover;digest;timeout;data] ->
+      let prover = Prover.desc_of_string prover in
       do_prove worker { prover ; digest } (float_of_string timeout) data
     | _ -> ()
   with Invalid_argument _ -> ()
@@ -202,10 +208,10 @@ let flush worker handler =
 
 let connect ~server ~polling =
   let env = Wenv.init () in
-  let prvs = List.map Prover.id @@ Prover.all env in
+  let prvs = Prover.all env in
   let jobs = Runner.maxjobs env in
   Utils.flush () ;
-  List.iter (Format.printf "Prover %s@.") prvs ;
+  List.iter (Format.printf "Prover %a@." Prover.pp_prover) prvs ;
   Format.printf "Server %s@." server ;
   let context = Zmq.Context.create () in
   let timeout = int_of_float (polling *. 1e3) in

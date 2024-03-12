@@ -114,7 +114,7 @@
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>proofs</code></header>
   <h1>Provers</h1>
   <pre class="src">
-    alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)
+    alt-ergo   n=16 169ms (alt-ergo@2.2.0)
   </pre>
   <h1>Proofs</h1>
   <pre class="src"><span class="keyword">module</span> <a id="A" href="clones.A.html">clones.A</a><span title="3 logic parameters, 2 hypotheses, 1 ground instance" class="icon small valid icofont-star"></span><span title="Valid (one goal)" class="icon valid icofont-check"></span></pre>
@@ -149,9 +149,9 @@
   <header><a href="index.html">index</a> — <code>library <a href="certif.index.html">certif</a></code> — <code>proofs</code></header>
   <h1>Provers</h1>
   <pre class="src">
-    alt-ergo   n=16 169ms (Alt-Ergo,2.2.0)
-    cvc4       n=42 550ms (CVC4,1.8)
-    z3         n=33 570ms (Z3,4.8.6)
+    alt-ergo   n=16 169ms (alt-ergo@2.2.0)
+    cvc4       n=42 550ms (cvc4@1.8)
+    z3         n=33 570ms (z3@4.8.6)
   </pre>
   <h1>Proofs</h1>
   <pre class="src"><span class="keyword">module</span> <a id="S" href="certif.S.html">certif.S</a><span title="Partial proof (6/10 goals)" class="icon warning icofont-error"></span></pre>

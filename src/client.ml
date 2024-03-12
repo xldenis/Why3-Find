@@ -41,7 +41,7 @@ let options = [
   "--trace",Arg.Set trace,"Trace server protocol";
 ]
 
-type goal = { prover : string ; digest : string }
+type goal = { prover : Prover.prover_desc ; digest : string }
 type task = {
   goal : goal ;
   prv : Prover.prover ;
@@ -102,17 +102,21 @@ let recv client fn =
 (* -------------------------------------------------------------------------- *)
 
 let send_profile client prover (size,time) =
+  let prover = Prover.desc_to_string prover.Prover.desc in
   send client
-    ["PROFILE";Prover.id prover;string_of_int size;string_of_float time]
+    ["PROFILE";prover;string_of_int size;string_of_float time]
 
 let send_get client goal timeout =
-  send client ["GET";goal.prover;goal.digest;string_of_float timeout]
+  let prover = Prover.desc_to_string goal.prover in
+  send client ["GET";prover;goal.digest;string_of_float timeout]
 
 let send_upload client goal data =
-  send client ["UPLOAD";goal.prover;goal.digest;data]
+  let prover = Prover.desc_to_string goal.prover in
+  send client ["UPLOAD";prover;goal.digest;data]
 
 let send_kill client goal =
-  send client ["KILL";goal.prover;goal.digest]
+  let prover = Prover.desc_to_string goal.prover in
+  send client ["KILL";prover;goal.digest]
 [@@ warning "-32"]
 
 (* -------------------------------------------------------------------------- *)
@@ -120,7 +124,7 @@ let send_kill client goal =
 (* -------------------------------------------------------------------------- *)
 
 let get_task client prv tsk =
-  let goal = { prover = Prover.id prv ; digest = Runner.digest tsk } in
+  let goal = { prover = prv.Prover.desc ; digest = Runner.digest tsk } in
   try Hashtbl.find client.pending goal with Not_found ->
     let channel = Fibers.signal () in
     let task = { goal ; prv ; tsk ; timeout = 0.0 ; channel } in
@@ -134,7 +138,7 @@ let request client profile prover task timeout =
     begin
       (* project profile *)
       let* project = Calibration.profile env profile prover in
-      if Calibration.lock client.profile (Prover.id prover) then
+      if Calibration.lock client.profile prover.desc then
         send_profile client prover project ;
       (* server profile *)
       let* server = Calibration.profile env client.profile prover in
@@ -203,10 +207,13 @@ let do_download client goal =
 let handler client msg =
   try match msg with
     | ["PROFILE";prover;size;time] ->
+      let prover = Prover.desc_of_string prover in
       do_profile client prover (int_of_string size) (float_of_string time)
     | ["RESULT";prover;digest;status;time] ->
+      let prover = Prover.desc_of_string prover in
       do_result client { prover ; digest } status (float_of_string time)
     | ["DOWNLOAD";prover;digest] ->
+      let prover = Prover.desc_of_string prover in
       do_download client { prover ; digest }
     | _ -> ()
   with Not_found | Invalid_argument _ -> ()

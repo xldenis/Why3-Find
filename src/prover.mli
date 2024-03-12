@@ -26,6 +26,10 @@ val desc_of_string : string -> prover_desc
 
 val desc_name : prover_desc -> string
 
+val pp_desc : Format.formatter -> prover_desc -> unit
+
+val compare_desc : prover_desc -> prover_desc -> int
+
 type prover = private {
   desc : prover_desc ;
   config : Why3.Whyconf.config_prover ;
@@ -40,7 +44,7 @@ val infoname : prover -> string
 
 val all : Wenv.env -> prover list
 val find : Wenv.env -> pattern:string -> prover option
-val prover : Wenv.env -> id:string -> prover
+val prover : Wenv.env -> prover_desc -> prover
 val select : Wenv.env -> patterns:string list -> prover list
 val default : Wenv.env -> prover list
 

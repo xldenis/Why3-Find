@@ -40,6 +40,8 @@ let desc_of_string s =
 
 let desc_name p = p.name
 
+let pp_desc fmt p = Format.fprintf fmt "%s@%s" p.name p.version
+
 type prover = {
   desc : prover_desc ;
   config : Whyconf.config_prover ;
@@ -62,6 +64,11 @@ let rec cmps xs ys =
   | x::rxs,y::rys -> let c = cmp x y in if c <> 0 then c else cmps rxs rys
 let tosem p = List.map sem (String.split_on_char 'c' p)
 
+let compare_desc p q =
+  let c = String.compare p.name q.name in
+  if c <> 0 then c else
+    cmps (tosem p.version) (tosem q.version)
+
 let compare_wprover (p : Whyconf.prover) (q : Whyconf.prover) =
   let c = String.compare
       (String.lowercase_ascii p.prover_name)
@@ -78,8 +85,8 @@ let compare_prover (p : prover) (q : prover) =
   compare_config p.config q.config
 
 let id prv = Whyconf.prover_parseable_format prv.config.prover
-let name prv = String.lowercase_ascii prv.config.prover.prover_name
-let version prv = prv.config.prover.prover_version
+let name prv = prv.desc.name
+let version prv = prv.desc.version
 let fullname p = Format.sprintf "%s@%s" (name p) (version p)
 let infoname p = Format.sprintf "%s(%s)" (name p) (version p)
 let pp_prover fmt p = Format.fprintf fmt "%s@%s" (name p) (version p)
@@ -101,15 +108,15 @@ let load (env : Wenv.env) (config : Whyconf.config_prover) =
       (Whyconf.prover_parseable_format config.prover) ;
     exit 2
 
-let prover (env : Wenv.env) ~id =
-  load env @@
-  match String.split_on_char ',' id with
-  | [ prover_name ; prover_version ; prover_altern ] ->
-    Whyconf.Mprover.find
-      Whyconf.{ prover_name ; prover_version ; prover_altern }
-      (Whyconf.get_provers env.wconfig)
-  | _ ->
-    raise (Invalid_argument "Runner.get")
+let prover (env : Wenv.env) desc =
+  load env @@ Whyconf.(
+      let all = get_provers env.wconfig in
+      snd @@ Mprover.choose @@ Mprover.filter (fun _ c ->
+          String.lowercase_ascii c.prover.prover_name = desc.name
+          && c.prover.prover_version = desc.version
+          && c.prover.prover_altern = ""
+        ) all
+    )
 
 let find_shortcut (env : Wenv.env) name =
   Whyconf.Mprover.find
