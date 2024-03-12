@@ -234,13 +234,6 @@ let print_stats () =
 (* --- Dump                                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
-let pname = Hashtbl.create 0
-let shortname p =
-  try Hashtbl.find pname p
-  with Not_found ->
-    let s = String.lowercase_ascii @@ List.hd @@ String.split_on_char ',' p in
-    Hashtbl.add pname p s ; s
-
 let rec dump fmt { state } = match state with
   | Stuck -> Format.fprintf fmt "@{<red>Unknown@}"
   | Prover(p,t) -> Format.fprintf fmt "%s (%a)" (Prover.desc_name p) Utils.pp_time t

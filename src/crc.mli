@@ -54,7 +54,6 @@ val is_complete : crc -> bool
 val pretty : Format.formatter -> crc -> unit
 val pp_result : Format.formatter -> stuck:int -> proved:int -> unit
 val dump : Format.formatter -> crc -> unit
-val shortname : string -> string (* prover short name *)
 
 val merge : crc -> crc -> crc
 val of_json : Json.t -> crc
