@@ -39,6 +39,7 @@ let desc_of_string s =
   | _ -> invalid_arg "desc_of_string"
 
 let desc_name p = p.name
+let desc_version p = p.version
 
 let pp_desc fmt p = Format.fprintf fmt "%s@%s" p.name p.version
 

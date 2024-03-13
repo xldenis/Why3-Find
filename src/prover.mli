@@ -25,6 +25,7 @@ val desc_to_string : prover_desc -> string
 val desc_of_string : string -> prover_desc
 
 val desc_name : prover_desc -> string
+val desc_version : prover_desc -> string
 
 val pp_desc : Format.formatter -> prover_desc -> unit
 
