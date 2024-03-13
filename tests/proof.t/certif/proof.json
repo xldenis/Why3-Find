@@ -1,30 +1,32 @@
 {
   "profile": [
-    { "prover": "Alt-Ergo,2.2.0", "size": 16, "time": 0.1697 },
-    { "prover": "CVC4,1.8", "size": 42, "time": 0.55 },
-    { "prover": "Z3,4.8.6", "size": 33, "time": 0.57 }
+    { "prover": "alt-ergo@2.2.0", "size": 16, "time": 0.1697 },
+    { "prover": "cvc4@1.8", "size": 42, "time": 0.55 },
+    { "prover": "z3@4.8.6", "size": 33, "time": 0.57 }
   ],
   "proofs": {
     "S": {
       "mixfix []": {
-        "transf": "split_vc",
+        "tactic": "split_vc",
         "children": [
-          { "prover": "alt-ergo", "time": 0.0044 },
+          { "prover": "alt-ergo@2.2.0", "time": 0.0044 },
           {
-            "transf": "split_vc",
-            "children": [ null, { "prover": "alt-ergo", "time": 0.0035 } ]
+            "tactic": "split_vc",
+            "children": [
+              null, { "prover": "alt-ergo@2.2.0", "time": 0.0035 }
+            ]
           },
-          { "prover": "alt-ergo", "time": 0.0031 },
+          { "prover": "alt-ergo@2.2.0", "time": 0.0031 },
           null
         ]
       },
-      "reflexivity": { "prover": "alt-ergo", "time": 0.0029 },
+      "reflexivity": { "prover": "alt-ergo@2.2.0", "time": 0.0029 },
       "extensivity": {
-        "transf": "split_vc",
+        "tactic": "split_vc",
         "children": [
-          { "prover": "alt-ergo", "time": 0.0048 },
+          { "prover": "alt-ergo@2.2.0", "time": 0.0048 },
           null,
-          { "prover": "cvc4", "time": 0.07000000000000001 }
+          { "prover": "cvc4@1.8", "time": 0.07000000000000001 }
         ]
       },
       "wrong": null

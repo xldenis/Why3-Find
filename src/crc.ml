@@ -25,7 +25,7 @@
 
 type state =
   | Stuck
-  | Prover of string * float
+  | Prover of Prover.prover_desc * float
   | Tactic of {
       id : string ;
       children : crc list ;
@@ -106,7 +106,7 @@ let pretty fmt crc =
 let rec to_json (a : crc) : Json.t = match a.state with
   | Stuck -> `Null
   | Prover(p,t) ->
-    `Assoc [ "prover", `String p ; "time", `Float t]
+    `Assoc [ "prover", `String (Prover.desc_to_string p) ; "time", `Float t]
   | Tactic { id ; children } ->
     `Assoc [
       "tactic", `String id;
@@ -119,7 +119,7 @@ let rec of_json (js : Json.t) : crc =
     | `Assoc fds when List.mem_assoc "prover" fds ->
       let p = List.assoc "prover" fds |> Json.jstring in
       let t = List.assoc "time" fds |> Json.jfloat in
-      prover p t
+      prover (Prover.desc_of_string p) t
     | `Assoc fds when List.mem_assoc "tactic" fds ->
       let f = List.assoc "tactic" fds |> Json.jstring in
       let xs = List.assoc "children" fds |> Json.jlist in
@@ -234,16 +234,9 @@ let print_stats () =
 (* --- Dump                                                               --- *)
 (* -------------------------------------------------------------------------- *)
 
-let pname = Hashtbl.create 0
-let shortname p =
-  try Hashtbl.find pname p
-  with Not_found ->
-    let s = String.lowercase_ascii @@ List.hd @@ String.split_on_char ',' p in
-    Hashtbl.add pname p s ; s
-
 let rec dump fmt { state } = match state with
   | Stuck -> Format.fprintf fmt "@{<red>Unknown@}"
-  | Prover(p,t) -> Format.fprintf fmt "%s (%a)" (shortname p) Utils.pp_time t
+  | Prover(p,t) -> Format.fprintf fmt "%s (%a)" (Prover.desc_name p) Utils.pp_time t
   | Tactic { id ; children } ->
     Format.fprintf fmt "@[<hv 2>%s" id ;
     List.iter (dumpchild fmt) children ;

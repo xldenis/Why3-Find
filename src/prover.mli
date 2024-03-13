@@ -19,47 +19,34 @@
 (*                                                                        *)
 (**************************************************************************)
 
-(* -------------------------------------------------------------------------- *)
-(* --- Proof Certificates                                                 --- *)
-(* -------------------------------------------------------------------------- *)
+type prover_desc
 
-type state = private
-  | Stuck
-  | Prover of Prover.prover_desc * float
-  | Tactic of {
-      id : string ;
-      children : crc list ;
-      stuck : int ;
-      proved : int ;
-    }
+val desc_to_string : prover_desc -> string
+val desc_of_string : string -> prover_desc
 
-and crc = private {
-   goal : Session.goal option ;
-   state : state ;
-  }
+val desc_name : prover_desc -> string
+val desc_version : prover_desc -> string
 
-val stuck : ?goal:Session.goal -> unit -> crc
-val prover : ?goal:Session.goal -> Prover.prover_desc -> float -> crc
-val tactic : ?goal:Session.goal -> string -> crc list -> crc
+val pp_desc : Format.formatter -> prover_desc -> unit
 
-type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
-val verdict : crc -> verdict
-val nverdict : stuck:int -> proved:int -> verdict
+val compare_desc : prover_desc -> prover_desc -> int
 
-val get_stuck : crc -> int
-val get_proved : crc -> int
-val is_stuck : crc -> bool
-val is_unknown : crc -> bool
-val is_complete : crc -> bool
-val pretty : Format.formatter -> crc -> unit
-val pp_result : Format.formatter -> stuck:int -> proved:int -> unit
-val dump : Format.formatter -> crc -> unit
+type prover = private {
+  desc : prover_desc ;
+  config : Why3.Whyconf.config_prover ;
+  driver : Why3.Driver.driver ;
+}
 
-val merge : crc -> crc -> crc
-val of_json : Json.t -> crc
-val to_json : crc -> Json.t
+val why3_desc : prover -> string
+val name : prover -> string
+val version : prover -> string
+val fullname : prover -> string
+val infoname : prover -> string
 
-val stats : crc -> crc -> unit
-val print_stats : unit -> unit
+val all : Wenv.env -> prover list
+val find : Wenv.env -> pattern:string -> prover option
+val prover : Wenv.env -> prover_desc -> prover
+val select : Wenv.env -> patterns:string list -> prover list
+val default : Wenv.env -> prover list
 
-(* -------------------------------------------------------------------------- *)
+val pp_prover : Format.formatter -> prover -> unit

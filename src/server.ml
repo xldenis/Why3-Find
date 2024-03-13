@@ -23,7 +23,7 @@
 (* --- Server                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-type goal = { prover : string ; digest : string }
+type goal = { prover : Prover.prover_desc ; digest : string }
 type emitter = { identity : string ; time : float }
 
 let (@=) a b = a.identity = b.identity
@@ -41,7 +41,7 @@ type worker = {
   mutable worker: emitter ;
   mutable busy: int;
   mutable cores: int;
-  mutable provers: string list;
+  mutable provers: Prover.prover_desc list;
 }
 
 (* -------------------------------------------------------------------------- *)
@@ -123,7 +123,8 @@ let recv server ~time fn =
 
 let basename database gen { prover ; digest } =
   let hh = String.sub digest 0 2 in
-  Format.sprintf "%s/%d/%s/%s/%s" database gen prover hh digest
+  Format.sprintf "%s/%d/%s/%s/%s" database gen (Prover.desc_to_string prover)
+    hh digest
 
 let get_cache server goal =
   let rec lookup n =
@@ -204,19 +205,24 @@ let get_worker server id =
 (* -------------------------------------------------------------------------- *)
 
 let send_profile server id prv size time =
+  let prv = Prover.desc_to_string prv in
   send server id ["PROFILE";prv;string_of_int size;string_of_float time]
 
 let send_kill server id goal =
-  send server id ["KILL";goal.prover;goal.digest]
+  let prover = Prover.desc_to_string goal.prover in
+  send server id ["KILL";prover;goal.digest]
 
 let send_download server id goal =
-  send server id ["DOWNLOAD";goal.prover;goal.digest]
+  let prover = Prover.desc_to_string goal.prover in
+  send server id ["DOWNLOAD";prover;goal.digest]
 
 let send_prove server id goal timeout data =
-  send server id ["PROVE";goal.prover;goal.digest;string_of_float timeout;data]
+  let prover = Prover.desc_to_string goal.prover in
+  send server id ["PROVE";prover;goal.digest;string_of_float timeout;data]
 
 let send_result server id goal status time =
-  send server id ["RESULT";goal.prover;goal.digest;status;string_of_float time]
+  let prover = Prover.desc_to_string goal.prover in
+  send server id ["RESULT";prover;goal.digest;status;string_of_float time]
 
 let send_raise server id =
   send server id ["RAISE"]
@@ -412,18 +418,25 @@ let handler server id msg =
   try
     match msg with
     | ["PROFILE";prover] ->
+      let prover = Prover.desc_of_string prover in
       get_profile server id prover
     | ["PROFILE";prover;size;time] ->
+      let prover = Prover.desc_of_string prover in
       upd_profile server id prover (int_of_string size) (float_of_string time)
     | ["GET";prover;digest;timeout] ->
+      let prover = Prover.desc_of_string prover in
       do_get server id { prover ; digest } (float_of_string timeout)
     | ["UPLOAD";prover;digest;data] ->
+      let prover = Prover.desc_of_string prover in
       do_upload server id { prover ; digest } data
     | "READY"::cores::provers ->
+      let provers = List.map Prover.desc_of_string provers in
       do_ready server id (int_of_string cores) provers
     | ["RESULT";prover;digest;status;time] ->
+      let prover = Prover.desc_of_string prover in
       do_result server id { prover ; digest } status (float_of_string time)
     | ["KILL";prover;digest] ->
+      let prover = Prover.desc_of_string prover in
       do_kill server id { prover ; digest }
     | ["HANGUP"] ->
       do_hangup server id

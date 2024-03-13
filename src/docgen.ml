@@ -284,7 +284,10 @@ let rec child n fmt crc =
   | Crc.Stuck ->
     Format.fprintf fmt "stuck<span class=\"%s\"></span>" icon_failed
   | Crc.Prover(p,t) ->
-    Format.fprintf fmt "%s %a" (Crc.shortname p) Utils.pp_time t
+    Format.fprintf fmt "<span class=\"prover\" title=\"%s\">%s</span> %a"
+      (Prover.desc_to_string p)
+      (Prover.desc_name p)
+      Utils.pp_time t
   | Crc.Tactic { id ; children ; stuck ; proved } ->
     Format.fprintf fmt "%s%a" id pp_verdict (Crc.nverdict ~stuck ~proved) ;
     List.iter (child (n+2) fmt) children
@@ -315,7 +318,7 @@ let process_proof env id ?(valid=false) = function
 (* --- Axioms & Parameter                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let provers ops = String.concat "," (List.map (fun (p,_) -> Runner.name p) ops)
+let provers ops = String.concat "," (List.map (fun (p,_) -> Prover.name p) ops)
 
 let process_axioms env (id : Id.id) =
   match env.theory with
@@ -1218,8 +1221,8 @@ let process_source ~wenv ~cenv ~henv ~senv ~out:dir file (src : Docref.source) =
     Pdoc.printf crc "<h1>Provers</h1>@\n<pre class=\"src\">" ;
     Calibration.iter
       (fun p n t ->
-         Pdoc.printf crc "@\n  %-10s n=%d %a (%s)"
-           (Crc.shortname p) n Utils.pp_time t p
+         Pdoc.printf crc "@\n  %-12s @%-6s n=%-3d %a"
+           (Prover.desc_name p) (Prover.desc_version p) n Utils.pp_time t
       ) src.profile ;
     Pdoc.printf crc "@\n</pre>@." ;
     Pdoc.printf crc "<h1>Proofs</h1>@\n" ;

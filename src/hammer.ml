@@ -31,7 +31,7 @@ type henv = {
   time : float ;
   client : Client.client option ;
   maxdepth : int ;
-  provers : Runner.prover list ;
+  provers : Prover.prover list ;
   tactics : string list ;
   minimize : bool ;
 }
@@ -117,7 +117,7 @@ let prove env ?client ?cancel prover timeout : strategy = fun n ->
           | None -> ()
         in Fibers.monitor ~signal ~handler runner
   in match verdict with
-  | Valid t -> Crc.prover ~goal:n.goal (Runner.name prover) (Utils.round t)
+  | Valid t -> Crc.prover ~goal:n.goal prover.Prover.desc (Utils.round t)
   | _ -> Crc.stuck ~goal:n.goal ()
 
 (* -------------------------------------------------------------------------- *)
@@ -177,7 +177,8 @@ let hammer henv =
 (* --- Node Processing                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let select p prvs = List.find (fun prv -> Runner.name prv = p) prvs
+let select p prvs =
+  List.find (fun prv -> Prover.name prv = Prover.desc_name p) prvs
 
 let overhead t = max (t *. 2.0) 1.0
 
@@ -271,7 +272,7 @@ let config ~tactics ~provers ~time ~mem =
     List.iter
       (fun p ->
          Format.fprintf fmt "c %s %d %d@\n"
-           (Runner.id p) time mem
+           (Prover.why3_desc p) time mem
       ) provers in
   let c_tactic ~goto fmt =
     List.iter

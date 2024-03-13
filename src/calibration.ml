@@ -76,6 +76,7 @@ let generate n =
 (* --- Velocity Lookup                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
+open Prover
 open Runner
 open Fibers.Monad
 
@@ -231,12 +232,12 @@ let lookup ~progress q prv =
 let qhash = Hashtbl.create 0
 
 let calibrate ?(progress=false) env prv : (int * float) option Fibers.t =
-  try Hashtbl.find qhash (id prv)
+  try Hashtbl.find qhash prv.desc
   with Not_found ->
     let p = Fibers.var () in
     let q = qenv env !reftime in
     Fibers.background ~callback:(Fibers.set p) (lookup ~progress q prv) ;
-    Hashtbl.add qhash (id prv) p ; p
+    Hashtbl.add qhash prv.desc p ; p
 
 (* -------------------------------------------------------------------------- *)
 (* --- Profile                                                            --- *)
@@ -248,7 +249,7 @@ type gauge = {
   mutable alpha : float Fibers.t option ;
 }
 
-type profile = (string,gauge Fibers.t) Hashtbl.t
+type profile = (Prover.prover_desc,gauge Fibers.t) Hashtbl.t
 
 let create () = Hashtbl.create 0
 
@@ -261,7 +262,7 @@ let of_json ?default (js : Json.t) : profile =
         let size = jfield_exn "size" js |> jint in
         let time = jfield_exn "time" js |> jfloat in
         let gauge = Fibers.var ~init:{ size ; time ; alpha = None } () in
-        Hashtbl.replace p prv gauge
+        Hashtbl.replace p (Prover.desc_of_string prv) gauge
       with _ -> ()
     ) (jlist js) ; p
 
@@ -271,7 +272,7 @@ let to_json (p : profile) : Json.t =
       | None -> js
       | Some { size ; time } ->
         (`Assoc [
-            "prover", `String prv ;
+            "prover", `String (Prover.desc_to_string prv) ;
             "size", `Int size ;
             "time", `Float time ;
           ]) :: js
@@ -282,7 +283,7 @@ let to_json (p : profile) : Json.t =
 (* -------------------------------------------------------------------------- *)
 
 let gauge env profile prv : gauge Fibers.t =
-  let p = id prv in
+  let p = prv.desc in
   try Hashtbl.find profile p
   with Not_found ->
     let gv =
@@ -290,7 +291,8 @@ let gauge env profile prv : gauge Fibers.t =
       match r with
       | Some (size,time) -> { time ; size ; alpha = None }
       | None ->
-        Format.eprintf "Error: can not calibrate prover %s@." p ;
+        Format.eprintf "Error: can not calibrate prover %a@."
+          Prover.pp_desc p ;
         exit 2
     in Hashtbl.replace profile p gv ; gv
 
@@ -300,13 +302,13 @@ let profile env profile prv =
 let alpha env prv ~size ~time : float Fibers.t =
   let timeout = 5.0 *. (max 1.0 time) in
   let+ result = Runner.prove env
-      ~name:(Runner.name prv)
+      ~name:(Prover.name prv)
       prv (generate size) timeout in
   match result with
   | Valid t -> t /. time
   | _ ->
     Format.eprintf "Error: can not calibrate prover %a (N=%d, %a)@."
-      Runner.pp_prover prv size Runner.pp_result result ;
+      Prover.pp_prover prv size Runner.pp_result result ;
     exit 2
 
 let local = ref false
@@ -322,7 +324,7 @@ let velocity env profile prv : float Fibers.t =
 
 let observed profile prv =
   try
-    match Hashtbl.find profile (id prv) |> Fibers.find with
+    match Hashtbl.find profile prv.desc |> Fibers.find with
     | { alpha = Some ga } -> Fibers.find ga
     | _ -> 1.0
   with Not_found -> 1.0
@@ -349,7 +351,7 @@ let lock (profile: profile) prv =
 
 let iter f profile =
   List.iter (fun (p,n,t) -> f p n t) @@
-  List.sort (fun (p,_,_) (q,_,_) -> String.compare p q) @@
+  List.sort (fun (p,_,_) (q,_,_) -> Prover.compare_desc p q) @@
   Hashtbl.fold (fun p g w ->
       match Fibers.get g with
       | None -> w
@@ -385,7 +387,7 @@ let calibrate_provers ~saved env provers =
          | None ->
            Format.printf " - %-16s no result@." name
          | Some(n,t) ->
-           Hashtbl.add profile (id prv)
+           Hashtbl.add profile prv.desc
              (Fibers.var ~init:{ size = n ; time = t ; alpha = None } ()) ;
            Format.printf " - %-16s n=%d %a (%s)@." name n Utils.pp_time t
              (if saved then "master" else "locally")
@@ -402,7 +404,7 @@ let velocity_provers env provers =
       Fibers.all @@ List.map
         (fun prv ->
            try
-             let g = Fibers.find @@ Hashtbl.find profile (id prv) in
+             let g = Fibers.find @@ Hashtbl.find profile prv.desc in
              let+ a = velocity env profile prv in
              prv , Some(g.size,g.time,a)
            with Not_found ->
@@ -422,7 +424,7 @@ let velocity_provers env provers =
            Format.printf " - %-16s n=%d %a (velocity %.1f)@."
              name n Utils.pp_time tl a
          | None ->
-           Format.printf " - %-16s no calibration (use -m)@." (id prv)
+           Format.printf " - %-16s no calibration (use -m)@." name
       ) results ;
     Fibers.return () ;
   end

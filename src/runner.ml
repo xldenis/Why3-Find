@@ -25,155 +25,11 @@
 
 open Why3
 
-(* -------------------------------------------------------------------------- *)
-(* --- Provers                                                            --- *)
-(* -------------------------------------------------------------------------- *)
-
-type prover = {
-  config : Whyconf.config_prover ;
-  driver : Driver.driver ;
-}
-
-type sem = V of int | S of string
-let sem s = try V (int_of_string s) with _ -> S s
-let cmp x y =
-  match x,y with
-  | V a,V b -> b - a
-  | V _,S _ -> (-1)
-  | S _,V _ -> (+1)
-  | S a,S b -> String.compare a b
-let rec cmps xs ys =
-  match xs,ys with
-  | [],[] -> 0
-  | [],_ -> (-1)
-  | _,[] -> (+1)
-  | x::rxs,y::rys -> let c = cmp x y in if c <> 0 then c else cmps rxs rys
-let tosem p = List.map sem (String.split_on_char 'c' p)
-
-let compare_wprover (p : Whyconf.prover) (q : Whyconf.prover) =
-  let c = String.compare
-      (String.lowercase_ascii p.prover_name)
-      (String.lowercase_ascii q.prover_name) in
-  if c <> 0 then c else
-    let c = cmps (tosem p.prover_version) (tosem q.prover_version) in
-    if c <> 0 then c else
-      String.compare p.prover_altern q.prover_altern
-
-let compare_config (p : Whyconf.config_prover) (q : Whyconf.config_prover) =
-  compare_wprover p.prover q.prover
-
-let compare_prover (p : prover) (q : prover) =
-  compare_config p.config q.config
-
-(* -------------------------------------------------------------------------- *)
-(* --- Provers                                                            --- *)
-(* -------------------------------------------------------------------------- *)
-
 type callback =
   Why3.Whyconf.prover ->
   Why3.Call_provers.resource_limit ->
   Why3.Call_provers.prover_result ->
   unit
-
-let id prv = Whyconf.prover_parseable_format prv.config.prover
-let name prv = String.lowercase_ascii prv.config.prover.prover_name
-let version prv = prv.config.prover.prover_version
-let fullname p = Format.sprintf "%s@%s" (name p) (version p)
-let infoname p = Format.sprintf "%s(%s)" (name p) (version p)
-let pp_prover fmt p = Format.fprintf fmt "%s@%s" (name p) (version p)
-
-let load (env : Wenv.env) (config : Whyconf.config_prover) =
-  try
-    let main = Whyconf.get_main env.wconfig in
-    { config ; driver = Driver.load_driver_for_prover main env.wenv config }
-  with _ ->
-    Format.eprintf "Error: failed to load driver for %s@."
-      (Whyconf.prover_parseable_format config.prover) ;
-    exit 2
-
-let prover (env : Wenv.env) ~id =
-  load env @@
-  match String.split_on_char ',' id with
-  | [ prover_name ; prover_version ; prover_altern ] ->
-    Whyconf.Mprover.find
-      Whyconf.{ prover_name ; prover_version ; prover_altern }
-      (Whyconf.get_provers env.wconfig)
-  | _ ->
-    raise (Invalid_argument "Runner.get")
-
-let find_shortcut (env : Wenv.env) name =
-  Whyconf.Mprover.find
-    (Wstdlib.Mstr.find name @@ Whyconf.get_prover_shortcuts env.wconfig)
-    (Whyconf.get_provers env.wconfig)
-
-let find_filter (env : Wenv.env) ~name ?(version="") () =
-  let mpr = Whyconf.get_provers env.wconfig in
-  Whyconf.Mprover.fold
-    (fun key cfg acc ->
-       if key.prover_altern = "" &&
-          (version = "" || key.prover_version = version) &&
-          String.lowercase_ascii key.prover_name = name
-       then cfg :: acc else acc
-    ) mpr []
-
-let take_one = function [cfg] -> cfg | _ -> raise Not_found
-let take_best ~name = function
-  | [] ->
-    Format.eprintf "Warning: prover %s not found@." name ;
-    raise Not_found
-  | [prv] -> prv
-  | others -> List.hd @@ List.sort compare_config others
-
-let take_default = function
-  | [] -> []
-  | [cfg] -> [cfg]
-  | others -> [List.hd @@ List.sort compare_config others]
-
-let find env ~pattern =
-  try
-    let prover =
-      load env @@
-      match String.split_on_char '@' pattern with
-      | [name] ->
-        begin
-          try find_shortcut env name with Not_found ->
-            take_best ~name @@ find_filter env ~name ()
-        end
-      | [name;version] ->
-        begin
-          try take_one @@ find_filter env ~name ~version () with Not_found ->
-            Format.eprintf
-              "Warning: prover %s@%s not found@." name version ;
-            raise Not_found
-        end
-      | _ ->
-        Format.eprintf "Invalid prover pattern '%s'@." pattern ;
-        exit 2
-    in Some prover
-  with Not_found -> None
-
-let find_default env name =
-  List.map (load env) @@
-  try [find_shortcut env name] with Not_found ->
-    take_default @@ find_filter env ~name ()
-
-let default env =
-  find_default env "alt-ergo" @
-  find_default env "z3" @
-  find_default env "cvc4" @
-  find_default env "cvc5"
-
-let select env ~patterns =
-  List.filter_map (fun pattern -> find env ~pattern) patterns
-
-let all (env : Wenv.env) =
-  List.sort compare_prover @@
-  Whyconf.Mprover.fold
-    (fun _id config prvs ->
-       if config.Whyconf.prover.prover_altern = "" then
-         (load env config) :: prvs
-       else prvs
-    ) (Whyconf.get_provers env.wconfig) []
 
 (* -------------------------------------------------------------------------- *)
 (* --- Prover Result                                                      --- *)
@@ -264,8 +120,8 @@ let checkcache = lazy
 
 module Cache = Hashtbl.Make
     (struct
-      type t = Task.task * prover
-      let hash (t,p) = Hashtbl.hash (Task.task_hash t , id p)
+      type t = Task.task * Prover.prover
+      let hash (t,p) = Hashtbl.hash (Task.task_hash t , p.Prover.desc)
       let equal (t1,p1) (t2,p2) = (p1 == p2) && (Task.task_equal t1 t2)
     end)
 
@@ -274,7 +130,7 @@ let digest task = Why3.Termcode.(task_checksum task |> string_of_checksum)
 let data prv task =
   let buffer = Buffer.create 2048 in
   let fmt = Format.formatter_of_buffer buffer in
-  ignore @@ Driver.print_task_prepared prv.driver fmt task ;
+  ignore @@ Driver.print_task_prepared prv.Prover.driver fmt task ;
   Format.pp_print_flush fmt () ;
   Buffer.contents buffer
 
@@ -282,7 +138,7 @@ let file (t,p) =
   Lazy.force checkcache ;
   let hash = digest t in
   let h2 = String.sub hash 0 2 in
-  Printf.sprintf ".why3find/%s/%s/%s.json" (id p) h2 hash
+  Printf.sprintf ".why3find/%s/%s/%s.json" Prover.(desc_to_string p.desc) h2 hash
 
 let read e =
   let f = file e in
@@ -402,7 +258,7 @@ let limit env t =
   }
 
 let notify env prover result cb =
-  let fire cb p l r = cb p.config.prover l r in
+  let fire cb p l r = cb p.Prover.config.prover l r in
   let pr ~s ?(t = 0.0) ans =
     Why3.Call_provers.{
       pr_answer = ans ;
@@ -421,7 +277,7 @@ let notify env prover result cb =
   | Failed -> fire cb prover (limit env 1.0) (pr ~s:2 (Failure "why3find"))
 
 let notify_pr prv limit pr cb =
-  cb prv.config.prover limit pr
+  cb prv.Prover.config.prover limit pr
 
 type prepared_task = Prepared of Task.task | Buffered of Buffer.t
 
@@ -430,7 +286,7 @@ let call_prover (env : Wenv.env)
     ?(cancel : unit Fibers.signal option)
     ?(callback : callback option)
     ~(prepared : prepared_task)
-    ~(prover : prover)
+    ~(prover : Prover.prover)
     ~(timeout : float) () =
   let limit = limit env timeout in
   let clockwall = ref 0.0 in
@@ -542,7 +398,7 @@ let definitive ~timeout result =
   | Failed | Unknown _ | Valid _ -> true
 
 let prove env ?name ?cancel ?callback prover task timeout =
-  let task = Driver.prepare_task prover.driver task in
+  let task = Driver.prepare_task prover.Prover.driver task in
   let entry = task,prover in
   let cached = get entry in
   match crop ~timeout cached with
@@ -563,7 +419,7 @@ let update prover task result =
   set (task,prover) result
 
 let prove_cached prover task timeout =
-  let task = Driver.prepare_task prover.driver task in
+  let task = Driver.prepare_task prover.Prover.driver task in
   let cached = get (task,prover) in
   match crop ~timeout cached with
   | Some cached ->

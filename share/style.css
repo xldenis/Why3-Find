@@ -91,6 +91,7 @@ pre.src {
 .failed { color: red !important }
 .warning { color: orange !important }
 .remark { color: lightgrey !important }
+.prover:hover { color: purple }
 
 /* -------------------------------------------------------------------------- */
 /* --- Foldable Section                                                   --- */

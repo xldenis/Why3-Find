@@ -30,23 +30,23 @@ val default : unit -> profile
 val of_json : ?default:profile -> Json.t -> profile
 val to_json : profile -> Json.t
 
-val mem : profile -> string -> bool
-val get : profile -> string -> (int * float) option
-val set : profile -> string -> int -> float -> unit
-val iter : (string -> int -> float -> unit) -> profile -> unit
-val lock : profile -> string -> bool
+val mem : profile -> Prover.prover_desc -> bool
+val get : profile -> Prover.prover_desc -> (int * float) option
+val set : profile -> Prover.prover_desc -> int -> float -> unit
+val iter : (Prover.prover_desc -> int -> float -> unit) -> profile -> unit
+val lock : profile -> Prover.prover_desc -> bool
 (** Returns [true] if the profile was not locked before. *)
 
 (** Returns 1.0 when not calibrated *)
-val observed : profile -> Runner.prover -> float
+val observed : profile -> Prover.prover -> float
 
 (** Local Time / Profile Time *)
-val velocity : Wenv.env -> profile -> Runner.prover -> float Fibers.t
+val velocity : Wenv.env -> profile -> Prover.prover -> float Fibers.t
 
-val profile : Wenv.env -> profile -> Runner.prover -> (int * float) Fibers.t
+val profile : Wenv.env -> profile -> Prover.prover -> (int * float) Fibers.t
 
-val calibrate_provers : saved:bool -> Wenv.env -> Runner.prover list -> unit
-val velocity_provers : Wenv.env -> Runner.prover list -> unit
+val calibrate_provers : saved:bool -> Wenv.env -> Prover.prover list -> unit
+val velocity_provers : Wenv.env -> Prover.prover list -> unit
 
 val options : (string * Arg.spec * string) list
 

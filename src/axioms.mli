@@ -42,7 +42,7 @@ type kind =
 type parameter = {
   kind : kind ;
   name : Ident.ident ;
-  builtin : (Runner.prover * string) list ;
+  builtin : (Prover.prover * string) list ;
   extern : string option ;
 }
 

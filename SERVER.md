@@ -65,7 +65,7 @@ in a typical order of events:
 
 | Arg.   | Type      | Example          | Usage                 |
 |:------:|:---------:|:-----------------|:----------------------|
-| `prv`  | _string_  | `Alt-Ergo,2.2.0` | Prover identifier     |
+| `prv`  | _string_  | `alt-ergo@2.2.0` | Prover description    |
 | `jobs` | _int_     | `8`              | Available cores       |
 | `size` | _int_     | `45`             | Calibration size      |
 | `time` | _float_   | `0.55`           | Calibration time or timeout |

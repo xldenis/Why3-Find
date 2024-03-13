@@ -35,7 +35,7 @@ type henv = {
   time : float ;
   client : Client.client option ;
   maxdepth : int ;
-  provers : Runner.prover list ;
+  provers : Prover.prover list ;
   tactics : string list ;
   minimize : bool ;
 }
@@ -44,7 +44,7 @@ val run : henv -> unit
 
 val config :
   tactics:string list ->
-  provers:Runner.prover list ->
+  provers:Prover.prover list ->
   time:int ->
   mem:int ->
   string (* config file *)
