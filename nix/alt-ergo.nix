@@ -1,50 +1,61 @@
-{ callPackage
-, fetchzip
-, lib
-, stdenv
-, ocaml
-, findlib
+{ lib
+, buildDunePackage
+, fetchFromGitHub
+, camlzip
+, cmdliner
+, dune-configurator
+, menhir
+, num
 , ocplib-simplex
 , psmt2-frontend
-, lablgtk
-, zarith
-, menhir
-, camlzip
-, num
+, seq
+, stdlib-shims
 , which
-, autoreconfHook
+, zarith
 }:
 
-stdenv.mkDerivation rec {
+let
   pname = "alt-ergo";
-  version = "2.2.0-free";
+  version = "2.4.2";
 
-  src = fetchzip {
-    url = https://alt-ergo.ocamlpro.com/http/alt-ergo-free-2.2.0/alt-ergo-free-2.2.0.tar.gz;
-    sha256 = "11ffm87vsrii8nyhxhbc9gzjmqkspqv7hpjq7ll9xflll7gpnpkj";
-    stripRoot=false;
+  configureScript = "ocaml unix.cma configure.ml";
+
+  src = fetchFromGitHub {
+    owner = "OCamlPro";
+    repo = pname;
+    rev = "refs/tags/${version}";
+    hash = "sha256-8pJ/1UAbheQaLFs5Uubmmf5D0oFJiPxF6e2WTZgRyAc=";
   };
+in
 
-  nativeBuildInputs = [
-    autoreconfHook
-    which
-  ];
+let alt-ergo-lib = buildDunePackage rec {
+  pname = "alt-ergo-lib";
+  inherit version src configureScript;
+  configureFlags = [ pname ];
+  nativeBuildInputs = [ which ];
+  buildInputs = [ dune-configurator ];
+  propagatedBuildInputs = [ num ocplib-simplex seq stdlib-shims zarith ];
+  preBuild = ''
+    substituteInPlace src/lib/util/version.ml --replace 'version="dev"' 'version="${version}"'
+  '';
+}; in
 
-  buildInputs = [
-    ocaml
-    findlib
-    zarith
-    ocplib-simplex
-    psmt2-frontend
-    lablgtk
-    menhir
-  ];
+let alt-ergo-parsers = buildDunePackage rec {
+  pname = "alt-ergo-parsers";
+  inherit version src configureScript;
+  configureFlags = [ pname ];
+  nativeBuildInputs = [ which menhir ];
+  propagatedBuildInputs = [ alt-ergo-lib camlzip psmt2-frontend ];
+}; in
 
-  propagatedBuildInputs = [ camlzip num ];
+buildDunePackage {
 
-  enableParallelBuilding = true;
+  inherit pname version src configureScript;
 
-  configureFlags = [ "--enable-verbose-make" ];
+  configureFlags = [ pname ];
+
+  nativeBuildInputs = [ which menhir ];
+  buildInputs = [ alt-ergo-parsers cmdliner ];
 
   meta = {
     description = "High-performance theorem prover and SMT solver";

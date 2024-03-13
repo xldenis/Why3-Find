@@ -28,6 +28,8 @@ buildDunePackage {
     export DUNE_INSTRUMENT_WITH=meta_bisect_ppx
   '';
 
+  nativeBuildInputs = [ why3 ] ;
+
   buildInputs = [
     dune_3
     dune-site
@@ -45,6 +47,8 @@ buildDunePackage {
   ];
 
   doCheck = true;
+
+  nativeCheckInputs = [ alt-ergo bisect_ppx ] ;
 
   checkPhase = ''
     BISECT_FILE=$(pwd)/bisect \
