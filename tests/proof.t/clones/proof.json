@@ -1,7 +1,7 @@
 {
-  "profile": [ { "prover": "alt-ergo@2.2.0", "size": 16, "time": 0.1697 } ],
+  "profile": [ { "prover": "alt-ergo@2.4.2", "size": 16, "time": 0.1697 } ],
   "proofs": {
-    "A": { "neutral_com": { "prover": "alt-ergo@2.2.0", "time": 0.0005 } },
-    "B": { "A.commutative": { "prover": "alt-ergo@2.2.0", "time": 0.0004 } }
+    "A": { "neutral_com": { "prover": "alt-ergo@2.4.2", "time": 0.0005 } },
+    "B": { "A.commutative": { "prover": "alt-ergo@2.4.2", "time": 0.0004 } }
   }
 }

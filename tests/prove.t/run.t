@@ -11,12 +11,12 @@
     External   param int.Int.(<) (stdlib, builtin, extern)
   $ cat foo/proof.json
   {
-    "profile": [ { "prover": "Alt-Ergo,2.2.0", "size": 16, "time": 0.1852 } ],
+    "profile": [ { "prover": "alt-ergo@2.4.2", "size": 16, "time": 0.1852 } ],
     "proofs": {
       "S": {},
       "T": {
-        "Add.com": { "prover": "alt-ergo@2.2.0", "time": 0.0004 },
-        "Mul.com": { "prover": "alt-ergo@2.2.0", "time": 0.0004 }
+        "Add.com": { "prover": "alt-ergo@2.4.2", "time": 0.0004 },
+        "Mul.com": { "prover": "alt-ergo@2.4.2", "time": 0.0004 }
       }
     }
   }
