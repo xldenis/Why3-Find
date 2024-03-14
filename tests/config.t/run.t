@@ -2,7 +2,7 @@
   >   -T split_vc,inline_goal
   Configuration:
    - runner: 4 jobs, 1.0s
-   - provers: alt-ergo(2.2.0)
+   - provers: alt-ergo(2.4.2)
    - tactics: split_vc, inline_goal (depth 2)
   Why3find config saved to $TESTCASE_ROOT/why3find.json
   $ cat why3find.json
