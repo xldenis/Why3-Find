@@ -105,7 +105,7 @@ let load (env : Wenv.env) (config : Whyconf.config_prover) =
       driver = Driver.load_driver_for_prover main env.wenv config ;
     }
   with _ ->
-    Format.eprintf "Error: failed to load driver for %s@."
+    Log.error "failed to load driver for %s"
       (Whyconf.prover_parseable_format config.prover) ;
     exit 2
 
@@ -137,7 +137,7 @@ let find_filter (env : Wenv.env) ~name ?(version="") () =
 let take_one = function [cfg] -> cfg | _ -> raise Not_found
 let take_best ~name = function
   | [] ->
-    Format.eprintf "Warning: prover %s not found@." name ;
+    Log.warning "prover %s not found" name ;
     raise Not_found
   | [prv] -> prv
   | others -> List.hd @@ List.sort compare_config others
@@ -160,8 +160,7 @@ let find env ~pattern =
       | [name;version] ->
         begin
           try take_one @@ find_filter env ~name ~version () with Not_found ->
-            Format.eprintf
-              "Warning: prover %s@%s not found@." name version ;
+            Log.warning "prover %s@%s not found" name version ;
             raise Not_found
         end
       | _ ->

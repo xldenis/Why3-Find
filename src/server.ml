@@ -145,7 +145,7 @@ let get_cache server goal =
             try Json.of_file json |> Runner.of_json
             with _err ->
               Utils.flush () ;
-              Format.eprintf "Error: incorrect database (removed entry)@." ;
+              Log.error "incorrect database (removed entry)" ;
               Sys.remove json ; Runner.NoResult
           else Runner.NoResult in
         result,Sys.file_exists data

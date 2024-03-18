@@ -25,13 +25,21 @@
 
 let tty = Unix.isatty Unix.stdout
 
+let term =
+  match Sys.getenv_opt "TERM" with
+  | None | Some "" | Some "dumb" -> false
+  | _ -> true
+
+let escape_codes fd =
+  term && Unix.isatty fd
+
 let progress msg =
   let width = Option.value (Terminal_size.get_columns ()) ~default:80 in
   let buffer = Buffer.create (max 80 width) in
   Format.kfprintf
     (fun fmt ->
        Format.pp_print_flush fmt () ;
-       if tty then
+       if escape_codes Unix.stdout then
          let msg = Buffer.contents buffer in
          let len = String.length msg in
          if 3 + len <= width then
@@ -44,7 +52,7 @@ let progress msg =
 let flush () =
   Format.pp_print_flush Format.std_formatter () ;
   Format.pp_print_flush Format.err_formatter () ;
-  if tty then Format.printf "\r\027[K"
+  if escape_codes Unix.stdout then Format.printf "\r\027[K"
 
 let log msg =
   flush () ;
@@ -58,16 +66,31 @@ let mark_open_stag = function
   | String_tag "red" -> "\027[31m"
   | String_tag "green" -> "\027[32m"
   | String_tag "orange" -> "\027[33m"
+  | String_tag "bright red" -> "\027[91m"
+  | String_tag "bright magenta" -> "\027[95m"
+  | String_tag "bold" -> "\027[1m"
   | _ -> ""
 
 let mark_close_stag = function
-  | String_tag ("red"|"green"|"orange") -> "\027[39m"
+  | String_tag ("red"|"green"|"orange"|"bright red"|"bright magenta") -> "\027[39m"
+  | String_tag "bold" -> "\027[22m"
   | _ -> ""
 
-let () = if tty then
+let () = if escape_codes Unix.stdout then
     begin
       set_tags true ;
       set_formatter_stag_functions {
+        mark_open_stag ;
+        mark_close_stag ;
+        print_open_stag = nop ;
+        print_close_stag = nop ;
+      }
+    end
+
+let () = if escape_codes Unix.stderr then
+    begin
+      pp_set_tags err_formatter true ;
+      pp_set_formatter_stag_functions err_formatter {
         mark_open_stag ;
         mark_close_stag ;
         print_open_stag = nop ;

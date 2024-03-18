@@ -506,7 +506,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
       let n = List.length result.unfixed in
       if n > 0 then
         begin
-          Format.printf "Error: %d unproved file(s)@." n ;
+          Log.error "%d unproved file(s)" n ;
           if not !ide then exit 1 ;
           let file = List.hd result.unfixed in
           let pkgs = Wenv.packages () in
@@ -858,7 +858,7 @@ let () = register ~name:"install" ~args:"PKG PATH..."
       else
         begin
           Format.printf "Installed %s@." (Utils.absolute path);
-          if extracted then
+          if extracted then (* Don't make it a real warning ? *)
             Format.eprintf "Warning: extracted code not installed (use dune)@." ;
         end
     end
@@ -884,7 +884,7 @@ let () = register ~name:"uninstall" ~args:"[PKG...]"
             Utils.rmpath path ;
           end
         else
-          Format.printf "Warning: package %s not found@." pkg
+          Log.warning "package %s not found" pkg
       done
     end
 
