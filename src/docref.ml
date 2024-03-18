@@ -262,7 +262,7 @@ let empty () = {
 let parse ~wenv ~cenv ~henv file =
   if not @@ String.ends_with ~suffix:".mlw" file then
     begin
-      Format.eprintf "Error: invalid file name: %S@." file ;
+      Log.error "invalid file name: %S" file ;
       exit 2
     end ;
   let dir = Filename.chop_extension file in
@@ -271,7 +271,7 @@ let parse ~wenv ~cenv ~henv file =
   let thys =
     try fst @@ Why3.Env.read_file Why3.Env.base_language wenv file
     with exn ->
-      Format.eprintf "Error: %s@." (Printexc.to_string exn) ;
+      Log.error "%s" (Printexc.to_string exn) ;
       exit 1
   in
   let profile, proofs = load_proofs (Filename.concat dir "proof.json") in

@@ -225,7 +225,7 @@ let async f =
       | None -> true
       | Some v -> set r v ; false
     with exn ->
-      Format.eprintf "[Fibers] yield error (%s)" @@ Printexc.to_string exn ;
+      Format.eprintf "[Fibers] yield error (%s)@." @@ Printexc.to_string exn ;
       false
   in Queue.push queue yd ; r
 

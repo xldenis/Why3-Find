@@ -217,7 +217,7 @@ let process h : strategy = fun n ->
       else
         tactic h id children n
   with exn ->
-    Utils.log "Process Error (%s)" @@ Printexc.to_string exn ;
+    Utils.log "Process Error (%s)@." @@ Printexc.to_string exn ;
     stuck n
 
 (* -------------------------------------------------------------------------- *)

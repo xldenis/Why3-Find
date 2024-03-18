@@ -243,7 +243,7 @@ let drivers () = gets "drivers" drvs
 
 let ignore_provers () =
   if !prvs <> [] then
-    Format.eprintf "Warning: ignored --prover […] because of --detect@."
+    Log.warning "ignored --prover […] because of --detect"
 
 let set_time = set "time" ~to_json:(fun v -> `Float v)
 let set_depth = set "depth" ~to_json:(fun n -> `Int n)
