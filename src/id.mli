@@ -29,11 +29,13 @@ val hash : t -> int
 val equal : t -> t -> bool
 val compare : t -> t -> int
 val pp : Format.formatter -> t -> unit
+val ppr : Format.formatter -> t -> unit
 
 val loc : t -> Why3.Loc.position
 val file : t -> string
 val line : t -> int
 val path : ?lib:string list -> t -> string list * string * string list
+val fullname : ?lib:string list -> t -> string
 val cat : string list -> string
 
 type package = [ `Local | `Stdlib | `Package of Meta.pkg ]

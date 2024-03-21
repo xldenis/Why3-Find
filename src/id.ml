@@ -82,6 +82,13 @@ let resolve ~lib id =
         with _ -> `Stdlib
     in { self = id ; id_pkg ; id_lib = lp ; id_mod ; id_qid }
 
+let fullname ?lib id =
+  let lp,id_mod,id_qid = path ?lib id in
+  String.concat "." @@ lp @ id_mod :: id_qid
+
+let ppr fmt id =
+  Format.pp_print_string fmt @@ fullname id
+
 let standard id =
   let lp,_,_ = path id in
   lp <> [] &&
