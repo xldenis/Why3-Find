@@ -110,7 +110,7 @@ let readdir f p =
   Array.iter f ds
 
 let rec iterpath ?(enter=ignore) ?(file=ignore) ?(leave=ignore)
-          ?(ignored=Fun.const false) p =
+    ?(ignored=Fun.const false) p =
   if not (ignored p) then
     if Sys.file_exists p then
       if Sys.is_directory p then
@@ -118,10 +118,10 @@ let rec iterpath ?(enter=ignore) ?(file=ignore) ?(leave=ignore)
           enter p ;
           readdir
             (fun d ->
-              let pd =
-                if p = Filename.current_dir_name then d else
-                  Filename.concat p d
-              in iterpath ~enter ~file ~leave ~ignored pd ;
+               let pd =
+                 if p = Filename.current_dir_name then d else
+                   Filename.concat p d
+               in iterpath ~enter ~file ~leave ~ignored pd ;
             ) p ;
           leave p ;
         end
@@ -226,18 +226,18 @@ let pa_time s =
   if String.ends_with ~suffix:"min" s then
     60.0 *. (float @@ int_of_string @@ String.sub s 0 (n-3))
   else
-    if n > 1 then
-      match s.[n-1] with
-      | 'h' -> 3600.0 *. (float @@ int_of_string @@ String.sub s 0 (n-1))
-      | 's' ->
-        begin
-          match s.[n-2] with
-          | 'm' -> 1.e-3 *. (float @@ int_of_string @@ String.sub s 0 (n-2))
-          | 'n' -> 1.e-6 *. (float @@ int_of_string @@ String.sub s 0 (n-2))
-          | _ -> float @@ int_of_string @@ String.sub s 0 (n-1)
-        end
-      | _ -> float_of_string s
-    else float_of_string s
+  if n > 1 then
+    match s.[n-1] with
+    | 'h' -> 3600.0 *. (float @@ int_of_string @@ String.sub s 0 (n-1))
+    | 's' ->
+      begin
+        match s.[n-2] with
+        | 'm' -> 1.e-3 *. (float @@ int_of_string @@ String.sub s 0 (n-2))
+        | 'n' -> 1.e-6 *. (float @@ int_of_string @@ String.sub s 0 (n-2))
+        | _ -> float @@ int_of_string @@ String.sub s 0 (n-1)
+      end
+    | _ -> float_of_string s
+  else float_of_string s
 
 (* -------------------------------------------------------------------------- *)
 (* --- Pretty Printing                                                    --- *)

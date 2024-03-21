@@ -34,9 +34,9 @@ type state = private
     }
 
 and crc = private {
-   goal : Session.goal option ;
-   state : state ;
-  }
+  goal : Session.goal option ;
+  state : state ;
+}
 
 val stuck : ?goal:Session.goal -> unit -> crc
 val prover : ?goal:Session.goal -> Prover.prover_desc -> float -> crc
