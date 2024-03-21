@@ -1,0 +1,5 @@
+module A
+  type a
+  predicate eq (x y: a)
+  axiom refl: forall x y. eq x y
+end

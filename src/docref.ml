@@ -62,6 +62,7 @@ type clone = {
 }
 
 type theory = {
+  path: string;
   theory: Thy.theory ;
   depends: Thy.theory list ;
   signature: Axioms.signature ;
@@ -292,8 +293,9 @@ let parse ~wenv ~cenv ~henv file =
          Hid.add cenv.cloning theory.th_name cenv.order ;
          let proofs = zip_goals theory proofs in
          let signature = Axioms.signature henv theory in
+         let path = Id.fullname ~lib theory.th_name in
          {
-           theory ; signature ; proofs ;
+           path ; theory ; signature ; proofs ;
            depends = List.rev !depends ;
            clones = List.rev !clones ;
          }

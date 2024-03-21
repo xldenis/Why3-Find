@@ -42,6 +42,7 @@ type clone = {
 }
 
 type theory = {
+  path: string ;
   theory: Thy.theory ;
   depends: Thy.theory list ;
   signature: Axioms.signature ;
