@@ -1,0 +1,6 @@
+module B
+  use int.Int
+
+  clone foo.A with type a = int
+
+end

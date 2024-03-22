@@ -75,7 +75,7 @@ type clone_with =
   | C_seq                 (* clone … with … kwd a = *)
   | C_def                 (* clone … with … [kwd a = b | axiom a] *)
   | C_src of Docref.ident * int
-                          (* clone … with … kwd a<nspace> *)
+  (* clone … with … kwd a<nspace> *)
 
 (* -------------------------------------------------------------------------- *)
 (* --- Environment                                                        --- *)

@@ -34,9 +34,9 @@ type state =
     }
 
 and crc = {
-    goal : Session.goal option ; (* not saved in JSON *)
-    state : state ;
-  }
+  goal : Session.goal option ; (* not saved in JSON *)
+  state : state ;
+}
 
 let stuck ?goal () = { goal ; state = Stuck }
 let prover ?goal p f = { goal ; state = Prover(p,f) }

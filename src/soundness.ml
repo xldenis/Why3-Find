@@ -23,8 +23,6 @@
 (* --- Soundness Registry                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-module Sid = Why3.Ident.Sid
-module Hid = Why3.Ident.Hid
 module Thy = Why3.Theory
 module Sinst = Set.Make
     (struct
@@ -44,34 +42,35 @@ let pretty fmt = function
   | Sound ds -> Format.fprintf fmt "Sound (%d)" (List.length ds)
   | Unknown ds -> Format.fprintf fmt "Unknown (%d)" (List.length ds)
 
+(* Everything indexed by fullname for inter-file consistency. *)
 type env = {
-  theories : (string,Docref.theory) Hashtbl.t ; (* indexed by path *)
-  instances : Sinst.t ref Hid.t ;
-  soundness : soundness Hid.t ;
+  theories : (string,Docref.theory) Hashtbl.t ;
+  instances : (string,Sinst.t) Hashtbl.t ;
+  soundness : (string,soundness) Hashtbl.t ;
 }
 
 let init () = {
-  theories = Hashtbl.create 0 ;
-  instances = Hid.create 0 ;
-  soundness = Hid.create 0 ;
+  theories  = Hashtbl.create 0 ;
+  instances = Hashtbl.create 0 ;
+  soundness = Hashtbl.create 0 ;
 }
 
-let add hinst (c : Docref.clone) =
+let add hinst ~lib (c : Docref.clone) =
   let inst = c.id_instance in
-  let key = inst.inst_cloned.th_name in
+  let key = Id.fullname ~lib inst.inst_cloned.th_name in
   try
-    let s = Hid.find hinst key in
-    s := Sinst.add inst !s
+    let clones = Hashtbl.find hinst key in
+    Hashtbl.replace hinst key (Sinst.add inst clones)
   with Not_found ->
-    Hid.add hinst key (ref (Sinst.singleton inst))
+    Hashtbl.add hinst key (Sinst.singleton inst)
 
 let register henv (src : Docref.source) =
-  let hinst = henv.instances in
+  let lib = src.lib in
   Docref.Mstr.iter
     (fun id (thy : Docref.theory) ->
-       let path = Printf.sprintf "%s.%s" (Id.cat src.lib) id in
+       let path = Printf.sprintf "%s.%s" (Id.cat lib) id in
        Hashtbl.add henv.theories path thy ;
-       List.iter (add hinst) thy.clones
+       List.iter (add henv.instances ~lib) thy.clones
     ) src.theories
 
 let free = Sound []
@@ -89,27 +88,27 @@ let is_sound = function Sound _ -> true | Unsound | Unknown _ -> false
 let is_unsound = function Unsound -> true | Sound _ | Unknown _ -> false
 
 let rec compute (env : env) (th : Docref.theory) : soundness =
-  let key = th.theory.th_name in
-  try Hid.find env.soundness key with Not_found ->
-    Hid.add env.soundness key (Unknown []) ;
+  let path = th.path in
+  try Hashtbl.find env.soundness path with Not_found ->
+    Hashtbl.add env.soundness path (Unknown []) ;
     let s =
       let ps = Axioms.parameters th.signature in
       if List.exists (fun p -> Axioms.is_unsafe p) ps then Unsound else
         let ok = List.for_all (fun p -> Axioms.is_free p) ps in
         if ok then Sound [] else
           try
-            let instances = Sinst.elements !(Hid.find env.instances key) in
+            let instances = Sinst.elements (Hashtbl.find env.instances path) in
             let grounds = List.filter (has_ground_instance env) instances in
             if grounds <> [] then Sound grounds else Unknown instances
           with Not_found -> Unknown []
-    in Hid.replace env.soundness key s ; s
+    in Hashtbl.replace env.soundness path s ; s
 
 and has_ground_instance env inst =
   try Hashtbl.find env.theories inst.inst_path |> compute env |> is_sound
   with Not_found -> false
 
 let instance env (inst : Docref.instance) =
-  try Hid.find env.soundness inst.inst_cloned.th_name
+  try Hashtbl.find env.soundness @@ Id.fullname inst.inst_cloned.th_name
   with Not_found -> free
 
 (* -------------------------------------------------------------------------- *)
