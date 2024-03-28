@@ -19,33 +19,41 @@
 (*                                                                        *)
 (**************************************************************************)
 
-let warnings = ref []
-let errors = ref 0
+(* -------------------------------------------------------------------------- *)
+(* --- Logging Facilities                                                 --- *)
+(* -------------------------------------------------------------------------- *)
 
-type level = [ `Warning | `Error ]
+let messages = ref 0
+let errors = ref 0
+let warnings = ref []
+
+type level = [ `Message | `Warning | `Error ]
 
 let display : level -> _ format6 = function
+  | `Message -> ""
   | `Warning -> "@{<bold>@{<bright magenta>Warning:@}@} "
   | `Error -> "@{<bold>@{<bright red>Error:@}@} "
 
-let add_summary lvl print =
+let add_summary (lvl: level) print =
+  incr messages;
   match lvl with
+  | `Message -> ()
   | `Warning -> warnings := print :: !warnings
-  | `Error -> errors := !errors + 1
+  | `Error -> incr errors
 
-let log : type a. lvl:level -> (a, Format.formatter, unit) format -> a =
-  fun ~lvl format ->
+let log : type a. ?level:level -> (a, Format.formatter, unit) format -> a =
+  fun ?(level=`Message) format ->
   let cont print =
     Utils.flush ();
     Format.eprintf "%t@." print;
-    add_summary lvl print in
-  Format.kdprintf cont ("@[<hov>" ^^ display lvl ^^ format ^^ "@]")
+    add_summary level print in
+  Format.kdprintf cont ("@[<hov>" ^^ display level ^^ format ^^ "@]")
 
 let warning format =
-  log ~lvl:`Warning format
+  log ~level:`Warning format
 
 let error format =
-  log ~lvl:`Error format
+  log ~level:`Error format
 
 let summary () =
   if !warnings <> [] then
