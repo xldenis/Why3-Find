@@ -1335,7 +1335,7 @@ let generate ~out ~title ~files ~url =
     (* Indexing *)
     index ~out ~senv ~title ;
     (* Final output *)
-    Utils.log "Generated %s%s/index.html@."
+    Log.emit "Generated %s%s/index.html"
       (if url then "file://" else "") (Utils.absolute out) ;
   end
 

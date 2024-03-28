@@ -24,8 +24,9 @@
 (* -------------------------------------------------------------------------- *)
 
 let messages = ref 0
+let warnings = ref 0
 let errors = ref 0
-let warnings = ref []
+let summary = Queue.create ()
 
 type level = [ `Message | `Warning | `Error ]
 
@@ -34,38 +35,49 @@ let display : level -> _ format6 = function
   | `Warning -> "@{<bold>@{<bright magenta>Warning:@}@} "
   | `Error -> "@{<bold>@{<bright red>Error:@}@} "
 
-let add_summary (lvl: level) print =
-  incr messages;
-  match lvl with
-  | `Message -> ()
-  | `Warning -> warnings := print :: !warnings
-  | `Error -> incr errors
+let publish (lvl: level) print =
+  Utils.flush () ;
+  let stderr =
+    match lvl with
+    | `Message -> incr messages ; false
+    | `Warning -> incr warnings ; true
+    | `Error -> incr errors ; true
+  in
+  if stderr then
+    ( Queue.push print summary ; Format.eprintf "%t@." print )
+  else
+    Format.printf "%t@." print
 
-let log : type a. ?level:level -> (a, Format.formatter, unit) format -> a =
+let nwl n = messages := n + !messages
+
+let emit : type a. ?level:level -> (a, Format.formatter, unit) format -> a =
   fun ?(level=`Message) format ->
-  let cont print =
-    Utils.flush ();
-    Format.eprintf "%t@." print;
-    add_summary level print in
-  Format.kdprintf cont ("@[<hov>" ^^ display level ^^ format ^^ "@]")
+  Format.kdprintf (publish level) (display level ^^ format)
 
 let warning format =
-  log ~level:`Warning format
+  emit ~level:`Warning format
 
 let error format =
-  log ~level:`Error format
+  emit ~level:`Error format
 
 let summary () =
-  if !warnings <> [] then
+  let wrn = !warnings in
+  if wrn > 0 then
     begin
       Utils.flush ();
-      Format.eprintf "Warning summary:@.";
-      List.iter (Format.eprintf "%t@.") (List.rev !warnings);
-      let len = List.length !warnings in
-      Format.eprintf "Emitted %d warning%a" len Utils.pp_s len;
-      if !errors <> 0 then
-        Format.eprintf ", %d error%a" !errors Utils.pp_s !errors;
-      Format.eprintf "@."
+      let dump =
+        not Utils.tty ||
+        !messages > Option.value ~default:25 @@ Terminal_size.get_rows () in
+      if dump then
+        begin
+          Format.printf "Summary:@.";
+          Queue.iter (Format.printf "%t@.") summary ;
+        end ;
+      Format.printf "Emitted %d warning%a" wrn Utils.pp_s wrn ;
+      let err = !errors in
+      if err > 0 then
+        Format.printf ", %d error%a" err Utils.pp_s err ;
+      Format.printf "@."
     end
 
 let exit_summary () =

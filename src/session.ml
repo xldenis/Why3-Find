@@ -95,10 +95,9 @@ let goal_name g = task_name @@ goal_task g
 let goal_expl g = task_expl @@ goal_task g
 
 let pp_goal fmt g =
+  Format.pp_print_string fmt (goal_name g) ;
   let expl = goal_expl g in
-  if expl = ""
-  then Format.fprintf fmt "%s" (goal_name g)
-  else Format.fprintf fmt "%s [%s]" (goal_name g) expl
+  if expl <> "" then Format.fprintf fmt " [%s]" expl
 
 let silent : S.notifier = fun _ -> ()
 

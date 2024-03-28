@@ -54,10 +54,6 @@ let flush () =
   Format.pp_print_flush Format.err_formatter () ;
   if escape_codes Unix.stdout then Format.printf "\r\027[K"
 
-let log msg =
-  flush () ;
-  Format.printf msg
-
 open Format
 
 let nop _ = ()

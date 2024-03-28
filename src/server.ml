@@ -101,7 +101,7 @@ let trace = ref false
 
 let send server emitter msg =
   if !trace then
-    Utils.log "@%a SEND -> %a@."
+    Log.emit "@%a SEND -> %a"
       Utils.pp_hex emitter.identity
       Utils.pp_args msg ;
   Zmq.Socket.send_all server.socket (emitter.identity :: msg)
@@ -111,7 +111,7 @@ let recv server ~time fn =
   | [] -> true
   | identity::msg ->
     if !trace then
-      Utils.log "@%a RECV <- %a@."
+      Log.emit "@%a RECV <- %a"
         Utils.pp_hex identity
         Utils.pp_args msg ;
     fn { time ; identity } msg ; true
@@ -530,7 +530,7 @@ let establish ~database ~address ~polling =
     Zmq.Socket.unbind socket address ;
     Zmq.Socket.close socket ;
     Zmq.Context.terminate context ;
-    Utils.log "Terminated@." ;
+    Log.emit "Terminated" ;
     exit 0
 
 (* -------------------------------------------------------------------------- *)
