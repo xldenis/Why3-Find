@@ -123,11 +123,11 @@ let skip = forward false
 let print = forward true
 
 let before cursor ~context u =
-  let p = (fst @@ fst @@ snd u) - context in
+  let p = (Range.first_line @@ snd u) - context in
   while fst cursor.pos < p do skip cursor done
 
 let after cursor ~context v =
-  let p = (fst @@ snd @@ snd v) + context in
+  let p = (Range.last_line @@ snd v) + context in
   while fst cursor.pos <= p do print cursor done
 
 let flush cursor =
@@ -161,8 +161,29 @@ and colored cursor u w =
      | [] -> u
      | v::w -> decorate cursor v w)
 
+(* Selects the ranges that are near the goal(s) *)
+let window ~context rs =
+  (* collect the range of lines for the goals *)
+  let rec goals p q = function
+    | [] -> p, q
+    | ((When | WhenNot),_) :: ws -> goals p q ws
+    | (Goal,r)::ws ->
+      let p = min p (Range.first_line r) in
+      let q = max q (Range.last_line r) in
+      goals p q ws
+  in
+  let p,q = goals max_int 0 rs in
+  let w = context * 5 in
+  let p = p - w in
+  let q = q + w in
+  List.filter
+    (fun (_,r) ->
+       p <= Range.first_line r &&
+       q >= Range.last_line r
+    ) rs
+
 let dump ~file ~context task =
-  ranges ~file task |>
+  ranges ~file task |> window ~context |>
   function [] -> () | u::w ->
     let text = Utils.readfile ~file in
     let cursor = { text ; offset = 0 ; pos = Range.start } in

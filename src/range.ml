@@ -68,3 +68,6 @@ let disjoint (a,b) (c,d) = b << c || d << a
 let (<<<) (_,b) (c,_) = b << c
 let union (a,b) (c,d) = min a c, max b d
 let diff (a,b) (c,d) = max a d, min b c
+
+let first_line (r : range) = fst @@ fst r
+let last_line (r : range) = fst @@ snd r

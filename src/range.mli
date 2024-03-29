@@ -51,3 +51,6 @@ val inside : pos -> range -> bool
 val disjoint : range -> range -> bool
 val union : range -> range -> range
 val diff : range -> range -> range
+
+val first_line : range -> int
+val last_line : range -> int
