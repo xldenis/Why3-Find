@@ -104,23 +104,18 @@ let prove_theory ~file ~context mode profile strategy theory =
          if not (Crc.is_complete crc) then
            begin
              Utils.flush () ;
-             begin
-               match Session.goal_loc task with
-               | Some loc ->
-                 Format.printf "%a: proof failed@." Why3.Loc.pp_position loc
-               | None -> ()
-             end ;
-             let rec failed c = match c.Crc.state, c.goal with
-               | Stuck, Some g -> [ g ]
-               | Stuck, None | Prover _, _ -> []
-               | Tactic { children }, _ -> List.concat_map failed children in
-             let pp_failed fmt g =
-               if Utils.tty && context >= 0 then
-                 Vc.dump ~file ~context (Session.goal_task g)
-               else Session.pp_goal fmt g in
-             Format.printf "@[<v2>Goal @{<red>%s@}: %a@,%a@."
-               goal Crc.pretty crc
-               (Format.pp_print_list pp_failed) (failed crc) ;
+             Option.iter
+               (Format.printf "%a: proof failed@." Why3.Loc.pp_position)
+               (Session.goal_loc task) ;
+             Format.printf "@[<v2>Goal @{<red>%s@}: %a@]@." goal Crc.pretty crc ;
+             Crc.iter
+               (fun g (s : Crc.state) ->
+                  match s with Prover _ | Tactic _ -> () | Stuck ->
+                    if Utils.tty && context >= 0 then
+                      Vc.dump ~file ~context (Session.goal_task g)
+                    else
+                      Format.printf "  %a@." Session.pp_goal g
+               ) crc ;
            end ;
          goal, crc
       ) tasks

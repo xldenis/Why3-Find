@@ -167,10 +167,10 @@ let dump ~file ~context task =
     let text = Utils.readfile ~file in
     let cursor = { text ; offset = 0 ; pos = Range.start } in
     try
-      Format.printf "[...]@." ;
+      Format.printf "@{<orange>[...]@}@." ;
       before cursor ~context u ;
       let v = decorate cursor u w in
       after cursor ~context v ;
-      Format.printf "[...]@." ;
+      Format.printf "@{<orange>[...]@}@." ;
     with Invalid_argument _ | Exit ->
       flush cursor
