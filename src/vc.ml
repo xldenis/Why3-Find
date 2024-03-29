@@ -28,7 +28,6 @@ module Term = Why3.Term
 module Decl = Why3.Decl
 module Thy = Why3.Theory
 module Tsk = Why3.Task
-module Thy = Why3.Theory
 
 type color = Goal | When | WhenNot
 type colored =
@@ -81,12 +80,97 @@ let rec task (t : Tsk.task) : shape =
   | Some { task_decl ; task_prev } ->
     tdecl task_decl <|> task task_prev
 
-let rec collect s acc =
-  match s with
-  | Range(c,p) -> (c,p)::acc
-  | Cat(a,b) -> collect a @@ collect b @@ acc
+let by_range (_,r1) (_,r2) = Range.compare_range r1 r2
 
-let ranges (t : Tsk.task) =
+let rank = function Goal -> 2 | WhenNot -> 1 | When -> 0
+
+let rec segment = function
+  | [] | [_] as rs -> rs
+  | ((c1,r1) as u)::((c2,r2) as v)::w ->
+    if Range.( r1 <<< r2 ) then u :: segment (v::w) else
+    if c1 = c2 then segment ((c1, Range.union r1 r2)::w) else
+    if rank c1 > rank c2 then
+      (c1,r1) :: segment ((c2,Range.diff r2 r1) :: w)
+    else
+      (c1,Range.diff r1 r2) :: segment (v::w)
+
+let rec collect ~file s acc =
+  match s with
+  | Cat(a,b) -> collect ~file a @@ collect ~file b @@ acc
+  | Range(color,p) ->
+    let f,a,b,c,d = Loc.get p in
+    if f = file then (color,((a,b),(c,d))) :: acc else acc
+
+let ranges ~file (t : Tsk.task) =
   match task t with
   | None -> []
-  | Some s -> collect s []
+  | Some s -> collect ~file s [] |> List.sort by_range |> segment
+
+type cursor = {
+  text : string ;
+  mutable offset : int ;
+  mutable pos : Range.pos ;
+}
+
+let forward print cursor =
+  let k = cursor.offset in
+  let c = cursor.text.[k] in
+  if print then Format.print_char c ;
+  cursor.pos <- Range.after cursor.pos c ;
+  cursor.offset <- succ k
+
+let skip = forward false
+let print = forward true
+
+let before cursor ~context u =
+  let p = (fst @@ fst @@ snd u) - context in
+  while fst cursor.pos < p do skip cursor done
+
+let after cursor ~context v =
+  let p = (fst @@ snd @@ snd v) + context in
+  while fst cursor.pos <= p do print cursor done
+
+let flush cursor =
+  if snd cursor.pos > 0 then Format.print_newline () ;
+  Format.printf "[...]@."
+
+let open_color = function
+  | Goal -> Format.printf "@{<bold>@{<bright red>"
+  | When -> Format.printf "@{<green>"
+  | WhenNot -> Format.printf "@{<magenta>"
+let close_color = function
+  | Goal -> Format.printf "@}@}"
+  | When | WhenNot -> Format.printf "@}"
+
+let rec decorate cursor u w =
+  let open Range in
+  let kd,(a,_) = u in
+  if cursor.pos << a then
+    (print cursor ; decorate cursor u w)
+  else
+    (open_color kd ; print cursor ; colored cursor u w)
+
+and colored cursor u w =
+  let open Range in
+  let kd,(_,b) = u in
+  if cursor.pos << b then
+    (print cursor ; colored cursor u w)
+  else
+    (close_color kd ;
+     match w with
+     | [] -> u
+     | v::w -> decorate cursor v w)
+
+let dump ~file ~context task =
+  ranges ~file task |>
+  function [] -> () | u::w ->
+    let text = Utils.readfile ~file in
+    let cursor = { text ; offset = 0 ; pos = Range.start } in
+    try
+      Format.printf "[...]@." ;
+      before cursor ~context u ;
+      let v = decorate cursor u w in
+      after cursor ~context v ;
+      Format.printf "[...]@." ;
+    with Invalid_argument _ | Exit ->
+      flush cursor

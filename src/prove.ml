@@ -85,7 +85,7 @@ let save_proofs ~mode dir file profile (prfs : proofs) =
 (* --- Proof Driver                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-let prove_theory mode profile strategy theory =
+let prove_theory ~file ~context mode profile strategy theory =
   let thy = Session.name theory in
   let tasks = Session.split theory in
   let hints = M.find_def M.empty thy strategy in
@@ -110,15 +110,17 @@ let prove_theory mode profile strategy theory =
                  Format.printf "%a: proof failed@." Why3.Loc.pp_position loc
                | None -> ()
              end ;
-             Format.printf "@[<v2>Goal @{<red>%s@}: %a" goal Crc.pretty crc;
              let rec failed c = match c.Crc.state, c.goal with
                | Stuck, Some g -> [ g ]
                | Stuck, None | Prover _, _ -> []
                | Tactic { children }, _ -> List.concat_map failed children in
-             let failed = failed crc in
-             Format.printf "@,%a"
-               (Format.pp_print_list Session.pp_goal) failed;
-             Format.printf "@."
+             let pp_failed fmt g =
+               if Utils.tty && context >= 0 then
+                 Vc.dump ~file ~context (Session.goal_task g)
+               else Session.pp_goal fmt g in
+             Format.printf "@[<v2>Goal @{<red>%s@}: %a@,%a@."
+               goal Crc.pretty crc
+               (Format.pp_print_list pp_failed) (failed crc) ;
            end ;
          goal, crc
       ) tasks
@@ -233,7 +235,9 @@ let report_hypotheses henv ~lib (ths : Th.theory list) =
 (* --- Proof Logger                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-let report_results log henv ~lib proofs =
+type results = [ `Modules | `Theories | `Goals | `Proofs | `Context of int ]
+
+let report_results (log : results) henv ~lib proofs =
   begin
     let stuck = ref 0 in
     let proved = ref 0 in
@@ -255,7 +259,7 @@ let report_results log henv ~lib proofs =
         Format.printf "Library %s: %t@."
           path (Crc.pp_result ~stuck:!stuck ~proved:!proved) ;
         List.iter (report_signature henv ~lib) ths
-      | `Theories | `Goals | `Proofs ->
+      | `Theories | `Goals | `Proofs | `Context _ ->
         List.iter
           (fun (th,goals) ->
              let thy = Session.theory th in
@@ -267,7 +271,7 @@ let report_results log henv ~lib proofs =
                (Crc.pp_result ~stuck:s ~proved:p) ;
              begin
                match log with
-               | `Modules | `Theories -> ()
+               | `Modules | `Theories | `Context _ -> ()
                | `Goals ->
                  List.iter
                    (fun (g,c) ->
@@ -292,8 +296,7 @@ let report_results log henv ~lib proofs =
 (* -------------------------------------------------------------------------- *)
 
 type mode = [ `Force | `Update | `Minimize | `Replay ]
-type log0 = [ `Modules | `Theories | `Goals | `Proofs ]
-type log = [ `Default | log0 ]
+type log = [ `Default | `Context of int | results ]
 
 let rec normalize = function
   | [] -> []
@@ -301,7 +304,7 @@ let rec normalize = function
   | _::".."::path -> normalize path
   | p :: path -> p :: normalize path
 
-let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
+let process ~env ~mode ~session ~(log : results) ~axioms ~unsuccess file =
   Fibers.background @@
   begin
     if not @@ String.ends_with ~suffix:".mlw" file then
@@ -317,9 +320,10 @@ let process ~env ~mode ~session ~(log : log0) ~axioms ~unsuccess file =
     let session = Session.create ~session ~dir ~file ~format theories in
     let fp = Filename.concat dir "proof.json" in
     let profile, strategy = load_proofs fp in
+    let context = match log with `Context n -> n | _ -> (-1) in
     let* proofs =
       Fibers.all @@ List.map
-        (prove_theory mode profile strategy)
+        (prove_theory ~file ~context mode profile strategy)
         (Session.theories session)
     in
     Session.save session ;
@@ -356,9 +360,9 @@ let prove_files ~mode ~session ~log ~axioms ~files =
     let provers = Prover.select env ~patterns in
     let unsuccess = ref [] in
     let minimize = (mode = `Minimize) in
-    let log : log0 = match log with
+    let log : results = match log with
       | `Default -> if List.length files > 1 then `Modules else `Theories
-      | #log0 as l -> l in
+      | #results as l -> l in
     List.iter (process ~env ~mode ~session ~log ~axioms ~unsuccess) files ;
     Hammer.run {
       env ;

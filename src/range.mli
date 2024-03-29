@@ -20,10 +20,34 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* ---  Task Colorization                                                 --- *)
+(* --- Location & Range utilities                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-type color = Goal | When | WhenNot
+type pos = int * int
+type range = pos * pos
 
-val ranges : file:string -> Why3.Task.task -> (color * Range.range) list
-val dump : file:string -> context:int -> Why3.Task.task -> unit
+val ( << ) : 'a * 'b -> 'a * 'b -> bool
+val ( >> ) : 'a * 'b -> 'a * 'b -> bool
+val ( <<= ) : 'a * 'b -> 'a * 'b -> bool
+val ( <<< ) : range -> range -> bool
+
+val compare_pos : pos -> pos -> int
+val compare_range : range -> range -> int
+
+val start : pos
+val next : pos -> pos
+val prev : pos -> pos
+val newline : pos -> pos
+val after : pos -> char -> pos
+val min : pos -> pos -> pos
+val max : pos -> pos -> pos
+
+val pp_pos : Format.formatter -> pos -> unit
+val pp_range : Format.formatter -> range -> unit
+val pp_position : Format.formatter -> file:string -> range -> unit
+
+val is_empty : range -> bool
+val inside : pos -> range -> bool
+val disjoint : range -> range -> bool
+val union : range -> range -> range
+val diff : range -> range -> range
