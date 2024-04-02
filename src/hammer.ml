@@ -31,6 +31,7 @@ type henv = {
   time : float ;
   client : Client.client option ;
   maxdepth : int ;
+  patterns : string list ;
   provers : Prover.prover list ;
   tactics : string list ;
   minimize : bool ;
@@ -177,14 +178,28 @@ let hammer henv =
 (* --- Node Processing                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let select p prvs =
-  List.find (fun prv -> Prover.name prv = Prover.desc_name p) prvs
+let get_prover h pr =
+  let prmatch pattern =
+    try Prover.pmatch ~pattern pr with
+    | Prover.InvalidPattern _ -> false in
+  let prover = try Some (Prover.prover h.env pr) with Not_found -> None in
+  if List.exists prmatch h.patterns
+  then prover (* either the prover is available or we already complained *)
+  else
+    begin
+      if prover = None then
+        Log.warning "prover %a not found (why3)" Prover.pp_desc pr;
+      Log.warning "prover %a not configured (project)" Prover.pp_desc pr;
+      None
+    end
 
 let overhead t = max (t *. 2.0) 1.0
 
 let replay h p t =
   let client = if t > h.time *. 0.2 then h.client else None in
-  prove h.env ?client (select p h.provers) (overhead t)
+  match get_prover h p with
+  | None -> stuck
+  | Some p -> prove h.env ?client p (overhead t)
 
 let update h p t = replay h p t >>> hammer h
 
