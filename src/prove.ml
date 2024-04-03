@@ -64,14 +64,19 @@ let jproofs (prfs : proofs) : Json.t =
       `Assoc (List.map (fun (g,r) -> g, Crc.to_json r) rs)
     ) prfs)
 
-let load_proofs file : profile * theories =
+let proofs_file file =
+  Filename.concat (Filename.chop_extension file) "proof.json"
+
+let load_proofs ?defaultprofile file : profile * theories =
+  let file = proofs_file file in
   let js = if Sys.file_exists file then Json.of_file file else `Null in
-  let default = Calibration.default () in
-  let profile = Calibration.of_json ~default @@ Json.jfield "profile" js in
+  let profile =
+    Calibration.of_json ?default:defaultprofile @@ Json.jfield "profile" js in
   let strategy = jmap (jmap Crc.of_json) @@ Json.jfield "proofs" js in
   profile , strategy
 
 let save_proofs ~mode dir file profile (prfs : proofs) =
+  let file = proofs_file file in
   match mode with
   | `Replay -> ()
   | `Minimize | `Update | `Force ->
@@ -313,8 +318,8 @@ let process ~env ~mode ~session ~(log:results) ~axioms ~unsuccess file =
       if Filename.is_relative file then dir else Filename.basename dir in
     let theories, format = load_theories env file in
     let session = Session.create ~session ~dir ~file ~format theories in
-    let fp = Filename.concat dir "proof.json" in
-    let profile, strategy = load_proofs fp in
+    let profile, strategy =
+      load_proofs ~defaultprofile:(Calibration.default ()) file in
     let context = match log with `Context n -> n | _ -> (-1) in
     let* proofs =
       Fibers.all @@ List.map
@@ -322,7 +327,7 @@ let process ~env ~mode ~session ~(log:results) ~axioms ~unsuccess file =
         (Session.theories session)
     in
     Session.save session ;
-    save_proofs ~mode dir fp profile proofs ;
+    save_proofs ~mode dir file profile proofs ;
     let henv =
       if axioms then
         Some (Axioms.init env)

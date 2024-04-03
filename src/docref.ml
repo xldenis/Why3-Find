@@ -216,16 +216,6 @@ let iter_theory cenv ~depend ~cloned thy =
 (* --- Proofs                                                             --- *)
 (* -------------------------------------------------------------------------- *)
 
-let jmap cc js =
-  let m = ref Mstr.empty in
-  Json.jiter (fun fd js -> m := Mstr.add fd (cc js) !m) js ; !m
-
-let load_proofs file =
-  let js = if Sys.file_exists file then Json.of_file file else `Null in
-  let profile = Calibration.of_json @@ Json.jfield "profile" js in
-  let strategy = jmap (jmap Crc.of_json) @@ Json.jfield "proofs" js in
-  profile , strategy
-
 let zip_goals theory proofs =
   let proofs = Mstr.find_def Mstr.empty (Session.thy_name theory) proofs in
   List.fold_left
@@ -266,7 +256,6 @@ let parse ~wenv ~cenv ~henv file =
       Log.error "invalid file name: %S" file ;
       exit 2
     end ;
-  let dir = Filename.chop_extension file in
   let lib = library_path file in
   let path = String.concat "." lib in
   let thys =
@@ -275,7 +264,7 @@ let parse ~wenv ~cenv ~henv file =
       Log.error "%s" (Printexc.to_string exn) ;
       exit 1
   in
-  let profile, proofs = load_proofs (Filename.concat dir "proof.json") in
+  let profile, proofs = Prove.load_proofs file in
   let theories =
     Mstr.mapi
       (fun id (theory : Thy.theory) ->

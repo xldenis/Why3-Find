@@ -23,6 +23,17 @@
 (* --- Proof Manager                                                      --- *)
 (* -------------------------------------------------------------------------- *)
 
+module M = Why3.Wstdlib.Mstr
+
+type profile = Calibration.profile
+type theories = Crc.crc M.t M.t
+
+val proofs_file : string -> string
+(** Returns the proofs file associated with the given mlw file *)
+
+val load_proofs : ?defaultprofile:profile -> string -> profile * theories
+(** Load the content of the proofs file associated with the given mlw file *)
+
 type mode = [ `Force | `Update | `Minimize | `Replay ]
 type log = [
     `Default | `Modules | `Theories | `Goals | `Proofs | `Context of int

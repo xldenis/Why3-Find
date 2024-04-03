@@ -361,6 +361,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let velocity = ref false in
       let default = ref false in
       let detect = ref false in
+      let check = ref false in
+      let retval = ref 0 in
       Arg.parse_argv argv
         begin
           Wenv.options () @
@@ -372,6 +374,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             "--reset", Arg.Set Wenv.reset, "configure from scratch";
             "--default", Arg.Set default, "import local provers";
             "--detect", Arg.Set detect, "detect and import local provers";
+            "--check", Arg.Set check,
+            "check that the proof certificates respect the configuration"
           ]
         end
         noargv
@@ -425,6 +429,22 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let tactics = Wenv.tactics () in
       (* --- Drivers ----- *)
       let drivers = Wenv.drivers () in
+      (* --- Check ----- *)
+      if !check then
+        begin
+          let rec check_crc crc =
+            match crc.Crc.state with
+            | Stuck -> ()
+            | Prover (p, _) ->
+              if Prover.check_and_get_prover env ~patterns p = None then
+                retval := 1;
+            | Tactic { children; _ } -> List.iter check_crc children in
+          let check f =
+            let _, theories = Prove.load_proofs f in
+            Prove.M.(iter (fun _ -> iter (fun _ -> check_crc))) theories
+          in
+          Wenv.allfiles ~exts:[".mlw"] check "."
+        end ;
       (* --- Printing -------------- *)
       if !list then
         begin
@@ -455,6 +475,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
           Wenv.set_drivers drivers ;
         end ;
       Wenv.save () ;
+      exit (!retval)
     end
 
 (* -------------------------------------------------------------------------- *)
@@ -778,7 +799,7 @@ let () = register ~name:"install" ~args:"PKG PATH..."
               src pkg ;
           allsrc := false ;
           Wenv.allfiles ~exts:[".mlw"] (install ~kind:"(source)") src ;
-          let proofs = Filename.(concat (chop_extension src) "proof.json") in
+          let proofs = Prove.proofs_file src in
           if Sys.file_exists proofs then
             install ~kind:"(proof)" proofs ;
         end in
