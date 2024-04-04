@@ -470,7 +470,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
       let set m v () = m := v in
       let add r p = r := p :: !r in
       let context n = log := `Context n in
-      let failed () = context 2 in
+      let failed () = context 5 in
       Arg.parse_argv argv
         begin
           Wenv.options () @

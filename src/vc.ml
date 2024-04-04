@@ -130,10 +130,6 @@ let after cursor ~context v =
   let p = (Range.last_line @@ snd v) + context in
   while fst cursor.pos <= p do print cursor done
 
-let flush cursor =
-  if snd cursor.pos > 0 then Format.print_newline () ;
-  Format.printf "[...]@."
-
 let open_color = function
   | Goal -> Format.printf "@{<bold>@{<bright red>"
   | When -> Format.printf "@{<green>"
@@ -173,25 +169,39 @@ let window ~context rs =
       goals p q ws
   in
   let p,q = goals max_int 0 rs in
-  let w = context * 5 in
-  let p = p - w in
-  let q = q + w in
-  List.filter
-    (fun (_,r) ->
-       p <= Range.first_line r &&
-       q >= Range.last_line r
-    ) rs
+  let hp = p - 2*context in
+  let hq = q + 2*context in
+  let np = ref 0 in
+  let nq = ref 0 in
+  let rs =
+    List.filter
+      (fun (_,r) ->
+         if Range.first_line r < hp then (incr np ; false) else
+         if Range.last_line r > hq then (incr nq ; false) else
+           true
+      ) rs in
+  p,q,!np,!nq,rs
+
+let pp_range fmt (p,q) =
+  if p < q then Format.fprintf fmt "%d:%d" p q else Format.pp_print_int fmt p
+let pp_trail fmt n = if n > 0 then Format.fprintf fmt " @{<green>(+%d)@}" n
+
+let flush cursor =
+  if snd cursor.pos > 0 then Format.print_newline () ;
+  Format.printf "@{<orange>[eof]@}@."
 
 let dump ~file ~context task =
-  ranges ~file task |> window ~context |>
-  function [] -> () | u::w ->
+  let p,q,np,nq,rs = ranges ~file task |> window ~context in
+  match rs with [] -> () | u::w ->
     let text = Utils.readfile ~file in
     let cursor = { text ; offset = 0 ; pos = Range.start } in
     try
-      Format.printf "@{<orange>[...]@}@." ;
+      Format.printf "@{<orange>[%s:%a]@}@\n" file pp_range (p,q) ;
       before cursor ~context u ;
+      if fst cursor.pos > 1 then
+        Format.printf "@{<orange>[...]@}%a@." pp_trail np ;
       let v = decorate cursor u w in
       after cursor ~context v ;
-      Format.printf "@{<orange>[...]@}@." ;
+      Format.printf "@{<orange>[...]@}%a@." pp_trail nq ;
     with Invalid_argument _ | Exit ->
       flush cursor

@@ -299,7 +299,7 @@ let rec normalize = function
   | _::".."::path -> normalize path
   | p :: path -> p :: normalize path
 
-let process ~env ~mode ~session ~(log : results) ~axioms ~unsuccess file =
+let process ~env ~mode ~session ~(log:results) ~axioms ~unsuccess file =
   Fibers.background @@
   begin
     if not @@ String.ends_with ~suffix:".mlw" file then
