@@ -2,6 +2,8 @@
   gitignoreSource,
   dune_3,
   dune-site,
+  headache,
+  ocp-indent,
   alt-ergo,
   bisect_ppx,
   menhir,
@@ -48,13 +50,16 @@ buildDunePackage {
 
   doCheck = true;
 
-  nativeCheckInputs = [ alt-ergo bisect_ppx ] ;
+  nativeCheckInputs = [ headache ocp-indent alt-ergo bisect_ppx ] ;
 
   checkPhase = ''
     BISECT_FILE=$(pwd)/bisect \
     dune runtest -p why3find -j1 --force --instrument-with bisect_ppx
     bisect-ppx-report cobertura report.xml
     bisect-ppx-report summary | sed -e 's/.*(\(1\?[0-9]\{2\}\.[0-9]\+%\))/Coverage: \1/' > coverage.txt
+
+    # Check indentation and headers
+    ./nix/check.sh
   '' ;
 
   postInstall = ''
