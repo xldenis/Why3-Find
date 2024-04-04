@@ -186,6 +186,10 @@ let pp_range fmt (p,q) =
   if p < q then Format.fprintf fmt "%d:%d" p q else Format.pp_print_int fmt p
 let pp_trail fmt n = if n > 0 then Format.fprintf fmt " @{<green>(+%d)@}" n
 
+let pp_expl fmt t =
+  let expl = Session.task_expl t in
+  if expl <> "" then Format.fprintf fmt ":%s" expl
+
 let flush cursor =
   if snd cursor.pos > 0 then Format.print_newline () ;
   Format.printf "@{<orange>[eof]@}@."
@@ -196,7 +200,8 @@ let dump ~file ~context task =
     let text = Utils.readfile ~file in
     let cursor = { text ; offset = 0 ; pos = Range.start } in
     try
-      Format.printf "@{<orange>[%s:%a]@}@\n" file pp_range (p,q) ;
+      Format.printf "@{<orange>[%s:%a%a]@}@\n" file
+        pp_range (p,q) pp_expl task ;
       before cursor ~context u ;
       if fst cursor.pos > 1 then
         Format.printf "@{<orange>[...]@}%a@." pp_trail np ;

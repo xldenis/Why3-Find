@@ -25,8 +25,8 @@
 
 type mode = [ `Force | `Update | `Minimize | `Replay ]
 type log = [
-  `Default | `Modules | `Theories | `Goals | `Proofs | `Context of int
-  ]
+    `Default | `Modules | `Theories | `Goals | `Proofs | `Context of int
+]
 
 val stdlib : bool ref
 val externals : bool ref
