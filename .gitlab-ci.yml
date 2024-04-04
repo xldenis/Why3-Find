@@ -8,7 +8,47 @@ build:
       coverage_report:
         coverage_format: cobertura
         path: result/report.xml
-
-default:
   tags:
     - nix-v2
+
+variables:
+  OCAML: "4.13"
+
+.opam_template: &opam_template
+  image: 'ocaml/opam:ubuntu-20.04-ocaml-$OCAML'
+  when: manual
+  tags:
+    - docker
+
+opam:
+  <<: *opam_template
+  script:
+    - sudo apt update
+    - opam pin . -n
+    - opam depext --jobs 2 why3find --with-test
+    - opam install --jobs 2 why3find --with-test --with-doc
+
+opam-minimal:
+  <<: *opam_template
+  variables:
+    OPAMDOWNLOADJOBS: "1"
+    OPAMERRLOGLEN: "0"
+    OPAMSOLVERTIMEOUT: "500"
+    OPAMPRECISETRACKING: "1"
+  script:
+    - sudo ln -f /usr/bin/opam-2.1 /usr/bin/opam
+    - opam --version
+    - opam init --reinit -ni
+    - sudo apt update
+    - export OPAMCRITERIA="-removed,-count[avoid-version,changed],-count[version-lag,request],-count[version-lag,changed],-count[missing-depexts,changed],-changed"
+    - export OPAMFIXUPCRITERIA="-removed,-count[avoid-version,changed],-count[version-lag,request],-count[version-lag,changed],-count[missing-depexts,changed],-changed"
+    - export OPAMUPGRADECRITERIA="-removed,-count[avoid-version,changed],-count[version-lag,request],-count[version-lag,changed],-count[missing-depexts,changed],-changed"
+    - opam pin . -n -k path
+    - opam update --depexts
+    - opam depext --jobs 2 why3find
+    - export OPAMCRITERIA="+removed,+count[version-lag,solution]"
+    - export OPAMFIXUPCRITERIA="+removed,+count[version-lag,solution]"
+    - export OPAMUPGRADECRITERIA="+removed,+count[version-lag,solution]"
+    - export OPAMEXTERNALSOLVER="builtin-0install"
+    - opam update --depexts
+    - opam reinstall --jobs 2 why3find
