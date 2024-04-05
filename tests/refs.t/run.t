@@ -61,10 +61,10 @@
   <body>
   <header><a href="index.html">index</a> — <code>library a</code></header>
   <div class="doc">
-  <p>Infix reference: <code class="src"><a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">int.Int.(+)</a></code></p>
-  <p>Prefix reference: <code class="src"><a title="int.Int.(-)" href="https://why3.lri.fr/stdlib/int.html#prefix%20-_18">int.Int.(-_)</a></code></p>
-  <p>Value reference: <code class="src"><a title="int.MinMax.max" href="https://why3.lri.fr/stdlib/int.html#max_67">int.MinMax.max</a></code></p>
-  <p>Logic reference: <code class="src"><a title="int.MinMax.max" href="https://why3.lri.fr/stdlib/int.html#max_148">int.MinMax.max</a></code></p>
+  <p>Infix reference: <code class="src"><a title="int.Int.(+)" href="https://www.why3.org/stdlib/int.html#infix%20+_19">int.Int.(+)</a></code></p>
+  <p>Prefix reference: <code class="src"><a title="int.Int.(-)" href="https://www.why3.org/stdlib/int.html#prefix%20-_18">int.Int.(-_)</a></code></p>
+  <p>Value reference: <code class="src"><a title="int.MinMax.max" href="https://www.why3.org/stdlib/int.html#max_78">int.MinMax.max</a></code></p>
+  <p>Logic reference: <code class="src"><a title="int.MinMax.max" href="https://www.why3.org/stdlib/int.html#max_148">int.MinMax.max</a></code></p>
   <p>Local references <code class="src"><a title="a.A.t" href="a.A.html#t">A.t</a></code>, <code class="src"><a title="a.B.binop" href="a.B.html#binop">binop</a></code></p>
   </div>
   <pre class="src"><span class="keyword">theory</span> <a title="a.A" href="a.A.html">A</a><a href="a.proof.html#A" title="2 logic parameters" class="icon small remark icofont-question-circle"></a><a href="a.proof.html#A" title="Valid (no goals)" class="icon remark icofont-check"></a></pre>
@@ -138,10 +138,10 @@
   <header><a href="index.html">index</a> — <code>library <a href="a.index.html">a</a></code> — <code>module C</code></header>
   <pre class="src">
   <span class="keyword">module</span> C<a href="a.proof.html#C" title="2 logic parameters" class="icon small remark icofont-question-circle"></a><a href="a.proof.html#C" title="Valid (no goals)" class="icon remark icofont-check"></a>
-    <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
+    <span class="keyword">use</span> int.<a title="int.Int" href="https://www.why3.org/stdlib/int.html#Int_">Int</a>
     <span class="keyword">type</span> <a id="t">t</a><span title="Parameter" class="icon small remark icofont-question-circle"></span>
     <span class="keyword">function</span> <a id="value">value</a><span title="Parameter" class="icon small remark icofont-question-circle"></span> <a title="a.C.t" href="#t">t</a> : int
-    <span class="keyword">predicate</span> (<a id="infix%20%3C%3C">&lt;&lt;</a>) (x y : <a title="a.C.t" href="#t">t</a>) = <a title="a.C.value" href="#value">value</a> x <a title="int.Int.(<)" href="https://why3.lri.fr/stdlib/int.html#infix%20%3C_21">&lt;</a> <a title="a.C.value" href="#value">value</a> y
+    <span class="keyword">predicate</span> (<a id="infix%20%3C%3C">&lt;&lt;</a>) (x y : <a title="a.C.t" href="#t">t</a>) = <a title="a.C.value" href="#value">value</a> x <a title="int.Int.(<)" href="https://www.why3.org/stdlib/int.html#infix%20%3C_21">&lt;</a> <a title="a.C.value" href="#value">value</a> y
     <span class="keyword">predicate</span> (<a id="infix%20%21%3D">!=</a>) (x y : <a title="a.C.t" href="#t">t</a>) = x <a title="a.C.(<<)" href="#infix%20%3C%3C">&lt;&lt;</a> y \/ y <a title="a.C.(<<)" href="#infix%20%3C%3C">&lt;&lt;</a> x
   <span class="keyword">end</span>
   </pre>

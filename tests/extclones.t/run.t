@@ -71,7 +71,7 @@
   <header><a href="index.html">index</a> — <code>library <a href="bar.index.html">bar</a></code> — <code>module B</code></header>
   <pre class="src">
   <span class="keyword">module</span> B<a href="bar.proof.html#B" title="1 logic parameter" class="icon small remark icofont-question-circle"></a><a href="bar.proof.html#B" title="Failed (no proof)" class="icon failed icofont-error"></a>
-    <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
+    <span class="keyword">use</span> int.<a title="int.Int" href="https://www.why3.org/stdlib/int.html#Int_">Int</a>
   
     <span class="keyword">clone</span> foo.<a id="clone-1" title="foo.A" href="foo.A.html#">A</a><span title="1 logic parameter" class="icon small remark icofont-question-circle"></span><span title="Failed (no proof)" class="icon failed icofont-error"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>

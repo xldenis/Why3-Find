@@ -96,12 +96,12 @@
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module IntA</code></header>
   <pre class="src">
   <span class="keyword">module</span> IntA<a href="clones.proof.html#IntA" title="Failed (no proof)" class="icon failed icofont-error"></a>
-    <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
+    <span class="keyword">use</span> int.<a title="int.Int" href="https://www.why3.org/stdlib/int.html#Int_">Int</a>
     <span class="keyword">clone</span> <a id="clone-2" title="clones.Associative" href="clones.Associative.html#">Associative</a><span title="Failed (no proof)" class="icon failed icofont-error"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">lemma</span> <a id="Associative.associative" title="clones.Associative.associative" href="clones.Associative.html#associative">associative</a><a href="clones.proof.html#IntA.Associative.associative" title="Failed (no proof)" class="icon failed icofont-error"></a>
       <span class="comment section-toggle">end</span>
-    </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.Associative.op" href="clones.Associative.html#op">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">+</a>)
+    </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.Associative.t" href="clones.Associative.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.Associative.op" href="clones.Associative.html#op">op</a> = (<a title="int.Int.(+)" href="https://www.why3.org/stdlib/int.html#infix%20+_19">+</a>)
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
@@ -118,13 +118,13 @@
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module IntAC</code></header>
   <pre class="src">
   <span class="keyword">module</span> IntAC<a href="clones.proof.html#IntAC" title="Failed (no proof)" class="icon failed icofont-error"></a>
-    <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
+    <span class="keyword">use</span> int.<a title="int.Int" href="https://www.why3.org/stdlib/int.html#Int_">Int</a>
     <span class="keyword">clone</span> <span class="keyword">export</span> <a id="clone-6" title="clones.AC" href="clones.AC.html#">AC</a><span title="Failed (no proof)" class="icon failed icofont-error"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">lemma</span> <a id="commutative" title="clones.AC.commutative" href="clones.AC.html#commutative">commutative</a><a href="clones.proof.html#IntAC.commutative" title="Failed (no proof)" class="icon failed icofont-error"></a>
         <span class="keyword">lemma</span> <a id="associative" title="clones.AC.associative" href="clones.AC.html#associative">associative</a><a href="clones.proof.html#IntAC.associative" title="Failed (no proof)" class="icon failed icofont-error"></a>
       <span class="comment section-toggle">end</span>
-    </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.AC.t" href="clones.AC.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.AC.op" href="clones.AC.html#op">op</a> = (<a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">+</a>)
+    </span>}</span> <span class="keyword">with</span> <span class="keyword">type</span> <a title="clones.AC.t" href="clones.AC.html#t">t</a> = int, <span class="keyword">function</span> <a title="clones.AC.op" href="clones.AC.html#op">op</a> = (<a title="int.Int.(+)" href="https://www.why3.org/stdlib/int.html#infix%20+_19">+</a>)
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>
@@ -141,17 +141,17 @@
   <header><a href="index.html">index</a> — <code>library <a href="clones.index.html">clones</a></code> — <code>module IntC</code></header>
   <pre class="src">
   <span class="keyword">module</span> IntC<a href="clones.proof.html#IntC" title="Failed (no proof)" class="icon failed icofont-error"></a>
-    <span class="keyword">use</span> int.<a title="int.Int" href="https://why3.lri.fr/stdlib/int.html#Int_">Int</a>
+    <span class="keyword">use</span> int.<a title="int.Int" href="https://www.why3.org/stdlib/int.html#Int_">Int</a>
     <span class="keyword">clone</span> <a id="clone-2" title="clones.Commutative" href="clones.Commutative.html#">Commutative</a><span title="Failed (no proof)" class="icon failed icofont-error"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">lemma</span> <a id="S.commutative" title="clones.Commutative.commutative" href="clones.Commutative.html#commutative">commutative</a><a href="clones.proof.html#IntC.S.commutative" title="Failed (no proof)" class="icon failed icofont-error"></a>
       <span class="comment section-toggle">end</span>
-    </span>}</span> <span class="keyword">as</span> S <span class="keyword">with</span> <span class="keyword">type</span> M.<a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">t</a> = int, <span class="keyword">function</span> M.<a title="clones.Commutative.M.op" href="clones.Commutative.html#M.op">op</a> = ( <a title="int.Int.(+)" href="https://why3.lri.fr/stdlib/int.html#infix%20+_19">+</a> )
+    </span>}</span> <span class="keyword">as</span> S <span class="keyword">with</span> <span class="keyword">type</span> M.<a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">t</a> = int, <span class="keyword">function</span> M.<a title="clones.Commutative.M.op" href="clones.Commutative.html#M.op">op</a> = ( <a title="int.Int.(+)" href="https://www.why3.org/stdlib/int.html#infix%20+_19">+</a> )
     <span class="keyword">clone</span> <a id="clone-4" title="clones.Commutative" href="clones.Commutative.html#">Commutative</a><span title="Failed (no proof)" class="icon failed icofont-error"></span><span class="section">{<span class="section-toggle">…</span><span class="section-text">
       <span class="comment section-toggle">begin</span>
         <span class="keyword">lemma</span> <a id="P.commutative" title="clones.Commutative.commutative" href="clones.Commutative.html#commutative">commutative</a><a href="clones.proof.html#IntC.P.commutative" title="Failed (no proof)" class="icon failed icofont-error"></a>
       <span class="comment section-toggle">end</span>
-    </span>}</span> <span class="keyword">as</span> P <span class="keyword">with</span> <span class="keyword">type</span> M.<a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">t</a> = int, <span class="keyword">function</span> M.<a title="clones.Commutative.M.op" href="clones.Commutative.html#M.op">op</a> = ( <a title="int.Int.(*)" href="https://why3.lri.fr/stdlib/int.html#infix%20*_20">*</a> )
+    </span>}</span> <span class="keyword">as</span> P <span class="keyword">with</span> <span class="keyword">type</span> M.<a title="clones.Commutative.M.t" href="clones.Commutative.html#M.t">t</a> = int, <span class="keyword">function</span> M.<a title="clones.Commutative.M.op" href="clones.Commutative.html#M.op">op</a> = ( <a title="int.Int.(*)" href="https://www.why3.org/stdlib/int.html#infix%20*_20">*</a> )
   <span class="keyword">end</span>
   </pre>
   <script type="text/javascript" src="script.js"></script>

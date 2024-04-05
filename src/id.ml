@@ -207,7 +207,7 @@ let pp_ahref ~scope fmt r =
     pp_htmlfile fmt r ;
     pp_selector fmt r.id_qid
   | `Stdlib ->
-    Format.pp_print_string fmt "https://why3.lri.fr/stdlib/" ;
+    Format.pp_print_string fmt "https://www.why3.org/stdlib/" ;
     let id = r.self in
     let name = id.id_string in
     List.iter (pp_prefix fmt) r.id_lib ;
