@@ -152,6 +152,12 @@ by the following options:
     why3find prove -r    # Replay proofs (no update, no proof completion)
     why3find prove -m    # Complete failed proofs and minimize proof trees
 
+*Proof Context* can be printed for unproved goals can be printed
+on the terminal by `why3find prove -x`. Unproved goals are highlighted in
+red, hypotheses and positive conditions in green and negative conditions
+in magenta. Hypotheses and context are kept in a range of 5 lines around goals.
+Use `--context n` instead of `-x` to output a context of `n` lines instead.
+
 *Interactive Proving* is activated by `why3find prove -i` and will launch the
 standard Why3 IDE in case of unproved goals. Notice that Why3 sessions will be
 automatically generated in this case. However, proof certificates will _not_ be

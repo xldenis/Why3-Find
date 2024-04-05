@@ -20,50 +20,37 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Certificates                                                 --- *)
+(* --- Location & Range utilities                                         --- *)
 (* -------------------------------------------------------------------------- *)
 
-type state = private
-  | Stuck
-  | Prover of Prover.prover_desc * float
-  | Tactic of {
-      id : string ;
-      children : crc list ;
-      stuck : int ;
-      proved : int ;
-    }
+type pos = int * int
+type range = pos * pos
 
-and crc = private {
-  goal : Session.goal option ;
-  state : state ;
-}
+val ( << ) : 'a * 'b -> 'a * 'b -> bool
+val ( >> ) : 'a * 'b -> 'a * 'b -> bool
+val ( <<= ) : 'a * 'b -> 'a * 'b -> bool
+val ( <<< ) : range -> range -> bool
 
-val stuck : ?goal:Session.goal -> unit -> crc
-val prover : ?goal:Session.goal -> Prover.prover_desc -> float -> crc
-val tactic : ?goal:Session.goal -> string -> crc list -> crc
+val compare_pos : pos -> pos -> int
+val compare_range : range -> range -> int
 
-(** Iterates over all goals in the CRC.
-    Tactic nodes are visite first, followed by their children. *)
-val iter : (Session.goal -> state -> unit) -> crc -> unit
+val start : pos
+val next : pos -> pos
+val prev : pos -> pos
+val newline : pos -> pos
+val after : pos -> char -> pos
+val min : pos -> pos -> pos
+val max : pos -> pos -> pos
 
-type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
-val verdict : crc -> verdict
-val nverdict : stuck:int -> proved:int -> verdict
+val pp_pos : Format.formatter -> pos -> unit
+val pp_range : Format.formatter -> range -> unit
+val pp_position : Format.formatter -> file:string -> range -> unit
 
-val get_stuck : crc -> int
-val get_proved : crc -> int
-val is_stuck : crc -> bool
-val is_unknown : crc -> bool
-val is_complete : crc -> bool
-val pretty : Format.formatter -> crc -> unit
-val pp_result : Format.formatter -> stuck:int -> proved:int -> unit
-val dump : Format.formatter -> crc -> unit
+val is_empty : range -> bool
+val inside : pos -> range -> bool
+val disjoint : range -> range -> bool
+val union : range -> range -> range
+val diff : range -> range -> range
 
-val merge : crc -> crc -> crc
-val of_json : Json.t -> crc
-val to_json : crc -> Json.t
-
-val stats : crc -> crc -> unit
-val print_stats : unit -> unit
-
-(* -------------------------------------------------------------------------- *)
+val first_line : range -> int
+val last_line : range -> int

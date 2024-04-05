@@ -238,7 +238,8 @@
     -u update proofs (default)
     -r replay proofs (no update)
     -m minimize proofs (or update)
-    -i run Why3 IDE on error(s) (implies -s)
+    -x show context on failed proof (tty only)
+    -i run Why3 IDE on failed proof (implies -s)
     -s save why3 session
     -a report axioms and parameters
     --host HOST Proof Server host (default: none)
@@ -250,6 +251,7 @@
     --theories list results by theory
     --goals list results by goals
     --proofs list proofs by goals
+    --context <n> show n-lines context on failed proof (tty only)
     --stdlib report hypotheses from stdlib
     --extern report also external symbols
     --builtin report also builtin symbols

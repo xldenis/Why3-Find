@@ -20,50 +20,54 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Certificates                                                 --- *)
+(* --- Position & Ranges                                                  --- *)
 (* -------------------------------------------------------------------------- *)
 
-type state = private
-  | Stuck
-  | Prover of Prover.prover_desc * float
-  | Tactic of {
-      id : string ;
-      children : crc list ;
-      stuck : int ;
-      proved : int ;
-    }
+type pos = int * int
 
-and crc = private {
-  goal : Session.goal option ;
-  state : state ;
-}
+let pp_pos fmt (l,c) = Format.fprintf fmt "line %d, character %d" l (succ c)
 
-val stuck : ?goal:Session.goal -> unit -> crc
-val prover : ?goal:Session.goal -> Prover.prover_desc -> float -> crc
-val tactic : ?goal:Session.goal -> string -> crc list -> crc
+let (<<) (l1,c1) (l2,c2) = l1 < l2 || (l1 = l2 && c1 < c2)
+let (>>) (l1,c1) (l2,c2) = l1 > l2 || (l1 = l2 && c1 > c2)
+let (<<=) (l1,c1) (l2,c2) = l1 < l2 || (l1 = l2 && c1 < c2)
 
-(** Iterates over all goals in the CRC.
-    Tactic nodes are visite first, followed by their children. *)
-val iter : (Session.goal -> state -> unit) -> crc -> unit
+let compare_pos (l1,c1) (l2,c2) =
+  if l1 < l2 then (-1) else
+  if l1 > l2 then (+1) else
+    c1 - c2
 
-type verdict = [ `Valid of int | `Failed of int | `Partial of int * int ]
-val verdict : crc -> verdict
-val nverdict : stuck:int -> proved:int -> verdict
+let compare_range (a,b) (c,d) =
+  let cmp = compare_pos a c in
+  if cmp <> 0 then cmp else compare_pos b d
 
-val get_stuck : crc -> int
-val get_proved : crc -> int
-val is_stuck : crc -> bool
-val is_unknown : crc -> bool
-val is_complete : crc -> bool
-val pretty : Format.formatter -> crc -> unit
-val pp_result : Format.formatter -> stuck:int -> proved:int -> unit
-val dump : Format.formatter -> crc -> unit
+let start = (1,0)
+let next (l,c) = (l,succ c)
+let prev (l,c) = (l,pred c)
+let newline (l,_) = (succ l,0)
+let after p = function '\n' -> newline p | _ -> next p
 
-val merge : crc -> crc -> crc
-val of_json : Json.t -> crc
-val to_json : crc -> Json.t
+let min p q = if p <<= q then p else q
+let max p q = if p <<= q then q else p
 
-val stats : crc -> crc -> unit
-val print_stats : unit -> unit
+type range = pos * pos
 
-(* -------------------------------------------------------------------------- *)
+let pp_range fmt ((l,c),(l',d)) =
+  if l = l' then
+    Format.fprintf fmt "line %d, characters %d-%d" l (succ c) (succ d)
+  else
+    Format.fprintf fmt "lines %d-%d" l l'
+
+let pp_position fmt ~file r =
+  Format.fprintf fmt "file %S, %a" file pp_range r
+
+let is_empty (a,b) = b << a
+
+let inside p (a,b) = a <<= p && p <<= b
+
+let disjoint (a,b) (c,d) = b << c || d << a
+let (<<<) (_,b) (c,_) = b << c
+let union (a,b) (c,d) = min a c, max b d
+let diff (a,b) (c,d) = max a d, min b c
+
+let first_line (r : range) = fst @@ fst r
+let last_line (r : range) = fst @@ snd r

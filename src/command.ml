@@ -469,6 +469,8 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
       let axioms = ref false in
       let set m v () = m := v in
       let add r p = r := p :: !r in
+      let context n = log := `Context n in
+      let failed () = context 5 in
       Arg.parse_argv argv
         begin
           Wenv.options () @
@@ -478,7 +480,8 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
             "-u", Arg.Unit (set mode `Update), "update proofs (default)";
             "-r", Arg.Unit (set mode `Replay), "replay proofs (no update)";
             "-m", Arg.Unit (set mode `Minimize), "minimize proofs (or update)";
-            "-i", Arg.Set ide, "run Why3 IDE on error(s) (implies -s)";
+            "-x", Arg.Unit failed, "show context on failed proof (tty only)";
+            "-i", Arg.Set ide, "run Why3 IDE on failed proof (implies -s)";
             "-s", Arg.Set session, "save why3 session";
             "-a", Arg.Set axioms, "report axioms and parameters";
           ] @
@@ -487,6 +490,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
             "--theories", Arg.Unit (set log `Theories), "list results by theory";
             "--goals", Arg.Unit (set log `Goals), "list results by goals";
             "--proofs", Arg.Unit (set log `Proofs), "list proofs by goals";
+            "--context", Arg.Int context, "<n> show n-lines context on failed proof (tty only)";
             "--stdlib", Arg.Set Prove.stdlib, "report hypotheses from stdlib";
             "--extern", Arg.Set Prove.externals, "report also external symbols";
             "--builtin", Arg.Set Prove.builtins, "report also builtin symbols";
