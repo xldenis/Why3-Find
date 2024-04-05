@@ -1,0 +1,10 @@
+{
+  "profile": [],
+  "proofs": {
+    "S": {},
+    "T": {
+      "Add.com": { "prover": "non-existing@1.0", "time": 0.01 },
+      "Mul.com": { "prover": "alt-ergo@2.4.2", "time": 0.01 }
+    }
+  }
+}

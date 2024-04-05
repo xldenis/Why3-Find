@@ -346,7 +346,7 @@ let rec configuration configs provers =
   | [] , ps -> List.map Prover.infoname ps
   | cs , [] -> List.map (Printf.sprintf "(?%s)") cs
   | c::cs , p::ps ->
-    let cn = Wenv.name c in
+    let cn = Prover.pattern_name c in
     let pn = Prover.name p in
     if cn <> pn then Printf.sprintf "(?%s)" c :: configuration cs provers
     else

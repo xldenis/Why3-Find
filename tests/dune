@@ -1,3 +1,21 @@
 (cram
-  (applies_to :whole_subtree)
-  (deps (package why3find) %{bin:why3find}))
+  (deps why3.conf %{bin:why3find}))
+
+(rule
+ (action
+  (write-file why3.conf
+"\| [main]
+"\| default_editor = "xdg-open %f"
+"\| magic = 14
+"\| memlimit = 1000
+"\| running_provers_max = 2
+"\| timelimit = 5.000000
+"\|
+"\| [partial_prover]
+"\| name = "Alt-Ergo"
+"\| path = "%{bin:alt-ergo}"
+"\| version = "2.4.2"
+)))
+
+(env
+ (_ (env-vars (WHY3CONFIG ../why3.conf))))

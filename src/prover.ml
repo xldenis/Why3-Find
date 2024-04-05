@@ -30,13 +30,26 @@ type prover_desc = {
   version : string ;
 }
 
+exception InvalidPattern of string
+exception InvalidProverDescription of string
+
+let split_pattern s =
+  match String.split_on_char '@' s with
+  | [] -> assert false
+  | [ name ] -> String.lowercase_ascii name, None
+  | [ name ; version ] -> String.lowercase_ascii name, Some version
+  | _  -> raise (InvalidPattern s)
+
 let desc_to_string p =
   Format.sprintf "%s@%s" p.name p.version
 
 let desc_of_string s =
-  match String.split_on_char '@' s with
-  | [ name; version ] -> { name = String.lowercase_ascii name ; version }
-  | _ -> invalid_arg "desc_of_string"
+  try
+    let (name, version) = split_pattern s in
+    { name ; version = Option.get version }
+  with
+  | Invalid_argument _ | InvalidPattern _->
+    raise (InvalidProverDescription s)
 
 let desc_name p = p.name
 let desc_version p = p.version
@@ -50,40 +63,25 @@ type prover = {
 }
 
 type sem = V of int | S of string
-let sem s = try V (int_of_string s) with _ -> S s
+let sem s = try V (int_of_string s) with Failure _ -> S s
 let cmp x y =
   match x,y with
   | V a,V b -> b - a
   | V _,S _ -> (-1)
   | S _,V _ -> (+1)
   | S a,S b -> String.compare a b
-let rec cmps xs ys =
-  match xs,ys with
-  | [],[] -> 0
-  | [],_ -> (-1)
-  | _,[] -> (+1)
-  | x::rxs,y::rys -> let c = cmp x y in if c <> 0 then c else cmps rxs rys
-let tosem p = List.map sem (String.split_on_char 'c' p)
+let cmp x y = cmp (sem x) (sem y)
+
+let compare_version p q =
+  List.compare cmp (String.split_on_char '.' p) (String.split_on_char '.' q)
 
 let compare_desc p q =
   let c = String.compare p.name q.name in
   if c <> 0 then c else
-    cmps (tosem p.version) (tosem q.version)
-
-let compare_wprover (p : Whyconf.prover) (q : Whyconf.prover) =
-  let c = String.compare
-      (String.lowercase_ascii p.prover_name)
-      (String.lowercase_ascii q.prover_name) in
-  if c <> 0 then c else
-    let c = cmps (tosem p.prover_version) (tosem q.prover_version) in
-    if c <> 0 then c else
-      String.compare p.prover_altern q.prover_altern
-
-let compare_config (p : Whyconf.config_prover) (q : Whyconf.config_prover) =
-  compare_wprover p.prover q.prover
+    compare_version p.version q.version
 
 let compare_prover (p : prover) (q : prover) =
-  compare_config p.config q.config
+  compare_desc p.desc q.desc
 
 let why3_desc prv = Whyconf.prover_parseable_format prv.config.prover
 let name prv = prv.desc.name
@@ -91,6 +89,18 @@ let version prv = prv.desc.version
 let fullname p = Format.sprintf "%s@%s" (name p) (version p)
 let infoname p = Format.sprintf "%s(%s)" (name p) (version p)
 let pp_prover fmt p = Format.fprintf fmt "%s@%s" (name p) (version p)
+
+let pmatch ~pattern d =
+  let (name, version) = split_pattern pattern in
+  name = d.name && (version = None || Option.get version = d.version)
+
+let pattern_name s =
+  let (name, _) = split_pattern s in
+  name
+
+let pattern_version s =
+  let (_, version) = split_pattern s in
+  version
 
 let desc_of_config config = {
   name = String.lowercase_ascii config.Whyconf.prover.prover_name ;
@@ -109,70 +119,38 @@ let load (env : Wenv.env) (config : Whyconf.config_prover) =
       (Whyconf.prover_parseable_format config.prover) ;
     exit 2
 
+let all env =
+  let aux c =
+    if c.Whyconf.prover.prover_altern = ""
+    then Some (load env c)
+    else None in
+  let configs = Whyconf.(Mprover.values @@ get_provers env.Wenv.wconfig) in
+  List.sort compare_prover @@ List.filter_map aux @@ configs
+
+let filter_prover ~name ?version p =
+  p.desc.name = name
+  && (version = None || p.desc.version = Option.get version)
+
+let take_one = function
+  | [] -> raise Not_found
+  | [ p ] -> p
+  | _ :: _ -> assert false
+
+let take_best = function
+  | [] -> raise Not_found
+  | prv :: _ -> prv
+
 let prover (env : Wenv.env) desc =
-  load env @@ Whyconf.(
-      let all = get_provers env.wconfig in
-      snd @@ Mprover.choose @@ Mprover.filter (fun _ c ->
-          String.lowercase_ascii c.prover.prover_name = desc.name
-          && c.prover.prover_version = desc.version
-          && c.prover.prover_altern = ""
-        ) all
-    )
+  let filter = filter_prover ~name:desc.name ~version:desc.version in
+  take_one @@ List.filter filter @@ all env
 
-let find_shortcut (env : Wenv.env) name =
-  Whyconf.Mprover.find
-    (Wstdlib.Mstr.find name @@ Whyconf.get_prover_shortcuts env.wconfig)
-    (Whyconf.get_provers env.wconfig)
-
-let find_filter (env : Wenv.env) ~name ?(version="") () =
-  let mpr = Whyconf.get_provers env.wconfig in
-  Whyconf.Mprover.fold
-    (fun key cfg acc ->
-       if key.prover_altern = "" &&
-          (version = "" || key.prover_version = version) &&
-          String.lowercase_ascii key.prover_name = name
-       then cfg :: acc else acc
-    ) mpr []
-
-let take_one = function [cfg] -> cfg | _ -> raise Not_found
-let take_best ~name = function
-  | [] ->
-    Log.warning "prover %s not found" name ;
-    raise Not_found
-  | [prv] -> prv
-  | others -> List.hd @@ List.sort compare_config others
-
-let take_default = function
-  | [] -> []
-  | [cfg] -> [cfg]
-  | others -> [List.hd @@ List.sort compare_config others]
-
-let find env ~pattern =
-  try
-    let prover =
-      load env @@
-      match String.split_on_char '@' pattern with
-      | [name] ->
-        begin
-          try find_shortcut env name with Not_found ->
-            take_best ~name @@ find_filter env ~name ()
-        end
-      | [name;version] ->
-        begin
-          try take_one @@ find_filter env ~name ~version () with Not_found ->
-            Log.warning "prover %s@%s not found" name version ;
-            raise Not_found
-        end
-      | _ ->
-        Format.eprintf "Invalid prover pattern '%s'@." pattern ;
-        exit 2
-    in Some prover
-  with Not_found -> None
+let find_exn env ~pattern =
+  let (name, version) = split_pattern pattern in
+  let filter = filter_prover ~name ?version in
+  take_best @@ List.filter filter @@ all env
 
 let find_default env name =
-  List.map (load env) @@
-  try [find_shortcut env name] with Not_found ->
-    take_default @@ find_filter env ~name ()
+  try [ find_exn env ~pattern:name ] with Not_found -> []
 
 let default env =
   find_default env "alt-ergo" @
@@ -181,13 +159,8 @@ let default env =
   find_default env "cvc5"
 
 let select env ~patterns =
-  List.filter_map (fun pattern -> find env ~pattern) patterns
-
-let all (env : Wenv.env) =
-  List.sort compare_prover @@
-  Whyconf.Mprover.fold
-    (fun _id config prvs ->
-       if config.Whyconf.prover.prover_altern = "" then
-         (load env config) :: prvs
-       else prvs
-    ) (Whyconf.get_provers env.wconfig) []
+  let find pattern =
+    try Some (find_exn env ~pattern) with
+    | InvalidPattern s -> Log.warning "invalid prover pattern %s" s; None
+    | Not_found -> Log.warning "prover %s not found (why3)" pattern; None in
+  List.filter_map find patterns

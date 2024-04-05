@@ -39,7 +39,7 @@ let log : type a. lvl:level -> (a, Format.formatter, unit) format -> a =
     Utils.flush ();
     Format.eprintf "%t@." print;
     add_summary lvl print in
-  Format.kdprintf cont (display lvl ^^ format)
+  Format.kdprintf cont ("@[<hov>" ^^ display lvl ^^ format ^^ "@]")
 
 let warning format =
   log ~lvl:`Warning format
