@@ -16,3 +16,6 @@
 "\| path = "%{bin:alt-ergo}"
 "\| version = "2.4.2"
 )))
+
+(env
+ (_ (env-vars (WHY3CONFIG ../why3.conf))))

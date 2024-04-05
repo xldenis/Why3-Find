@@ -1,5 +1,4 @@
-  $ WHY3CONFIG=../why3.conf why3find prove -P alt-ergo -r foo.mlw \
-  >   -a --stdlib --extern --builtin
+  $ why3find prove -P alt-ergo -r foo.mlw -a --stdlib --extern --builtin
   Theory foo.S: ✔ (-)
     Parameter  logic foo.S.op
     Hypothesis axiom foo.S.com
