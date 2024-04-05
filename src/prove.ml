@@ -363,7 +363,7 @@ let prove_files ~mode ~session ~log ~axioms ~files =
     Hammer.run {
       env ;
       client = Client.connect env ;
-      time ; maxdepth ; provers ; tactics ; minimize ;
+      time ; maxdepth ; patterns ; provers ; tactics ; minimize ;
     } ;
     if Utils.tty then
       begin

@@ -32,7 +32,6 @@ val options :
   ?drivers:bool ->
   unit -> (string * Arg.spec * string) list
 
-val name : string -> string (* strip '@version' *)
 val get : string -> of_json:(Json.t -> 'a) -> 'a
 val set : string -> to_json:('a -> Json.t) -> 'a -> unit
 val arg1 : string -> string
