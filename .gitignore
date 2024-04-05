@@ -3,3 +3,4 @@ _coverage
 _bisect
 .why3find
 .vscode
+/result
