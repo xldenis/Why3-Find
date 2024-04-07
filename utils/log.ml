@@ -23,36 +23,28 @@
 (* --- Logging Facilities                                                 --- *)
 (* -------------------------------------------------------------------------- *)
 
-let messages = ref 0
 let warnings = ref 0
 let errors = ref 0
 let summary = Queue.create ()
 
 type level = [ `Message | `Warning | `Error ]
 
-let display : level -> _ format6 = function
-  | `Message -> ""
-  | `Warning -> "@{<bold>@{<bright magenta>Warning:@}@} "
-  | `Error -> "@{<bold>@{<bright red>Error:@}@} "
+let pp_error pp = pp Format.err_formatter
+let summarize pp = Queue.push pp summary ; pp_error pp
 
-let publish (lvl: level) print =
-  Utils.flush () ;
-  let stderr =
-    match lvl with
-    | `Message -> incr messages ; false
-    | `Warning -> incr warnings ; true
-    | `Error -> incr errors ; true
-  in
-  if stderr then
-    ( Queue.push print summary ; Format.eprintf "%t@." print )
-  else
-    Format.printf "%t@." print
+let output level pp =
+  match level with
+  | `Message -> Format.printf "@[<hov>%t@]@." pp
+  | `Warning ->
+    incr warnings ;
+    Format.kdprintf summarize
+      "@[<hov>@{<bold>@{<bright magenta>Warning:@}@} %t@]@." pp
+  | `Error ->
+    incr errors ;
+    Format.kdprintf summarize
+      "@[<hov>@{<bold>@{<bright red>Error:@}@} %t@]@." pp
 
-let nwl n = messages := n + !messages
-
-let emit : type a. ?level:level -> (a, Format.formatter, unit) format -> a =
-  fun ?(level=`Message) format ->
-  Format.kdprintf (publish level) (display level ^^ format)
+let emit ?(level=`Message) msg = Format.kdprintf (output level) msg
 
 let warning format =
   emit ~level:`Warning format
@@ -65,13 +57,10 @@ let summary () =
   if wrn > 0 then
     begin
       Utils.flush ();
-      let dump =
-        not Utils.tty ||
-        !messages > Option.value ~default:25 @@ Terminal_size.get_rows () in
-      if dump then
+      if not Utils.tty || Utils.overflows () then
         begin
           Format.printf "Summary:@.";
-          Queue.iter (Format.printf "%t@.") summary ;
+          Queue.iter pp_error summary ;
         end ;
       Format.printf "Emitted %d warning%a" wrn Utils.pp_s wrn ;
       let err = !errors in
