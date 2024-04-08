@@ -1,5 +1,5 @@
 (cram
-  (deps why3.conf %{bin:why3find}))
+  (deps why3.conf %{bin:why3find} (package why3find)))
 
 (rule
  (action
