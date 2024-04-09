@@ -23,6 +23,7 @@ opam:
   <<: *opam_template
   script:
     - sudo apt update
+    - opam lint
     - opam pin . -n
     - opam depext --jobs 2 why3find --with-test
     - opam install --jobs 2 why3find --with-test --with-doc

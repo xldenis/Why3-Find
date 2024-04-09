@@ -24,10 +24,8 @@ buildDunePackage {
   src = gitignoreSource ./..;
 
   preBuild = ''
-    mkdir home
-    export HOME=$(pwd)/home
-    why3 config detect
     export DUNE_INSTRUMENT_WITH=meta_bisect_ppx
+    cp why3find.opam why3find.opam.old
   '';
 
   nativeBuildInputs = [ why3 ] ;
@@ -58,7 +56,7 @@ buildDunePackage {
     bisect-ppx-report cobertura report.xml
     bisect-ppx-report summary | sed -e 's/.*(\(1\?[0-9]\{2\}\.[0-9]\+%\))/Coverage: \1/' > coverage.txt
 
-    # Check indentation and headers
+    # Check indentation, headers and why3find.opam
     ./nix/check.sh
   '' ;
 
