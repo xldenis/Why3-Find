@@ -510,7 +510,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
       let n = List.length result.unfixed in
       if n > 0 then
         begin
-          Log.error "%d unproved file(s)" n ;
+          Log.error "%d unproved file%a" n Utils.pp_s n ;
           if not !ide then exit 1 ;
           let file = List.hd result.unfixed in
           let pkgs = Wenv.packages () in

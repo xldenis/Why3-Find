@@ -76,7 +76,7 @@ let connect env =
       let profile = Calibration.create () in
       let pending = Hashtbl.create 0 in
       Zmq.Socket.connect socket address ;
-      Utils.log "Server %s@." address ;
+      Log.emit "Server %s" address ;
       { env ; context ; socket ; profile ; pending ; terminated = false }
     end @@ resolve ()
 
@@ -86,14 +86,14 @@ let connect env =
 
 let send client msg =
   if !trace then
-    Utils.log "SEND -> %a@." Utils.pp_args msg ;
+    Log.emit "SEND -> %a" Utils.pp_args msg ;
   Zmq.Socket.send_all client.socket msg
 
 let recv client fn =
   try
     let msg = Zmq.Socket.recv_all ~block:false client.socket in
     if !trace then
-      Utils.log "<- RECV %a@." Utils.pp_args msg ;
+      Log.emit "<- RECV %a" Utils.pp_args msg ;
     fn msg
   with Unix.Unix_error(EAGAIN,_,_) -> ()
 
@@ -225,7 +225,7 @@ let handler client msg =
 let yield client =
   try recv client (handler client)
   with exn ->
-    Utils.log "Client Error (%s)" @@ Printexc.to_string exn
+    Log.emit "Client Error (%s)" @@ Printexc.to_string exn
 
 let terminate client =
   try
@@ -233,6 +233,6 @@ let terminate client =
     Zmq.Socket.close client.socket ;
     Zmq.Context.terminate client.context ;
   with exn ->
-    Utils.log "Client Killed (%s)" @@ Printexc.to_string exn
+    Log.emit "Client Killed (%s)" @@ Printexc.to_string exn
 
 (* -------------------------------------------------------------------------- *)

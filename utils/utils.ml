@@ -24,6 +24,10 @@
 (* -------------------------------------------------------------------------- *)
 
 let tty = Unix.isatty Unix.stdout
+let lines = ref 0
+let overflows () =
+  let size = Option.value ~default:25 @@ Terminal_size.get_rows () in
+  !lines + 2 > size
 
 let term =
   match Sys.getenv_opt "TERM" with
@@ -54,10 +58,6 @@ let flush () =
   Format.pp_print_flush Format.err_formatter () ;
   if escape_codes Unix.stdout then Format.printf "\r\027[K"
 
-let log msg =
-  flush () ;
-  Format.printf msg
-
 open Format
 
 let nop _ = ()
@@ -76,10 +76,15 @@ let mark_close_stag = function
   | String_tag "bold" -> "\027[22m"
   | _ -> ""
 
-let () = if escape_codes Unix.stdout then
+let set_tty std fmt =
+  if escape_codes std then
     begin
-      set_tags true ;
-      set_formatter_stag_functions {
+      let { out_newline } as ff = pp_get_formatter_out_functions fmt () in
+      pp_set_formatter_out_functions fmt {
+        ff with out_newline = (fun () -> incr lines ; out_newline ())
+      } ;
+      pp_set_tags fmt true ;
+      pp_set_formatter_stag_functions fmt {
         mark_open_stag ;
         mark_close_stag ;
         print_open_stag = nop ;
@@ -87,16 +92,8 @@ let () = if escape_codes Unix.stdout then
       }
     end
 
-let () = if escape_codes Unix.stderr then
-    begin
-      pp_set_tags err_formatter true ;
-      pp_set_formatter_stag_functions err_formatter {
-        mark_open_stag ;
-        mark_close_stag ;
-        print_open_stag = nop ;
-        print_close_stag = nop ;
-      }
-    end
+let () = set_tty Unix.stdout std_formatter
+let () = set_tty Unix.stderr err_formatter
 
 (* -------------------------------------------------------------------------- *)
 (* --- System Utils                                                       --- *)

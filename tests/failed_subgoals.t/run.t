@@ -3,5 +3,5 @@
   Goal merge: ✘
     merge [VC for merge]
   Theory merge.Merge: ✘
-  Error: 1 unproved file(s)
+  Error: 1 unproved file
   [1]

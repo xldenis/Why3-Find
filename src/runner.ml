@@ -95,7 +95,7 @@ let cachever = ".why3find/v1"
 let destroycache () =
   begin
     if Utils.tty then
-      Utils.log "Upgrading cache (%s)@." (Filename.basename cachever) ;
+      Log.emit "Upgrading cache (%s)" (Filename.basename cachever) ;
     Utils.rmpath cachedir ;
   end
 

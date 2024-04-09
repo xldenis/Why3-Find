@@ -19,9 +19,8 @@
 (*                                                                        *)
 (**************************************************************************)
 
-type level = [ `Error | `Warning ]
+type level = [ `Message | `Warning | `Error ]
 
-val log : lvl:level -> ('a, Format.formatter, unit) format -> 'a
-
+val emit : ?level:level -> ('a, Format.formatter, unit) format -> 'a
 val warning : ('a, Format.formatter, unit) format -> 'a
 val error : ('a, Format.formatter, unit) format -> 'a

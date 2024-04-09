@@ -19,45 +19,54 @@
 (*                                                                        *)
 (**************************************************************************)
 
-let warnings = ref []
+(* -------------------------------------------------------------------------- *)
+(* --- Logging Facilities                                                 --- *)
+(* -------------------------------------------------------------------------- *)
+
+let warnings = ref 0
 let errors = ref 0
+let summary = Queue.create ()
 
-type level = [ `Warning | `Error ]
+type level = [ `Message | `Warning | `Error ]
 
-let display : level -> _ format6 = function
-  | `Warning -> "@{<bold>@{<bright magenta>Warning:@}@} "
-  | `Error -> "@{<bold>@{<bright red>Error:@}@} "
+let pp_error pp = pp Format.err_formatter
+let summarize pp = Queue.push pp summary ; pp_error pp
 
-let add_summary lvl print =
-  match lvl with
-  | `Warning -> warnings := print :: !warnings
-  | `Error -> errors := !errors + 1
+let output level pp =
+  match level with
+  | `Message -> Format.printf "@[<hov>%t@]@." pp
+  | `Warning ->
+    incr warnings ;
+    Format.kdprintf summarize
+      "@[<hov>@{<bold>@{<bright magenta>Warning:@}@} %t@]@." pp
+  | `Error ->
+    incr errors ;
+    Format.kdprintf summarize
+      "@[<hov>@{<bold>@{<bright red>Error:@}@} %t@]@." pp
 
-let log : type a. lvl:level -> (a, Format.formatter, unit) format -> a =
-  fun ~lvl format ->
-  let cont print =
-    Utils.flush ();
-    Format.eprintf "%t@." print;
-    add_summary lvl print in
-  Format.kdprintf cont ("@[<hov>" ^^ display lvl ^^ format ^^ "@]")
+let emit ?(level=`Message) msg = Format.kdprintf (output level) msg
 
 let warning format =
-  log ~lvl:`Warning format
+  emit ~level:`Warning format
 
 let error format =
-  log ~lvl:`Error format
+  emit ~level:`Error format
 
 let summary () =
-  if !warnings <> [] then
+  let wrn = !warnings in
+  if wrn > 0 then
     begin
       Utils.flush ();
-      Format.eprintf "Warning summary:@.";
-      List.iter (Format.eprintf "%t@.") (List.rev !warnings);
-      let len = List.length !warnings in
-      Format.eprintf "Emitted %d warning%a" len Utils.pp_s len;
-      if !errors <> 0 then
-        Format.eprintf ", %d error%a" !errors Utils.pp_s !errors;
-      Format.eprintf "@."
+      if not Utils.tty || Utils.overflows () then
+        begin
+          Format.printf "Summary:@.";
+          Queue.iter pp_error summary ;
+        end ;
+      Format.printf "Emitted %d warning%a" wrn Utils.pp_s wrn ;
+      let err = !errors in
+      if err > 0 then
+        Format.printf ", %d error%a" err Utils.pp_s err ;
+      Format.printf "@."
     end
 
 let exit_summary () =
