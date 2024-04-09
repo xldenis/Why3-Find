@@ -73,7 +73,6 @@ let main () =
     Format.eprintf "Uncaught Exception@\n%s@." (Printexc.to_string exn) ;
     exit 2
 
-let () = Printexc.catch main ()
-
+let () = main ()
 
 (* -------------------------------------------------------------------------- *)
