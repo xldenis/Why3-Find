@@ -200,6 +200,7 @@
     -v evaluate prover velocity (local)
     --quiet do not list final configuration
     --reset configure from scratch
+    --default import local provers
     --detect detect and import local provers
     -help  Display this list of options
     --help  Display this list of options

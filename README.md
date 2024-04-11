@@ -119,14 +119,16 @@ configuration.
 The command `why3find config` can be used to manage the package configuration.
 Typical examples are:
 
-    why3find config              # Show current config
-    why3find config […]          # Update packages, provers, etc.
-    why3find config --reset  […] # Configure from scratch (ignore current config)
-    why3find config --detect […] # Detect and use known provers
+    why3find config               # Show current config
+    why3find config […]           # Update packages, provers, etc.
+    why3find config --reset  […]  # Configure from scratch (ignore current config)
+    why3find config --default […] # Use all "default" provers available from why3 configuration
+    why3find config --detect […]  # Run `why3 config detect` before using all "default" provers
 
-When using `--detect` the why3 command `why3 config detect` is executed first.
-Then, why3find will select the highest installed versions of provers `alt-ergo`,
-`z3`, `cvc4` and `cvc5` (why3find is known to work well with those provers).
+When using `--default` or `--detect` why3find will select the highest available
+versions of provers `alt-ergo`, `z3`, `cvc4` and `cvc5` from why3 configuration.
+`--detect` will first update why3 configuration by running `why3 config detect`.
+Why3find is known to work well with those provers.
 
 ## Package Proving
 

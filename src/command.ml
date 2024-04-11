@@ -359,6 +359,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       let list = ref true in
       let calibrate = ref false in
       let velocity = ref false in
+      let default = ref false in
       let detect = ref false in
       Arg.parse_argv argv
         begin
@@ -369,6 +370,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             "-v", Arg.Set velocity, "evaluate prover velocity (local)";
             "--quiet", Arg.Clear list, "do not list final configuration";
             "--reset", Arg.Set Wenv.reset, "configure from scratch";
+            "--default", Arg.Set default, "import local provers";
             "--detect", Arg.Set detect, "detect and import local provers";
           ]
         end
@@ -401,7 +403,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
       (* --- Provers ----- *)
       let time = Wenv.time () in
       let patterns, provers =
-        if !detect then
+        if !default || !detect then
           let provers = Prover.default env in
           let patterns = List.map Prover.name provers in
           Wenv.ignore_provers () ;
