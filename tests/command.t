@@ -202,7 +202,7 @@
     --reset configure from scratch
     --default import local provers
     --detect detect and import local provers
-    --check check that the proof certificates respect the configuration
+    --check check that proof certificates conform to configuration
     -help  Display this list of options
     --help  Display this list of options
   

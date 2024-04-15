@@ -375,7 +375,7 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
             "--default", Arg.Set default, "import local provers";
             "--detect", Arg.Set detect, "detect and import local provers";
             "--check", Arg.Set check,
-            "check that the proof certificates respect the configuration"
+            "check that proof certificates conform to configuration"
           ]
         end
         noargv
