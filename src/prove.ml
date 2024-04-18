@@ -67,11 +67,11 @@ let jproofs (prfs : proofs) : Json.t =
 let proofs_file file =
   Filename.concat (Filename.chop_extension file) "proof.json"
 
-let load_proofs ?defaultprofile file : profile * theories =
+let load_proofs ?(local=false) file : profile * theories =
   let file = proofs_file file in
   let js = if Sys.file_exists file then Json.of_file file else `Null in
-  let profile =
-    Calibration.of_json ?default:defaultprofile @@ Json.jfield "profile" js in
+  let default = if local then Some (Calibration.default ()) else None in
+  let profile = Calibration.of_json ?default @@ Json.jfield "profile" js in
   let strategy = jmap (jmap Crc.of_json) @@ Json.jfield "proofs" js in
   profile , strategy
 
@@ -318,8 +318,7 @@ let process ~env ~mode ~session ~(log:results) ~axioms ~unsuccess file =
       if Filename.is_relative file then dir else Filename.basename dir in
     let theories, format = load_theories env file in
     let session = Session.create ~session ~dir ~file ~format theories in
-    let profile, strategy =
-      load_proofs ~defaultprofile:(Calibration.default ()) file in
+    let profile, strategy = load_proofs ~local:true file in
     let context = match log with `Context n -> n | _ -> (-1) in
     let* proofs =
       Fibers.all @@ List.map

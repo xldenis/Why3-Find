@@ -31,8 +31,12 @@ type theories = Crc.crc M.t M.t
 val proofs_file : string -> string
 (** Returns the proofs file associated with the given mlw file *)
 
-val load_proofs : ?defaultprofile:profile -> string -> profile * theories
-(** Load the content of the proofs file associated with the given mlw file *)
+val load_proofs : ?local:bool -> string -> profile * theories
+(**
+   Load the content of the proofs file associated with the given mlw file.
+   If [~local:true] is specified, the calibration profile also inherits from
+   the local environment. Otherwize, it is taken as it is from the file.
+*)
 
 type mode = [ `Force | `Update | `Minimize | `Replay ]
 type log = [
