@@ -178,26 +178,11 @@ let hammer henv =
 (* --- Node Processing                                                    --- *)
 (* -------------------------------------------------------------------------- *)
 
-let get_prover h pr =
-  let prmatch pattern =
-    try Prover.pmatch ~pattern pr with
-    | Prover.InvalidPattern _ -> false in
-  let prover = try Some (Prover.prover h.env pr) with Not_found -> None in
-  if List.exists prmatch h.patterns
-  then prover (* either the prover is available or we already complained *)
-  else
-    begin
-      if prover = None then
-        Log.warning "prover %a not found (why3)" Prover.pp_desc pr;
-      Log.warning "prover %a not configured (project)" Prover.pp_desc pr;
-      None
-    end
-
 let overhead t = max (t *. 2.0) 1.0
 
 let replay h p t =
   let client = if t > h.time *. 0.2 then h.client else None in
-  match get_prover h p with
+  match Prover.check_and_get_prover h.env ~patterns:h.patterns p with
   | None -> stuck
   | Some p -> prove h.env ?client p (overhead t)
 

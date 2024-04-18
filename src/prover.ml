@@ -164,3 +164,18 @@ let select env ~patterns =
     | InvalidPattern s -> Log.warning "invalid prover pattern %s" s; None
     | Not_found -> Log.warning "prover %s not found (why3)" pattern; None in
   List.filter_map find patterns
+
+let check_and_get_prover env ~patterns pr =
+  let prmatch pattern =
+    try pmatch ~pattern pr with
+    | InvalidPattern _ -> false in
+  let prover = try Some (prover env pr) with Not_found -> None in
+  if List.exists prmatch patterns
+  then prover (* either the prover is available or we already complained *)
+  else
+    begin
+      if prover = None then
+        Log.warning "prover %a not found (why3)" pp_desc pr;
+      Log.warning "prover %a not configured (project)" pp_desc pr;
+      None
+    end

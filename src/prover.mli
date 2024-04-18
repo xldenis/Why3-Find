@@ -101,3 +101,9 @@ val select : Wenv.env -> patterns:string list -> prover list
 
 val default : Wenv.env -> prover list
 (** Returns the set of available "default" provers *)
+
+val check_and_get_prover : Wenv.env -> patterns:string list -> prover_desc
+  -> prover option
+(** Returns the prover if available and selected by the [patterns]. Warn if
+    the prover is not found. We assume the [patterns] have been [select]ed so
+    we don't warn if an unavailable prover match the [patterns] *)
