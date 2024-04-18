@@ -1,12 +1,15 @@
 ![](https://git.frama-c.com/dev/why3find/badges/master/pipeline.svg?key_text=Tests) ![](https://git.frama-c.com/dev/why3find/badges/master/coverage.svg?key_text=Coverage)
 
-# Why3 Library Manager
+# Why3find
 
-The `why3find` utility is dedicated to the management of Why3 packages.  In
-short, from `why3find` point of view, a why3 package is a collection of why3
-source files and associated documentation and OCaml extracted code that are installed at
-predefined site(s). It is designed to be fully compatible with Dune and OPAM.
+The `why3find` provides a collection of utilities to ease the development
+of Why3 projects and the development distribution of Why3 libraries and
+packages. It can be used in place of the traditional `why3` command for most
+development tasks, eg. configuring provers, proving files or interactively
+debugging proofs. In additional, it can be used to build enhanced documentation,
+packaging and installing libraries or setup a distributed solver cloud.
 
+- [Quick Setup](#quick-usage)
 - [Why3 Packages](#why3-packages)
 - [Package Development](#package-development)
 - [Package Configuration](#package-configuration)
@@ -15,14 +18,41 @@ predefined site(s). It is designed to be fully compatible with Dune and OPAM.
 - [Package Soundness](#package-soundness)
 - [OCaml Code Extraction](#ocaml-code-extraction)
 
+## Quick Setup
+
+Let say you have some Why3 source files. Go into their directory and simply
+use the following commands:
+
+    $ why3find config --detect
+    $ why3find prove
+
+This will configure Why3 with the SMT solvers installed on your computer,
+and prove all your Why3 files in the directory. If any some proof failed,
+you may try `why3find prove -x` to dump a colored proof context
+in your terminal, or `why3find prove -i` to open Why3 IDE to further
+debug your proofs. Re-run `why3find prove` until proofs are complete.
+
+At any time, you can generate a complete HTML documentation enhanced with
+proof witnesses and axiom dependencies with the following command:
+
+    $ why3find doc
+
+To go further, continue reading this manual and use the following commands:
+
+    $ why3find [-h|--help]            # Help on commands
+    $ why3find COMMAND [-h|--help]    # Help on specific command
+
 ## Why3 Packages
 
-Packages are meant to have dependencies. Typically package `A` may depend on
-why3 source files from some other package `B`. Hence, `why3find` knows how to
-generate suitable options for `why3` to be able to find all the necessary sources.
-Packages may also have extracted `OCaml` code.
+Why3 packages provides a way to share modules and theories across different
+projects. Hence, a Why3 package is basically a collection of Why3 files, plus
+all the additional meta data needed to work with them, including the other
+packages it depends on.
 
-Commands for browsing packages:
+Typically, `why3find` uses package metadata to properly configure Why3 in order
+to use their modules and theories for proving and generating documentation.
+To ease the management of Why3 packages, `why3find` provides
+the following commands:
 
     $ why3find where       # location of global repository
     $ why3find shared      # location of why3find shared resources
