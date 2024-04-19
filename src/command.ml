@@ -255,6 +255,16 @@ let () = register ~name:"init"
         ~subst
         ~src:(Meta.shared "dune-project.template")
         ~tgt:(Filename.concat dir "dune-project") ;
+      let src = Filename.concat dir pkg in
+      Utils.mkdirs src ;
+      Format.printf "Generated %s@." (Utils.absolute src) ;
+      Format.printf "Next steps:@." ;
+      Format.printf "  - go into package directory %s@." dir ;
+      Format.printf "  - use why3find config [OPTIONS] to configure@." ;
+      Format.printf "  - populate with %s/**/*.mlw source files@." pkg ;
+      Format.printf "  - why3find prove [files...] from anywhere@." ;
+      Format.printf "  - why3find doc|install from root package directory@." ;
+      Format.printf "@\nPackage %s initialized in directory %s@." pkg dir ;
     end
 
 (* -------------------------------------------------------------------------- *)
