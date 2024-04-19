@@ -475,3 +475,11 @@ All modules shall belong to the same package. Options can be passed to
 The extracted modules are not intended to be directly used from OCaml client
 code.  As a rule of thumb you shall write some safe OCaml layer upon the
 extracted one, as a separated `dune` library.
+
+## References
+
+« [Packaging proofs with Why3find](https://cea.hal.science/hal-04407129v1) »
+L. Correnson, CEA-LIST, JFLA 2024
+
+« [Why3 — Where Programs Meet Provers](https://inria.hal.science/hal-00789533) »
+J-C. Filliâtre, A. Paskevich, INRIA, ESOP 2021
