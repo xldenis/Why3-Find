@@ -9,7 +9,7 @@ build:
         coverage_format: cobertura
         path: result/report.xml
   tags:
-    - nix-v2
+    - pub-nix
 
 variables:
   OCAML: "4.13"
