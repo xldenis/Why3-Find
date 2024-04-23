@@ -124,6 +124,7 @@ Typical examples are:
     why3find config --reset  […]  # Configure from scratch (ignore current config)
     why3find config --default […] # Use all "default" provers available from why3 configuration
     why3find config --detect […]  # Run `why3 config detect` before using all "default" provers
+    why3find config --check       # Check consistency between proof certificates and configuration
 
 When using `--default` or `--detect` why3find will select the highest available
 versions of provers `alt-ergo`, `z3`, `cvc4` and `cvc5` from why3 configuration.
