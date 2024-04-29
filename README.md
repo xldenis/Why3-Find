@@ -3,12 +3,12 @@
 
 # Why3find
 
-The `why3find` provides a collection of utilities to ease the development
-of Why3 projects and the development distribution of Why3 libraries and
+Why3find provides a collection of utilities to ease the development
+of Why3 projects and the distribution of Why3 libraries and
 packages. It can be used in place of the traditional `why3` command for most
 development tasks, eg. configuring provers, proving files or interactively
 debugging proofs. In additional, it can be used to build enhanced documentation,
-packaging and installing libraries or setup a distributed solver cloud.
+package and install libraries or setup a distributed solver cloud.
 
 - [Quick Setup](#quick-usage)
 - [Why3 Packages](#why3-packages)
@@ -43,11 +43,11 @@ To go further, continue reading this manual and use the following commands:
     $ why3find [-h|--help]            # Help on commands
     $ why3find COMMAND [-h|--help]    # Help on specific command
 
-## Why3 Packages
+## Packages
 
-Why3 packages provides a way to share modules and theories across different
-projects. Hence, a Why3 package is essentially a collection of Why3 files,
-together with configuration files and meta data, including package
+Why3find packages provides a way to share Why3 modules and theories across different
+projects. Hence, a package is essentially a collection of WhyML files,
+together with configuration files and metadata, including package
 dependencies, prover configuration, proof strategies, additional configuration,
 etc.
 
@@ -65,7 +65,7 @@ Packages are installed or uninstalled thanks to the following commands:
     $ why3find install PKG
     $ why3find uninstall PKG...
 
-By default, installation actually on generates a `dune` file at the root
+By default, installation actually only generates a `dune` file at the root
 directory of the package with all the necessary installation instructions.
 However, it is also possible to install files directly to the `why3find`
 repository, by using `why3find install --global PKG`, without using any `dune`
