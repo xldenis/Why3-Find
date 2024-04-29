@@ -214,14 +214,14 @@ let table_of_contents cout heads =
 let close output =
   flush output ;
   let target = output.target in
-  let cout = open_out target.file in
-  output_string cout head ;
-  output_string cout target.htitle ;
-  output_string cout body ;
-  table_of_contents cout (List.rev target.headers) ;
-  Buffer.output_buffer cout target.contents;
-  output_string cout foot ;
-  close_out cout ;
+  Utils.outputfile ~file:target.file begin fun cout ->
+    output_string cout head ;
+    output_string cout target.htitle ;
+    output_string cout body ;
+    table_of_contents cout (List.rev target.headers) ;
+    Buffer.output_buffer cout target.contents;
+    output_string cout foot
+  end ;
   Option.iter
     (fun tgt -> output.target <- tgt)
     output.target.forked

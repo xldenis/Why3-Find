@@ -102,11 +102,11 @@ let destroycache () =
 let preparecache () =
   begin
     Utils.mkdirs cachedir ;
-    let out = open_out cachever in
-    output_string out "why3find cache " ;
-    output_string out (Filename.basename cachever) ;
-    output_string out "\n" ;
-    close_out out ;
+    Utils.outputfile ~file:cachever begin fun out ->
+      output_string out "why3find cache " ;
+      output_string out (Filename.basename cachever) ;
+      output_string out "\n" ;
+    end ;
   end
 
 let checkcache = lazy
