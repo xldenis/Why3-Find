@@ -1,5 +1,6 @@
 build:
   script:
+    - nix/git-check.sh # path?
     - nix-build nix/pkgs.nix -A why3find
     - cat result/coverage.txt
   coverage: '/Coverage: \d+\.\d+\%/'
