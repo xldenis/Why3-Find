@@ -1,6 +1,5 @@
 (library
   (name Why3findUtils)
-  (public_name why3find.utils)
   (flags (:standard "-w" "-9"))
   (libraries unix yojson dune-site terminal_size))
 
