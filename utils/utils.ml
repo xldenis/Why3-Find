@@ -185,19 +185,30 @@ let load ~file buffer =
     done
   with End_of_file -> close_in inc
 
-let writefile ~file data =
+let output_and_close out output =
+  match output out with
+  | () -> close_out out
+  | exception e ->
+    let bt = Printexc.get_raw_backtrace () in
+    close_out_noerr out;
+    Printexc.raise_with_backtrace e bt
+
+let outputfile ~file output =
   let out = open_out file in
-  output_string out data ; close_out out
+  output_and_close out output
+
+let writefile ~file data =
+  outputfile ~file (fun out -> output_string out data)
 
 let readfile ~file =
   let buffer = Buffer.create 2048 in
   load ~file buffer ; Buffer.contents buffer
 
-let dump ~file pp =
-  let out = open_out file in
-  let fmt = Format.formatter_of_out_channel out in
-  pp fmt ; Format.pp_print_flush fmt () ;
-  close_out out
+let formatfile ~file pp =
+  outputfile ~file begin fun out ->
+    let fmt = Format.formatter_of_out_channel out in
+    pp fmt ; Format.pp_print_flush fmt ()
+  end
 
 (* -------------------------------------------------------------------------- *)
 (* --- Time Utilities                                                     --- *)

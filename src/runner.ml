@@ -90,32 +90,38 @@ let to_json (r : result) : Json.t =
 (* -------------------------------------------------------------------------- *)
 
 let cachedir = ".why3find"
-let cachever = ".why3find/v1"
+let cachever = ".why3find/v2"
+let why3vers = ".why3find/why3version"
 
 let destroycache () =
   begin
     if Utils.tty then
-      Log.emit "Upgrading cache (%s)" (Filename.basename cachever) ;
+      Log.emit "Upgrading cache (%s, why3 %s)" (Filename.basename cachever)
+        Why3.Config.version ;
     Utils.rmpath cachedir ;
   end
 
 let preparecache () =
   begin
     Utils.mkdirs cachedir ;
-    let out = open_out cachever in
-    output_string out "why3find cache " ;
-    output_string out (Filename.basename cachever) ;
-    output_string out "\n" ;
-    close_out out ;
+    Utils.outputfile ~file:cachever begin fun out ->
+      output_string out "why3find cache " ;
+      output_string out (Filename.basename cachever) ;
+      output_string out "\n" ;
+    end ;
+    Utils.writefile ~file:why3vers (Why3.Config.version ^ "\n")
   end
 
 let checkcache = lazy
   begin
     let cd = Sys.file_exists cachedir in
     let cv = Sys.file_exists cachever in
+    let wv =
+      Sys.file_exists why3vers
+      && String.trim (Utils.readfile ~file:why3vers) = Why3.Config.version in
     Utils.flush () ;
-    if cd && not cv then destroycache () ;
-    if not cd || not cv then preparecache () ;
+    if cd && (not cv || not wv) then destroycache () ;
+    if not cd || not cv || not wv then preparecache () ;
   end
 
 module Cache = Hashtbl.Make

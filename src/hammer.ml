@@ -291,7 +291,7 @@ let config ~tactics ~provers ~time ~mem =
   in
   begin
     Utils.mkdirs session ;
-    Utils.dump ~file:hammer
+    Utils.formatfile ~file:hammer
       begin fun fmt ->
         c_strategy fmt ~name:"hammer" ~shortcut:'H'
           ~descr:"Hammer (why3find provers & tactics)" [
