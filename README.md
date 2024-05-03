@@ -174,16 +174,16 @@ prove all the generated sub-goals. Tactics are Why3 transformations with no
 arguments. They shall transform tasks into equivalent sub-tasks, since once a
 tactic has been applied, why3find prove will stick on it (no back-tracking).
 
-*Proof Certificates* fulfill two different purposes: they can be used as a hint
-database for updating proofs, or they can be used to report _how_ some proof
+*Proof Certificates* fulfill different purposes: they are used for proofs replay,
+as a hint database for proofs update, and can also be used to report _how_ some proof
 obligation has been finally proved. Hence, proof certificates are very much like
-Why3 sessions, but with much less information details: they contains only
-prover timeout information, transformations with no-arguments, and at most one
-proving strategy for each goal. Management of proof certificates is controlled
+Why3 sessions, but with much less information details: they contain only
+prover results with time information, tactics, and contain at most one
+proving strategy for each subgoal. Management of proof certificates is controlled
 by the following options:
 
     why3find prove -f    # Force proof reconstruction from scratch (no hints)
-    why3find prove -u    # Update proofs by using current certificate as hints
+    why3find prove -u    # Update proofs by using current certificate as hints (the default)
     why3find prove -r    # Replay proofs (no update, no proof completion)
     why3find prove -m    # Complete failed proofs and minimize proof trees
 
@@ -201,13 +201,13 @@ purpose, and you will have to re-launch `why3find prove` to update the proof
 certificates when your Why3 specifications have been fixed.
 
 *Proving Strategy* for building proof certificates is a heuristic based on
-user-defined median time, registered provers and tactics. It consists
+user-defined reference time, registered provers and tactics. It consists
 in several _rounds_ tried in sequence until proof completion:
 
 1. Fast sequential provers: each configured prover is tried in _sequence_ with a
-   short timeout (1/5 of the median time).
+   short timeout (1/5 of the reference time).
 
-2. Parallel provers: all provers are tried in _parallel_ with the median time as
+2. Parallel provers: all provers are tried in _parallel_ with the reference time as
    timeout.
 
 3. Tactics: each configured or selected tactic is tried in
@@ -216,7 +216,7 @@ in several _rounds_ tried in sequence until proof completion:
    (there is no backtracking).
 
 4. Final parallel long try: if no tactic applies, all provers are
-   finally tried in _parallel_ with a larger timeout (2 times the median time).
+   finally tried in _parallel_ with a larger timeout (2 times the reference time).
 
 In case the final round fails to complete the proof, the goal is marked stuck
 and all its parent goals are marked incomplete. *Remark:* incomplete proof
@@ -224,10 +224,10 @@ certificates are also stored in order to be used as hints for further proof
 lookup. However, a tactic-node with all its sub-goals marked « stuck » would
 be removed.
 
-The median time is set to one second by default and can be modified with `-t
+The reference time is set to one second by default and can be modified with `-t
 TIME` or configured using `why3find config -t TIME`. A fraction of seconds or
 suffix time units (`h`,`min`,`s`,`ms`) can be given, eg. `0.5`, `200ms`,
-`3min`. The median time is specified relatively to the *master* machine,
+`3min`. The reference time is specified relatively to the *master* machine,
 Cf. prover calibration below.
 
 Proof search is pruned after a maximal number of nested levels. The default
