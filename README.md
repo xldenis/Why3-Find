@@ -43,13 +43,18 @@ To go further, continue reading this manual and use the following commands:
     $ why3find [-h|--help]            # Help on commands
     $ why3find COMMAND [-h|--help]    # Help on specific command
 
+*Disclaimer:* Why3find is currently in early design stage and is subject to
+change in future versions of the system. We are also looking for feedback and
+are very opened to discussions and propositions. Please, do not hesitate to open
+issues on our public BTS for submitting bugs or exchanging on feature wishes
+and new ideas.
+
 ## Packages
 
-Why3find packages provides a way to share Why3 modules and theories across different
-projects. Hence, a package is essentially a collection of WhyML files,
-together with configuration files and metadata, including package
-dependencies, prover configuration, proof strategies, additional configuration,
-etc.
+Why3find packages provides a way to share Why3 modules and theories across
+different projects. Hence, a package is essentially a collection of WhyML files,
+together with configuration files and metadata, including package dependencies,
+prover configuration, proof strategies, additional configuration, etc.
 
 Typically, `why3find` uses package metadata to properly configure Why3 for using
 the configured packages when proving and generating documentation. To ease the
