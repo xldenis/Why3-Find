@@ -264,7 +264,7 @@ let parse ~wenv ~cenv ~henv file =
       Log.error "%s" (Printexc.to_string exn) ;
       exit 1
   in
-  let profile, proofs = Prove.load_proofs file in
+  let profile, proofs = Proofs.load_proofs file in
   let theories =
     Mstr.mapi
       (fun id (theory : Thy.theory) ->

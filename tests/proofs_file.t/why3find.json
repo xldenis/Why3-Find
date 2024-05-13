@@ -1,0 +1,9 @@
+{
+  "configs": [],
+  "depth": 4,
+  "drivers": [],
+  "packages": [],
+  "provers": [],
+  "tactics": [ "split_vc" ],
+  "time": 1.0
+}
