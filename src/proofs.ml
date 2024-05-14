@@ -19,31 +19,58 @@
 (*                                                                        *)
 (**************************************************************************)
 
+module M = Why3.Wstdlib.Mstr
+module Th = Why3.Theory
+
+type profile = Calibration.profile
+type theories = Crc.crc M.t M.t
+
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Manager                                                      --- *)
+(* --- Proof Files                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-type mode = [ `Force | `Update | `Minimize | `Replay ]
-type log = [
-    `Default | `Modules | `Theories | `Goals | `Proofs | `Context of int
-]
+let jmap cc js =
+  let m = ref M.empty in
+  Json.jiter (fun fd js -> m := M.add fd (cc js) !m) js ; !m
 
-val stdlib : bool ref
-val externals : bool ref
-val builtins : bool ref
+let jproofs proofs : Json.t =
+  let folder th rs acc =
+    (th, `Assoc (List.map (fun (g,r) -> g, Crc.to_json r) rs)) :: acc in
+  `Assoc (M.fold folder proofs [])
 
-type outcome = {
-  provers : Prover.prover list ;
-  tactics : string list ;
-  time : int ;
-  mem : int ;
-  unfixed : string list ;
+let proofs_file file =
+  Filename.concat (Filename.chop_extension file) "proof.json"
+
+let load_proofs ?(local=false) file : profile * theories =
+  let file = proofs_file file in
+  let js = if Sys.file_exists file then Json.of_file file else `Null in
+  let default = if local then Some (Calibration.default ()) else None in
+  let profile = Calibration.of_json ?default @@ Json.jfield "profile" js in
+  let strategy = jmap (jmap Crc.of_json) @@ Json.jfield "proofs" js in
+  profile , strategy
+
+type dumper = {
+  file : string;
+  profile : Calibration.profile;
+  mutable proofs : (string * Crc.crc) list M.t;
 }
 
-val prove_files :
-  mode:mode ->
-  session:bool ->
-  log:log ->
-  axioms:bool ->
-  files:string list ->
-  outcome
+let save_proofs { file; profile; proofs } =
+  let file = proofs_file file in
+  Utils.mkdirs (Filename.dirname file) ;
+  Json.to_file file @@ `Assoc [
+    "profile", Calibration.to_json profile ;
+    "proofs", jproofs proofs ;
+  ]
+
+let create file profile =
+  { file; profile; proofs = M.empty; }
+
+let dump dumper =
+  save_proofs dumper
+
+let add theory goal crc dumper =
+  let changer o =
+    Some ((goal, crc) :: Option.value ~default:[] o) in
+  dumper.proofs <- M.change changer (Session.name theory) dumper.proofs;
+  dump dumper

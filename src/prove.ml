@@ -27,10 +27,6 @@ module M = Why3.Wstdlib.Mstr
 module Th = Why3.Theory
 open Fibers.Monad
 
-type profile = Calibration.profile
-type theories = Crc.crc M.t M.t
-type proofs = (Session.theory * (string * Crc.crc) list) list
-
 (* -------------------------------------------------------------------------- *)
 (* --- Theories                                                           --- *)
 (* -------------------------------------------------------------------------- *)
@@ -51,46 +47,10 @@ let load_theories (env : Wenv.env) file =
     exit 2
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Files                                                        --- *)
-(* -------------------------------------------------------------------------- *)
-
-let jmap cc js =
-  let m = ref M.empty in
-  Json.jiter (fun fd js -> m := M.add fd (cc js) !m) js ; !m
-
-let jproofs (prfs : proofs) : Json.t =
-  `Assoc (List.map (fun (th,rs) ->
-      Session.name th,
-      `Assoc (List.map (fun (g,r) -> g, Crc.to_json r) rs)
-    ) prfs)
-
-let proofs_file file =
-  Filename.concat (Filename.chop_extension file) "proof.json"
-
-let load_proofs ?(local=false) file : profile * theories =
-  let file = proofs_file file in
-  let js = if Sys.file_exists file then Json.of_file file else `Null in
-  let default = if local then Some (Calibration.default ()) else None in
-  let profile = Calibration.of_json ?default @@ Json.jfield "profile" js in
-  let strategy = jmap (jmap Crc.of_json) @@ Json.jfield "proofs" js in
-  profile , strategy
-
-let save_proofs ~mode dir file profile (prfs : proofs) =
-  let file = proofs_file file in
-  match mode with
-  | `Replay -> ()
-  | `Minimize | `Update | `Force ->
-    Utils.mkdirs dir ;
-    Json.to_file file @@ `Assoc [
-      "profile", Calibration.to_json profile ;
-      "proofs", jproofs prfs ;
-    ]
-
-(* -------------------------------------------------------------------------- *)
 (* --- Proof Driver                                                       --- *)
 (* -------------------------------------------------------------------------- *)
 
-let prove_theory ~file ~context mode profile strategy theory =
+let prove_theory ~file ~context mode profile dumper strategy theory =
   let thy = Session.name theory in
   let tasks = Session.split theory in
   let hints = M.find_def M.empty thy strategy in
@@ -105,6 +65,7 @@ let prove_theory ~file ~context mode profile strategy theory =
            Hammer.schedule profile ~replay ~depth:0 task
              (if mode = `Force then Crc.stuck () else hint)
          in
+         Option.iter (Proofs.add theory goal crc) dumper;
          if Utils.tty then Crc.stats hint crc ;
          if not (Crc.is_complete crc) then
            begin
@@ -318,15 +279,18 @@ let process ~env ~mode ~session ~(log:results) ~axioms ~unsuccess file =
       if Filename.is_relative file then dir else Filename.basename dir in
     let theories, format = load_theories env file in
     let session = Session.create ~session ~dir ~file ~format theories in
-    let profile, strategy = load_proofs ~local:true file in
+    let profile, strategy = Proofs.load_proofs ~local:true file in
+    let dumper = match mode with
+      | `Force | `Update | `Minimize -> Some (Proofs.create file profile)
+      | `Replay -> None in
     let context = match log with `Context n -> n | _ -> (-1) in
     let* proofs =
       Fibers.all @@ List.map
-        (prove_theory ~file ~context mode profile strategy)
+        (prove_theory ~file ~context mode profile dumper strategy)
         (Session.theories session)
     in
     Session.save session ;
-    save_proofs ~mode dir file profile proofs ;
+    Option.iter Proofs.dump dumper ;
     let henv =
       if axioms then
         Some (Axioms.init env)

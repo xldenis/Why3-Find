@@ -20,30 +20,28 @@
 (**************************************************************************)
 
 (* -------------------------------------------------------------------------- *)
-(* --- Proof Manager                                                      --- *)
+(* --- Proof Files                                                        --- *)
 (* -------------------------------------------------------------------------- *)
 
-type mode = [ `Force | `Update | `Minimize | `Replay ]
-type log = [
-    `Default | `Modules | `Theories | `Goals | `Proofs | `Context of int
-]
+module M = Why3.Wstdlib.Mstr
 
-val stdlib : bool ref
-val externals : bool ref
-val builtins : bool ref
+type profile = Calibration.profile
+type theories = Crc.crc M.t M.t
 
-type outcome = {
-  provers : Prover.prover list ;
-  tactics : string list ;
-  time : int ;
-  mem : int ;
-  unfixed : string list ;
-}
+val proofs_file : string -> string
+(** Returns the proofs file associated with the given mlw file *)
 
-val prove_files :
-  mode:mode ->
-  session:bool ->
-  log:log ->
-  axioms:bool ->
-  files:string list ->
-  outcome
+val load_proofs : ?local:bool -> string -> profile * theories
+(**
+   Load the content of the proofs file associated with the given mlw file.
+   If [~local:true] is specified, the calibration profile also inherits from
+   the local environment. Otherwize, it is taken as it is from the file.
+*)
+
+type dumper
+
+val create : string -> profile -> dumper
+
+val add : Session.theory -> string -> Crc.crc -> dumper -> unit
+
+val dump : dumper -> unit

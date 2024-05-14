@@ -440,8 +440,8 @@ let () = register ~name:"config" ~args:"[OPTIONS] PROVERS"
                 retval := 1;
             | Tactic { children; _ } -> List.iter check_crc children in
           let check f =
-            let _, theories = Prove.load_proofs f in
-            Prove.M.(iter (fun _ -> iter (fun _ -> check_crc))) theories
+            let _, theories = Proofs.load_proofs f in
+            Proofs.M.(iter (fun _ -> iter (fun _ -> check_crc))) theories
           in
           Wenv.allfiles ~exts:[".mlw"] check "."
         end ;
@@ -797,7 +797,7 @@ let () = register ~name:"install" ~args:"PKG PATH..."
               src pkg ;
           allsrc := false ;
           Wenv.allfiles ~exts:[".mlw"] (install ~kind:"(source)") src ;
-          let proofs = Prove.proofs_file src in
+          let proofs = Proofs.proofs_file src in
           if Sys.file_exists proofs then
             install ~kind:"(proof)" proofs ;
         end in
