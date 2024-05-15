@@ -8,7 +8,7 @@
  "Loïc Correnson <loic.correnson@cea.fr>"
  "Benjamin Jorge <benjamin.jorge@cea.fr>")
 (maintainers benjamin.jorge@cea.fr loic.correnson@cea.fr)
-(license LGPL-2.1)
+(license LGPL-2.1-only)
 (source (uri "git+https://git.frama-c.com:pub/why3find.git"))
 (homepage "https://git.frama-c.com/pub/why3find")
 (documentation "https://git.frama-c.com/pub/why3find")
