@@ -322,6 +322,7 @@ let init () =
     let extra_config = configs () in
     let wconfig = Whyconf.init_config ~extra_config None in
     let wmain = Whyconf.get_main wconfig in
+    Whyconf.load_plugins wmain;
     let wpath = Whyconf.loadpath wmain in
     let wenv = Why3.Env.create_env ("." :: pkg_path @ wpath) in
     { wconfig ; wenv ; pkgs }
