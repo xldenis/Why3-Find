@@ -527,7 +527,7 @@ let () = register ~name:"prove" ~args:"[OPTIONS] PATH..."
          OPTIONS:\n" ;
       let session = !session || !ide in
       let files = if !files = [] then ["."] else !files in
-      let files = Wenv.argfiles ~exts:[".mlw"] @@ List.rev files in
+      let files = Wenv.argfiles ~exts:[".mlw"; ".mlcfg"; ".coma"] @@ List.rev files in
       let result = Prove.prove_files
           ~mode:!mode ~session ~log:!log ~axioms:!axioms ~files in
       let n = List.length result.unfixed in

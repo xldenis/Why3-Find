@@ -268,11 +268,6 @@ let rec normalize = function
 let process ~env ~mode ~session ~(log:results) ~axioms ~unsuccess file =
   Fibers.background @@
   begin
-    if not @@ String.ends_with ~suffix:".mlw" file then
-      begin
-        Log.error "invalid file name: %S" file ;
-        exit 2
-      end ;
     let dir = Filename.chop_extension file in
     let lib =
       normalize @@ String.split_on_char '/' @@
