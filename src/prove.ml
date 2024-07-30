@@ -321,12 +321,18 @@ let prove_files ~mode ~session ~log ~axioms ~files =
     let log : results = match log with
       | `Default -> if List.length files > 1 then `Modules else `Theories
       | #results as l -> l in
+    let start = Unix.gettimeofday () in
     List.iter (process ~env ~mode ~session ~log ~axioms ~unsuccess) files ;
+    let why3_typing = Unix.gettimeofday () in
     Hammer.run {
       env ;
       client = Client.connect env ;
       time ; maxdepth ; patterns ; provers ; tactics ; minimize ;
     } ;
+    let hammer_time = Unix.gettimeofday () in
+
+    Format.eprintf "Why3 Typing: %f\n" (why3_typing -. start);
+    Format.eprintf "Hammer: %f\n" (hammer_time -. why3_typing);
     if Utils.tty then
       begin
         Utils.flush () ;
